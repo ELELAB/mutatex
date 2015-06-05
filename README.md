@@ -1,2 +1,2 @@
 # mutatex
-scripts and facilities for in-silico mutagenesis with FoldX
+Scripts and facilities for in-silico mutagenesis with FoldX
