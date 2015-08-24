@@ -455,7 +455,7 @@ def load_runfile(runfile):
 		with open(runfile, 'r') as fh:
 			data = fh.read()
 	except:
-		log.error("Couldn't open file %s." % pdb)
+		log.error("Couldn't open file %s." % runfile)
 		raise 
 
 	return data 
@@ -558,7 +558,7 @@ def main():
 
 	parser = argparse.ArgumentParser(description='Setup and run in silico saturation mutagenesis with FoldX.')
 
-	parser.add_argument('pdb', metavar='PDBFILE', type=str, nargs='*' )
+	parser.add_argument('pdb', metavar='PDBFILE', type=str, nargs='+',  )
 	parser.add_argument('--skip-check', '-r', dest='skip_check', default=False, action='store_true', help="Skip PDB checking phase")
 	parser.add_argument('--skip-repair', dest='skip_repair', default=False, action='store_true', help="Skip PDB repair phase")
 	parser.add_argument('--skip-mutate', dest='skip_mutate', default=False, action='store_true', help="Skip PDB mutation phase")
