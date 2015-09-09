@@ -609,22 +609,22 @@ def main():
 		log.error("FoldX version %s not supported by this release. Exiting...")
 		exit(1)
 
-		current_version = supported_foldx_versions[args.foldx_version](binary=args.foldx_binary)
+	current_version = supported_foldx_versions[args.foldx_version](binary=args.foldx_binary)
 
 # defaults 
-		repair_dirname = "repair"
-		mutations_dirname = "mutations"
-		results_dirname = "results"
-		averages_dirname = "final_averages"
-		DEVNULL = open(os.devnull, 'w')
-		default_mutlist = ('G','A','V','L','I','M','F','W','P','S','T','C','Y','N','Q','D','E','K','R','H')
+	repair_dirname = "repair"
+	mutations_dirname = "mutations"
+	results_dirname = "results"
+	averages_dirname = "final_averages"
+	DEVNULL = open(os.devnull, 'w')
+	default_mutlist = ('G','A','V','L','I','M','F','W','P','S','T','C','Y','N','Q','D','E','K','R','H')
 
-		pdb_models = []
-		try:
-			for pdb in args.pdb:
-				pdb_models.append(load_models(pdb, check_models = not args.skip_check))
-		except:
-			exit(1)
+	pdb_models = []
+	try:
+		for pdb in args.pdb:
+			pdb_models.append(load_models(pdb, check_models = not args.skip_check))
+	except:
+		exit(1)
 
 	for p in range(len(pdb_models)):
 		if len(pdb_models[p].get_list()) > 1 and not args.multiple_models:
