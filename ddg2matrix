@@ -1,0 +1,266 @@
+#!/usr/env/python
+
+#    ddg2matrix: plot DDG MutateX results as heat maps.
+#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import argparse
+from matplotlib import cm
+
+def parse_ddg_file(fname, reslist, thisres):
+    try:
+        fh = open(fname, 'r')
+    except:
+        log.warning("file %s cannot be opened." % fname)
+        return None
+
+    ddgs = []
+    for line in fh:
+        if line and not line.startswith("#"): 
+            ddgs.append(float(line.strip()))
+                
+    if len(ddgs) != len(reslist):
+        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), values))
+        exit(1)
+    return ddgs
+
+def parse_list_file(fname):
+    fh = open(fname, 'r')
+    restypes = []
+    for line in fh:
+        if line and not line.startswith("#"):
+            restypes.append(line.strip()[0])
+    return restypes
+
+def plot_matrix(mat, xlabels, ylabels, cmap, title=None, vmin=None, vmax=None, transpose=False, fontsize=8):
+
+    yt = xlabels
+    xt = ylabels
+
+    xticks = np.arange(0,mat.shape[1])
+    yticks = np.arange(0,mat.shape[0])
+
+    if title == None:
+        title = ""
+
+    plt.title(title)
+
+    orientation='vertical'
+    rotation_xt=0
+
+    if transpose:
+        mat = mat.T
+        xticks, yticks = yticks, xticks
+        xt, yt = yt, xt
+        orientation='horizontal'
+        rotation_xt=90
+
+
+    im = plt.imshow(mat, interpolation="nearest",cmap=cmap, vmin=vmin, vmax=vmax)
+    cb = plt.colorbar(orientation=orientation)
+    cb.set_label(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
+
+    for t in cb.ax.get_yticklabels():
+        t.set_fontsize(fontsize)
+
+    plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
+    plt.yticks(yticks,yt,rotation=0,size=fontsize)
+
+def save_matrix(mat, horizontal_header, vertical_header, fname, transpose=False):
+
+    #assert mat.shape[0] == len(horizontal_header)
+    #assert mat.shape[1] == len(vertical_header)
+
+
+    this_mat = np.array(mat, copy=True)
+
+    str_mat = np.char.mod("%.2f", this_mat)
+
+    str_mat[str_mat == 'nan'] = '-'
+
+    vertical_header = ['%s.%s'%(i[2:],i[0]) for i in vertical_header]
+    print vertical_header
+
+    out = np.zeros((mat.shape[0]+1, mat.shape[1]+1), dtype="|S10")
+    out[0,0] = ''
+    out[1:,1:] = str_mat
+    out[0,1:] = np.array(horizontal_header)
+    out[1:,0] = np.array(vertical_header)
+
+    justified_out = np.core.defchararray.rjust(out, 7)
+
+    if transpose:
+        np.savetxt(fname, justified_out.T, fmt="%s")
+    else:
+        np.savetxt(fname, justified_out, fmt="%s")
+
+
+def splice_data(data, labels, sv):
+
+    out = []
+
+    if data.shape[0] <= sv:
+        return [[data, labels]]
+
+    nsplice = data.shape[0] / int(sv)
+    rest =    data.shape[0] % int(sv)
+
+    if rest != 0:
+        nsplice += 1
+
+    for i in range(nsplice):
+        out.append([
+                data[i*sv:(i+1)*sv,:],
+                labels[i*sv:(i+1)*sv]
+            ])
+
+    return out
+
+
+
+three2one = {'ALA':'A',
+             'CYS':'C',
+             'ASP':'D',
+             'GLU':'E',
+             'PHE':'F',
+             'GLY':'G',
+             'HIS':'H',
+             'ILE':'I',
+             'LYS':'K',
+             'LEU':'L',
+             'MET':'M',
+             'ASN':'N',
+             'PRO':'P',
+             'GLN':'Q',
+             'ARG':'R',
+             'SER':'S',
+             'THR':'T',
+             'VAL':'V',
+             'TRP':'W',
+             'TYR':'Y'}
+
+LOGFMT = "%(levelname)s: %(message)s"
+
+if not __name__ == "__main__":
+    exit()
+
+cmaps_list = [m for m in cm.datad if not m.endswith("_r")]
+
+parser = argparse.ArgumentParser(
+description='FoldX DDG converter to the OOXML xlsx format',)
+
+parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
+parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
+parser.add_argument("-m","--include-invalid-files",dest='includeblank',action='store_true', default=False, help="Include empty columns in output instead of ignoring missing files")
+parser.add_argument("-l","--order-list", dest="order",  help="default order list")
+parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
+parser.add_argument("-o","--output", dest="outfile", action='store', default='energies.pdf')
+parser.add_argument("-r","--output-raw-data", dest="raw", action='store', default=None, help="Save raw data file")
+parser.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="Minimum value to be plotted")
+parser.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="Maximum value to be plotted")
+parser.add_argument("-t","--transpose",dest='transpose',action="store_true",default=False,help="Swap rows and columns")
+parser.add_argument("-i","--title", dest='title', action='store', default=None, type=str, help="Title for the output image file")
+parser.add_argument("-c","--color-map",dest='cmap',action='store', type=unicode, default='jet', help="Color map used to plot the DDG values (choose from: %s)" % ", ".join(cmaps_list))
+parser.add_argument("-s","--splice",dest='sv',action='store', type=int, default=20, help="Number of residues for each single image")
+parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Font size")
+
+options = parser.parse_args()
+
+import numpy as np
+import logging as log
+import os
+from Bio import PDB
+from matplotlib import pyplot as plt
+
+if options.verbose:
+    log.basicConfig(level=log.INFO,    format=LOGFMT)
+else:
+    log.basicConfig(level=log.WARNING, format=LOGFMT)
+
+if options.cmap not in cmaps_list:
+    log.error("Specified color map is not available. Choose one between: %s." % ", ".join(cmaps_list) )
+    exit(1)
+
+res_order = parse_list_file(options.order)
+
+log.info("Residues list is:")
+for i,r in enumerate(res_order):
+    log.info("%d\t%s" % (i,r))
+
+pdb_parser = PDB.PDBParser()
+
+try:
+    structure = pdb_parser.get_structure('s', options.in_pdb)
+except:
+    log.error("Couldn't open or parse input pdb file. Exiting...")
+    exit(1)
+ 
+res_ids = []
+res_ids_str = []
+data = []
+
+for model in structure:
+    for chain in model:
+        for res in chain:
+            try:
+                this_type = three2one[res.get_resname()]
+            except:
+                log.warning("residue %s, %s, %d not recognized. It will be skipped." % (res.get_resname(), chain.get_id(), res.get_id()[1]))
+                continue
+
+            res_ids.append((chain.get_id(), res.get_id()[1], this_type))
+            res_ids_str.append("%s%s%d" % (res_ids[-1][2],res_ids[-1][0],res_ids[-1][1]))
+            this_data = parse_ddg_file("%s/%s" % (options.dir, res_ids_str[-1]), reslist=res_order, thisres=res_ids[-1][0])
+
+            if this_data:
+                data.append(np.array(this_data))
+                continue
+            elif options.includeblank:
+                this_data = np.empty((len(res_order)))
+                this_data[:] = np.NAN
+                data.append(this_data)
+            else:
+                res_ids.pop()
+                res_ids_str.pop()
+
+data = np.vstack(tuple(data))
+
+if not options.vmax:
+    options.vmax = np.max(data)
+if not options.vmin:
+    options.vmin = np.min(data)
+
+print res_order
+
+spliced_data = splice_data(data, res_ids_str, options.sv)
+
+#def save_matrix(mat, vertical_header, horizontal_header, fname):
+
+
+if options.raw:
+    save_matrix(data, res_order, res_ids_str, options.raw, options.transpose)
+
+for i in range(len(spliced_data)):
+    plot_matrix(spliced_data[i][0], 
+                spliced_data[i][1], 
+                res_order, 
+                cm.get_cmap(options.cmap), 
+                title=options.title, 
+                vmin=options.vmin, 
+                vmax=options.vmax, 
+                transpose=options.transpose,
+                fontsize=options.fontsize)
+    plt.savefig("%d_%s.pdf" %(i, options.outfile))
+    plt.clf()

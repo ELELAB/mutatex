@@ -1,0 +1,173 @@
+#    ddg2xlsx: convert DDG MutateX results to the xlsx format.
+#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+import argparse
+
+def parse_ddg_file(fname, reslist, thisres):
+
+    fh = open(fname, 'r')
+    ddgs = []
+    for line in fh:
+        if line and not line.startswith("#"): 
+            ddgs.append(float(line.strip()))
+                
+    if len(ddgs) != len(reslist):
+        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), values))
+        exit(1)
+    return ddgs
+
+def parse_list_file(fname):
+    fh = open(fname, 'r')
+    restypes = []
+    for line in fh:
+        if line and not line.startswith("#"):
+            restypes.append(line.strip()[0])
+    return restypes
+
+three2one = {'ALA':'A',
+             'CYS':'C',
+             'ASP':'D',
+             'GLU':'E',
+             'PHE':'F',
+             'GLY':'G',
+             'HIS':'H',
+             'ILE':'I',
+             'LYS':'K',
+             'LEU':'L',
+             'MET':'M',
+             'ASN':'N',
+             'PRO':'P',
+             'GLN':'Q',
+             'ARG':'R',
+             'SER':'S',
+             'THR':'T',
+             'VAL':'V',
+             'TRP':'W',
+             'TYR':'Y'}
+
+LOGFMT = "%(levelname)s: %(message)s"
+
+if not __name__ == "__main__":
+    exit()
+
+parser = argparse.ArgumentParser(
+description='FoldX DDG converter to the OOXML xlsx format',)
+
+parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
+parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
+parser.add_argument("-l","--order-list", dest="order",  help="default order list")
+parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
+parser.add_argument("-o","--output", dest="outfile", action='store', default='energies.xlsx')
+parser.add_argument("-t","--transpose",dest='transpose',action="store_true",default=False,help="Swap rows and columns")
+
+# parse ddg files
+
+options = parser.parse_args()
+
+import numpy as np
+import logging as log
+import openpyxl as pyxl
+from Bio import PDB
+
+if options.verbose:
+    log.basicConfig(level=log.INFO,    format=LOGFMT)
+else:
+    log.basicConfig(level=log.WARNING, format=LOGFMT)
+
+# parse PDB
+
+res_order = parse_list_file(options.order)
+
+log.info("Residues list is:")
+for i,r in enumerate(res_order):
+    log.info("%d\t%s" % (i,r))
+
+pdb_parser = PDB.PDBParser()
+
+#if True:
+try:
+    structure = pdb_parser.get_structure('s', options.in_pdb)
+#else:
+except:
+    log.error("Couldn't open or parse input pdb file. Exiting...")
+    exit(1)
+ 
+res_ids = []
+for model in structure:
+    for chain in model:
+        for res in chain:
+            try:
+                this_type = three2one[res.get_resname()]
+            except:
+                log.warning("residue %s, %s, %d not recognized. It will be skipped." % (res.get_resname(), chain.get_id(), res.get_id()[1]))
+                continue
+            res_ids.append((chain.get_id(), res.get_id()[1], this_type))
+
+print res_ids
+res_ids_str = ["%s%s%d" % (res[2],res[0],res[1]) for res in res_ids]
+
+log.info("The following files will be considered: %s" % ", ".join(res_ids_str))
+
+data = []
+
+for i,r in enumerate(res_ids):
+    data.append(np.array(parse_ddg_file("%s/%s" % (options.dir, res_ids_str[i]), reslist=res_order, thisres=res_ids[i][0])))
+
+wb = pyxl.Workbook()
+#ws = wb.create_sheet(0)
+ws = wb.get_sheet_by_name('Sheet')
+ws.title = 'FoldX mutations DDG'
+
+
+
+#prepare header
+
+ws.cell(row=0, column=0).value = "Chain ID"
+if options.transpose:
+    ws.cell(row=1, column=0).value = "Residue #"
+    ws.cell(row=2, column=0).value = "WT Residue type"
+else:
+    ws.cell(row=0, column=1).value = "Residue #"
+    ws.cell(row=0, column=2).value = "WT Residue type"
+
+
+for i,res in enumerate(res_ids):
+    if options.transpose:
+        ws.cell(row=0,column=i+1).value = res[0]
+        ws.cell(row=1,column=i+1).value = res[1]
+        ws.cell(row=2,column=i+1).value = res[2]
+    else:
+        ws.cell(row=i+1,column=0).value = res[0]
+        ws.cell(row=i+1,column=1).value = res[1]
+        ws.cell(row=i+1,column=2).value = res[2]
+     
+offset = 3
+
+for i,mut in enumerate(res_order):
+    if options.transpose:
+        ws.cell(row=i+offset,column=0).value = mut
+    else:
+        ws.cell(row=0,column=i+offset).value = mut
+
+for i,res in enumerate(res_ids):
+    for j,ddg in enumerate(data[i]):
+        if options.transpose:
+            ws.cell(row=j+offset, column=i+1).value = ddg
+        else:
+            ws.cell(row=i+1, column=j+offset).value = ddg
+
+wb.save(options.outfile)

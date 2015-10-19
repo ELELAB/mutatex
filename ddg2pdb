@@ -1,0 +1,200 @@
+#!/usr/env/python
+
+#    ddg2pdb: plot DDG MutateX results in the B-factor fields of PDB files
+#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import argparse
+
+def parse_ddg_file(fname, reslist, thisres):
+
+    values = len(reslist)-1
+    fh = open(fname, 'r')
+    ddgs = []
+    counter = 0
+    for line in fh:
+        if line and not line.startswith("#"): 
+            if counter != reslist[thisres]:
+                ddgs.append(float(line.strip()))
+                counter += 1
+            elif counter == reslist[thisres]:
+                counter += 1
+                if abs(float(line.strip())) > 0.5:
+                    log.warning("self-mutation in %s has DDG %.3f !"  % (fname, float(line.strip())))
+                
+    if len(ddgs) != values:
+        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), values))
+        exit(1)
+    return ddgs
+
+def parse_list_file(fname):
+    fh = open(fname, 'r')
+    restypes = {}
+    i = 0
+    for line in fh:
+        if line and not line.startswith("#"):
+            restypes[line.strip()[0]] = i
+            i += 1
+    return restypes
+
+three2one = {'ALA':'A',
+             'CYS':'C',
+             'ASP':'D',
+             'GLU':'E',
+             'PHE':'F',
+             'GLY':'G',
+             'HIS':'H',
+             'ILE':'I',
+             'LYS':'K',
+             'LEU':'L',
+             'MET':'M',
+             'ASN':'N',
+             'PRO':'P',
+             'GLN':'Q',
+             'ARG':'R',
+             'SER':'S',
+             'THR':'T',
+             'VAL':'V',
+             'TRP':'W',
+             'TYR':'Y'}
+
+LOGFMT = "%(levelname)s: %(message)s"
+
+if not __name__ == "__main__":
+    exit()
+
+parser = argparse.ArgumentParser(
+description='FoldX DDG parser & plotter',
+epilog='''Please notice that cut-offs (i.e. DDG thresholds) are mandatory. In fact,
+the program will save for each residue the number of mutations which are
+within the specified parameters. You can control this behaviour using options
+-a (low threshold), -b (high threshold)  and -t (mode). 
+By default, the program will consider valid values < low_thr OR (logical) > high_thr.
+If -a or -b are not specified, the values of low and high thresholds are defaulted to,
+respectively, -99999.0 and 99999.0. If "between" mode is selected
+(option -t between), it will consider as valid those values found between the low
+and high threshold. For instance, these options generate the relative
+validity intervals: -a 0.5 = ]-inf,0.5] U [99999.0,+inf[ ; 
+-b 0.5 = ]-inf,-99999.0] U [0.5,+inf[;
+-a 0.5 -b 1.0 = ]-inf,0.5] U [1.0,+inf[;
+-a 0.5 -b 1.0 -t between = [0.5,1.0]
+''')
+
+parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
+parser.add_argument("-i","--input-pdb", dest="in_pdb", help="Input pdb file")
+parser.add_argument("-m","--matrix", dest="dat", default="ala_scanning.mat", help="output xPyder-compatible matrix")
+parser.add_argument("-o","--output-pdb", dest="out_pdb", default="ala_scanning.pdb", help="Output pdb file")
+parser.add_argument("-a","--lower-free-energy-threshold", dest="low_thres", default=None, type=float, help="lower threhsold; default value: -99999.0")
+parser.add_argument("-b","--upper-free-energy-threshold", dest="high_thres", default=None, type=float, help="upper threhsold; default value: 99999.0")
+parser.add_argument("-t","--threshold-mode", dest='thres_mode', choices=['between','outside'], default='outside', action='store', help="threshold mode: between=between upper and lower value, outside: <lower OR >upper")
+parser.add_argument("-l","--order-list", dest="order",  help="default order list")
+parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
+
+# parse ddg files
+
+options = parser.parse_args()
+
+import numpy as np
+import logging as log
+from Bio import PDB
+
+if options.verbose:
+    log.basicConfig(level=log.INFO,    format=LOGFMT)
+else:
+    log.basicConfig(level=log.WARNING, format=LOGFMT)
+
+# parse PDB
+pdb_parser = PDB.PDBParser()
+
+
+try:
+    structure = pdb_parser.get_structure('s', options.in_pdb)
+except:
+    log.error("Couldn't open or parse input pdb file. Exiting...")
+    exit(1)
+
+res_order = parse_list_file(options.order)
+log.info("Residues list is:")
+for k,v in sorted(res_order.iteritems(), key=lambda x: x[1]):
+    log.info("%d\t%s" % (v+1,k))
+ 
+res_ids = []
+for model in structure:
+    for chain in model:
+        for res in chain:
+            try:
+                this_type = three2one[res.get_resname()]
+            except:
+                log.warning("residue %s, %s, %d not recognized. It will be skipped." % (res.get_resname(), chain.get_id(), res.get_id()[1]))
+                continue
+            res_ids.append("%s%s%d" % (this_type, chain.get_id(), res.get_id()[1]))
+
+log.info("The following files will be considered: %s" % ", ".join(res_ids))
+
+data = np.zeros((len(res_ids)))
+
+
+if options.high_thres or options.low_thres:
+    if not options.high_thres:
+        options.high_thres = 99999.0
+    if not options.low_thres:
+        options.low_thres = -99999.0
+
+if not options.high_thres and not options.low_thres:
+    log.error("Please provide a DDG cut-off (options -a, -b, -t). Exiting...")
+    exit(1)
+else:
+    log.info("Filtering will be performed.")
+    log.info("Low threshold: %.2f" % options.low_thres)
+    log.info("High threshold: %.2f"% options.high_thres)
+
+if options.thres_mode == 'outside':
+    log.info("Mode: outside. Only values > %.2f OR values < %.2f will be considered." % (options.high_thres, options.low_thres))
+elif options.thres_mode == 'between':
+    log.info("Mode: between. Only values between %.2f and %.2f will be considered." % (options.low_thres, options.high_thres))
+
+for i,r in enumerate(res_ids):
+    #try:
+    tmp_data = np.array(parse_ddg_file("%s/%s" % (options.dir, r), reslist=res_order, thisres=res_ids[i][0]))
+
+    if options.thres_mode == 'outside':
+        data[i] = np.sum(np.logical_or(tmp_data <= options.low_thres, tmp_data >= options.high_thres))
+    elif options.thres_mode == 'between':
+        data[i] = np.sum(np.logical_and(tmp_data <= options.high_thres, tmp_data >= options.low_thres))
+    #except:
+        #log.error("File %s not found, not openeable or not in the right format! Exiting..."%r)
+        #exit(1)
+
+mat = np.zeros((len(res_ids),len(res_ids)))
+
+for i,v in enumerate(data):
+    mat[i][i] = v
+
+np.savetxt(options.dat, mat, fmt="%.1f") 
+
+i = 0
+for model in structure:
+    for chain in model:
+        for i,residue in enumerate(chain):
+            if residue.get_resname() in three2one.keys():
+                for atom in residue:
+                    atom.set_bfactor(data[i])
+                i += 1
+            else:
+                atom.set_bfactor = 0
+
+pdb_io = PDB.PDBIO()
+pdb_io.set_structure(structure)
+pdb_io.save(options.out_pdb)
