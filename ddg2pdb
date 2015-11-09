@@ -1,4 +1,4 @@
-#!/usr/env/python
+#!/usr/bin/env python
 
 #    ddg2pdb: plot DDG MutateX results in the B-factor fields of PDB files
 #    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>

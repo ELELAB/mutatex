@@ -1,4 +1,4 @@
-#!/usr/env/python
+#!/usr/bin/env python
 
 #    ddg2matrix: plot DDG MutateX results as heat maps.
 #    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
