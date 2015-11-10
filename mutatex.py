@@ -1,4 +1,4 @@
-#!/usr/env/python
+#!/usr/bin/env python
 
 #    mutatex: automate FoldX in-silico mutagenesis experiments
 #    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
@@ -45,7 +45,6 @@ class ResList:
 
 	__str__ = __repr__
 
-
 	def parse_list_file(self, fname):
 		try: 
 			fh = open(fname, 'r')
@@ -61,7 +60,6 @@ class ResList:
 		fh.close()
 		return tuple(restypes)
 
-
 class FoldXVersion:
 	def __init__(self, binary=None):
 		if binary:
@@ -74,7 +72,7 @@ class FoldXVersion:
 
 	out_ext = "fxout"
 
-	repaired_pdb_prefix = "RepairPDB_"
+	#repaired_pdb_prefix = "RepairPDB_"
 	average_fxout_prefix = "Average_BuildModel_"
 	dif_fxout_prefix = "Dif_BuildModel_"
 
@@ -82,32 +80,155 @@ class FoldXVersion:
 	
 	len_dif_file_header = 9
 
-	def parse_fxout(self, fname):
-		pattern = '(\s+([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)){12}'
+	def repair_pdb_output_fname(self, basename):
+		return "RepairPDB_%s" % basename
 
-		energies = []
-		log.info("Parsing file %s ..." %fname)
-		try: 
-			fh = open(fname, 'r')
-		except:
-			log.warning("Couldn't open file %s." % fname)
-			raise
+	def mutate_average_fxout_output_fname(self, basename, *args, **kwargs):
+		return "Average_BuildModel_%s.fxout" % basename
 
-		for line in fh:
-			if re.search(pattern, line.strip()):
-				energies.append(float(line.strip().split()[2]))
+	def mutate_dif_fxout_output_fname(self, basename, *args, **kwargs):
+		return "Dif_BuildModel_%s.fxout" % basename
 
-		if len(energies) < 1:
+	def parse_fxout(self, directory, pdb, *args, **kwargs):
+		fnames = self.get_fnames(directory, pdb)
+
+		if len(args) == 1:
+			this_run = args[0]
+		else:
+			this_run = kwargs['this_run']
+
+		for fname in fnames:
+			
+			pattern = '(\s+([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)){12}'
+
+			energies = []
+			log.info("Parsing file %s ..." %fname)
+			if True: #try:
+				fh = open(fname, 'r')
+			else: #except:
+				log.warning("Couldn't open file %s." % fname)
+				raise
+
+			for line in fh:
+				if re.search(pattern, line.strip()):
+					energies.append(float(line.strip().split()[1]))
+
+			if len(energies) < 1:
+				fh.close()
+				log.warning("No energy values found in file %s!" % fname)
+				raise
+
 			fh.close()
-			log.warning("No energy values found in file %s!" % fname)
-			raise
 
-		fh.close()
-		return energies
+		energies = np.array(energies)
+		energies = energies.reshape(len(this_run.prepare_finalization['mutlist']),
+									energies.shape[0]/len(this_run.prepare_finalization['mutlist']))
+
+		#print energies
+		#print energies.shape
+
+		return energies	
+
+	def get_fnames(self, directory, pdbs):
+
+		fnames = []
+		for pdb in pdbs:
+			results_basedir = os.path.splitext(os.path.basename(pdb))[0]
+			fnames.append(directory+"/"+self.dif_fxout_prefix+results_basedir+".fxout")
+
+		return fnames
+
+	def check_dif_file_size(self, cwd, fname, nmuts, nruns):
+		#if self.foldx_version(check_dif_file_size(dif_file)):
+		with open("%s/%s" % (cwd,fname)) as fh:
+			fsize = len(fh.readlines())
+		
+		if fsize-self.len_dif_file_header == nmuts*nruns:
+			return True
+		return False
+
 
 class FoldXVersion3b6(FoldXVersion):
 	version="3b6"
 	runfile_string = "-runfile"
+
+class FoldXVersion3b8(FoldXVersion):
+	version="3b8"
+	runfile_string = "-runfile"
+
+class FoldXVersion4(FoldXVersion):
+	version="4"
+	runfile_string = "-f"
+	repaired_pdb_prefix = "RepairPDB_"
+	average_fxout_prefix = "Average_BuildModel_"
+	dif_fxout_prefix = "Dif_"
+
+	def repair_pdb_output_fname(self, basename):
+		return "%s_Repair.pdb" % "".join(os.path.splitext(basename)[:-1])
+
+	def mutate_average_fxout_output_fname(self, basename, *args, **kwargs):
+		return "Average_BuildModel_%s.fxout" % basename
+
+	def mutate_dif_fxout_output_fname(self, basename, *args, **kwargs):
+		return "Dif_BuildModel_%s.fxout" % basename
+
+	def parse_fxout(self, directory, pdb, *args, **kwargs):
+
+		names = self.get_fnames(directory, pdb)
+
+		pattern = '(\s+([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)){12}'
+
+		energies = []
+
+		for fname in names:
+			log.info("Parsing file %s ..." %fname)
+			
+			energies.append([])
+
+			try:
+				with open(os.path.join(directory,fname), 'r') as fh:
+					for line in fh:
+						if re.search(pattern, line.strip()):
+							energies[-1].append(float(line.strip().split()[1]))
+			except:
+				log.error("Couldn't open or parse file %s" % fname)
+
+
+			#print "energies", energies
+
+		if len(energies) < 1:
+			log.error("No energy values found in energy files!")
+
+		return energies
+
+	def get_fnames(self, directory, pdbs):
+
+		fnames = []
+		files = os.listdir(directory)
+
+		for pdb in pdbs:
+			results_basedir = os.path.splitext(os.path.basename(pdb))[0]
+
+			file_pattern = "%s%s_m[0-9]+_BM\.fxout" % (self.dif_fxout_prefix, results_basedir)
+			#print "fp", file_pattern
+
+			for fname in files:
+				#print "fn", fname
+				if re.match(file_pattern, fname):
+					#print "MATCH", fname
+   					fnames.append(fname)
+
+		return fnames
+
+	def check_dif_file_size(self, cwd, fname, nmuts, nruns):
+		#if self.foldx_version(check_dif_file_size(dif_file)):
+		with open("%s/%s" % (cwd,fname)) as fh:
+			fsize = len(fh.readlines())
+		
+		if fsize-self.len_dif_file_header == nruns:
+			return True
+		return False
+
 
 class FoldXRun:
 
@@ -234,6 +355,7 @@ class FoldXRun:
 
 		runline = [self.foldx_binary, self.foldx_version.runfile_string, self.runfile_name]
 		log.info("now running: %s" % self.name)
+		log.info("command is %s" % " ".join(runline)) 
 
 		if self.write_log:
 			this_stdout_str = self.working_directory+"/"+'FoldXrun.log'
@@ -278,13 +400,10 @@ class FoldXRepairRun(FoldXRun):
 	def check_status(self):
 		if os.path.exists(self.working_directory):
 			log.warning("working directory %s already exists." % self.working_directory)
-			if self.foldx_version.repaired_pdb_prefix + self.pdbs[0] in os.listdir(self.working_directory):
+			if self.foldx_version.repair_pdb_output_fname(self.pdbs[0]) in os.listdir(self.working_directory):
 				log.warning("PDB output file already present; run %s will be skipped" % self.name)
 				return "already_done"
-			else:
-				return "not_done"
-		else:
-			return "not_done"
+		return "not_done"
 		
 	def process_runfile(self, **kwargs):
 		pdbs = [os.path.basename(i) for i in self.pdbs]
@@ -298,12 +417,12 @@ class FoldXMutateRun(FoldXRun):
 			log.warning("working directory %s already exists." % self.working_directory)
 			
 			mutlist = []
-			if True: #try:
+			try:
 				with open(self.working_directory+"/"+self.foldx_version.mut_list_file, 'r') as fh:
 					for line in fh:
 						if line:
 							mutlist.append(line.strip()[-2])
-			else: #except:
+			except:
 				log.warning("Couldn't open mutation file, so it's not clear what's in here. Run will be repeated.")
 				return "not_done"
 
@@ -311,22 +430,24 @@ class FoldXMutateRun(FoldXRun):
 				log.warning("mutation list file does not agree with the current mutation list! Run will be skipped.")
 				return "conflicting"
 
-			dif_files = [f for f in os.listdir(self.working_directory) if f.startswith(self.foldx_version.dif_fxout_prefix) and f.endswith(self.foldx_version.out_ext)]
-
-			if len(dif_files) > 1:
-				log.warning("More than one Dif_*.fxout files present in dir! Something fishy is going on. Run will be skipped.")
-				return "conflicting"
-			elif len(dif_files) == 0:
+			dif_files = self.foldx_version.get_fnames(self.working_directory, self.pdbs) 
+			if not set(dif_files).issubset(os.listdir(self.working_directory)):
 				return "not_done"
-			if True:
-				with open(self.working_directory+"/"+dif_files[0],'r') as fh:
-					dif_file_len = len(fh.readlines())
-					if (dif_file_len - self.foldx_version.len_dif_file_header) != self.runfile_processing["nruns"]*len(mutlist):
-						log.warning("The  Dif_*.fxout file wasn't large as expected. The run didn't complete; it will be rerun.")
-						return "not_done"
-					else:
+			#dif_files = [f for f in os.listdir(self.working_directory) if f.startswith(self.foldx_version.dif_fxout_prefix) and f.endswith(self.foldx_version.out_ext)]
+
+			#if len(dif_files) > 1:
+			#	log.warning("More than one Dif_*.fxout files present in dir! Something fishy is going on. Run will be skipped.")
+			#	return "conflicting"
+			#elif len(dif_files) == 0:
+			if True:#try:
+				for dif_file in dif_files:
+					if self.foldx_version.check_dif_file_size(self.working_directory, dif_file, len(self.prepare_finalization['mutlist']), self.runfile_processing['nruns']):
 						return "already_done"
-			else:
+					else:
+						log.warning("File %s wasn't large as expected. The run didn't complete; it will be rerun." % dif_file)
+						return "not_done"
+							
+			else:#except:
 				log.warning("Couldn't read Dif_*.fxout out file; run will be skipped")
 				return "conflicting"
 
@@ -354,7 +475,6 @@ class FoldXMutateRun(FoldXRun):
 			fh.write("%s%s;\n" % (self.name, res))
 		fh.close()
 
-
 def safe_makedirs(dirname, doexit=True):
 	if os.path.exists(dirname):
 		if not os.path.isdir(dirname):
@@ -377,7 +497,6 @@ def safe_makedirs(dirname, doexit=True):
 			else:
 				log.warning("Could not create directory %s." % dirname)
 				raise
-
 
 def safe_cp(source, destination, dolink=True, doexit=True):
 
@@ -517,7 +636,7 @@ def get_foldx_sequence(pdb):
 		structure = pdb_parser.get_structure('structure',pdb)
 	except:
 		log.error("Couldn't open file %s." % pdb)
-		raise 
+		exit(1)
 
 	residue_list = []
 	for model in structure:
@@ -533,18 +652,40 @@ def get_foldx_sequence(pdb):
 
 	return tuple(residue_list)
 
-def save_energy_file(fname, data, fmt="%.5f"):
-	try:
-		np.savetxt(fname, data, fmt=fmt)
-	except:
-		log.warning("Couldn't write file %s" % fname)	
+def save_energy_file(fname, data, fmt="%.5f", do_avg=True, do_std=False, do_min=False, do_max=False, axis=1):
+	
+	out = []
+	header_cols = []
+
+	if do_avg:
+		out.append(np.average(data, axis=axis))
+		header_cols.append("avg")
+	if do_std:
+		out.append(np.std(data, axis=axis))
+		header_cols.append("std")
+	if do_min:
+		out.append(np.min(data, axis=axis))
+		header_cols.append("min")
+	if do_max:
+		out.append(np.max(data, axis=axis))
+		header_cols.append("max")
+
+	header = "\t".join(header_cols)
+
+	out = np.array(out).T
+
+	if True: #try:
+		np.savetxt(fname, out, fmt=fmt, header=header)
+	else: #except:
+		log.error("Couldn't write file %s" % fname)
 
 # Gather info about FoldX version
 
+mutatex_version = "0.2"
 
 def main():
 
-	foldx_versions = [FoldXVersion3b6]
+	foldx_versions = [FoldXVersion3b6, FoldXVersion3b8, FoldXVersion4, ]
 
 	supported_foldx_versions = {v.version:v for v in foldx_versions}
 
@@ -556,7 +697,7 @@ def main():
 	if foldx_rotabase_var is None:
 		foldx_rotabase_var = ""
 
-	parser = argparse.ArgumentParser(description='Setup and run in silico saturation mutagenesis with FoldX.')
+	parser = argparse.ArgumentParser(description='Setup and run in silico saturation mutagenesis with FoldX. Release %s' % mutatex_version)
 
 	parser.add_argument('pdb', metavar='PDBFILE', type=str, nargs='+',  )
 	parser.add_argument('--skip-check', '-r', dest='skip_check', default=False, action='store_true', help="Skip PDB checking phase")
@@ -610,6 +751,8 @@ def main():
 		exit(1)
 
 	current_version = supported_foldx_versions[args.foldx_version](binary=args.foldx_binary)
+
+	log.info("FoldX version %s will be used" % current_version.version)
 
 # defaults 
 	repair_dirname = "repair"
@@ -704,7 +847,7 @@ def main():
 	if args.skip_repair:
 		repaired_pdbs_list = args.pdb
 	else:
-		repaired_pdbs_list = [repair_runs[i].working_directory+"/"+current_version.repaired_pdb_prefix+pdbs_list[i] for i in range(len(pdbs_list))]
+		repaired_pdbs_list = [repair_runs[i].working_directory+"/"+current_version.repair_pdb_output_fname(pdbs_list[i]) for i in range(len(pdbs_list))]
 	log.info("list of PDBs to be used: %s" % ", ".join(repaired_pdbs_list))
 
 # create working directory
@@ -732,7 +875,6 @@ def main():
 		for j in range(len(residue_sets)):
 			if residue_sets[i] != residue_sets[j]:
 				log.warning("PDB %s has a different sequence respect to %s!" % (repaired_pdbs_list[i], repaired_pdbs_list[j]))
-
 
 	unique_residues = sorted(list(set.intersection(*residue_sets)), key=lambda x: ord(x[1])*10**12+int(x[2:]))
 
@@ -790,26 +932,23 @@ def main():
 			this_pdb_dir = working_directory+"/"+os.path.splitext(os.path.basename(pdb))[0]
 			safe_makedirs(this_pdb_dir)
 		safe_makedirs(working_directory+"/"+averages_dirname)
-	
+
 		for res in unique_residues:
 			energies = []
 			this_runs = filter(lambda x: x.name == res, mutation_runs)
 			for r in this_runs:
 				for pdb in r.pdbs:
-					results_basedir = os.path.splitext(os.path.basename(pdb))[0]
-					try:
-						energies.append( current_version.parse_fxout(r.working_directory+"/"
-														+current_version.average_fxout_prefix
-														+results_basedir
-														+".fxout"))
-					except:
+					if True:
+                        #print "current file", r.working_directory, os.path.basename(pdb)
+						energies.append(current_version.parse_fxout(r.working_directory, [os.path.basename(pdb)], r))
+					else:
 						log.warning("Couldn't parse energy file for PDB %s; mutation site %s will be skipped." % (pdb, r.name))
 						continue
-					save_energy_file(working_directory+"/"+results_basedir+"/"+r.name, energies[-1])
-			save_energy_file(working_directory+"/"+averages_dirname+"/"+r.name, np.average(energies, axis=0))
+                                        #print "sef", working_directory+"/"+"".join(os.path.splitext(os.path.basename(pdb))[:-1])+"/"+r.name
+					save_energy_file(working_directory+"/"+"".join(os.path.splitext(os.path.basename(pdb))[:-1])+"/"+r.name, energies[-1], do_avg=True, do_std=True, do_max=True, do_min=True)
+			save_energy_file(working_directory+"/"+averages_dirname+"/"+r.name, np.average(energies, axis=0), axis=1, do_avg=True, do_std=True, do_max=True, do_min=True)
 	else:
 		log.info("Reporting phase was skipped, as requested.")
-
 	log.info("All done!")
 
 if __name__ == '__main__':
