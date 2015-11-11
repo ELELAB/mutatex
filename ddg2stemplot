@@ -208,20 +208,23 @@ def stemplot(data, outfile, title, cmap):
 
         color_by = data[i][1]
         color_by = color_by.tolist()
-
-        plt.style.use('ggplot')
-        fig = plt.figure()
-        ax = plt.subplot(111)
-        sc = ax.scatter(data[i][0], data[i][1], s=100, c=color_by, marker='o', edgecolors='grey', cmap=cm.get_cmap(cmap), alpha=1)
-        ax.errorbar(data[i][0], data[i][1], yerr=data[i][2], ls='None', color='grey')
-        ax.set_title(title)
-        ax.set_xlabel('Wild-type Amino Acids')
-        ax.set_ylabel(r'Mean FoldX $\Delta\Delta{}G (kcal/mol)$')
-        plt.xticks(data[i][0], data[i][3], rotation='vertical')
-        plt.colorbar(sc)
-
-        plt.savefig(outfile+'_%s.pdf' %i, bbox_inches='tight')
-        plt.clf()
+        
+        try:
+          plt.style.use('ggplot')
+        except:
+          continue
+        finally:
+          fig = plt.figure()
+          ax = plt.subplot(111)
+          sc = ax.scatter(data[i][0], data[i][1], s=100, c=color_by, marker='o', edgecolors='grey', cmap=cm.get_cmap(cmap), alpha=1)
+          ax.errorbar(data[i][0], data[i][1], yerr=data[i][2], ls='None', color='grey')
+          ax.set_title(title)
+          ax.set_xlabel('Wild-type Amino Acids')
+          ax.set_ylabel(r'Mean FoldX $\Delta\Delta{}G (kcal/mol)$')
+          plt.xticks(data[i][0], data[i][3], rotation='vertical')
+          plt.colorbar(sc)
+          plt.savefig(outfile+'_%s.pdf' %i, bbox_inches='tight')
+          plt.clf()
 
 
 
