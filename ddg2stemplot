@@ -112,13 +112,14 @@ def parse_file(fname, index_as_float):
 
     try:
         fh = open(fname, 'r')
+        next(fh)
     except:
         log.warning("file %s cannot be opened." % fname)
         return None
 
     values =[]
 
-    alist = [float(line.rstrip()) for line in fh]
+    alist = [float(line.split(" ")[0]) for line in fh]
     values.append(alist)
 
     if len(values[0]) != len(muts):
