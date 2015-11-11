@@ -32,7 +32,7 @@ def parse_ddg_file(fname, reslist, thisres):
     ddgs = []
     for line in fh:
         if line and not line.startswith("#"): 
-            ddgs.append(float(line.strip()))
+            ddgs.append(float(line.split(" ")[0]))
                 
     if len(ddgs) != len(reslist):
         log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), values))
