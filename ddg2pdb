@@ -27,7 +27,7 @@ def parse_ddg_file(fname, reslist, thisres):
     for line in fh:
         if line and not line.startswith("#"): 
             if counter != reslist[thisres]:
-                ddgs.append(float(line.strip()))
+                ddgs.append(float(line.split()[0]))
                 counter += 1
             elif counter == reslist[thisres]:
                 counter += 1
@@ -131,15 +131,25 @@ for k,v in sorted(res_order.iteritems(), key=lambda x: x[1]):
     log.info("%d\t%s" % (v+1,k))
  
 res_ids = []
-for model in structure:
-    for chain in model:
-        for res in chain:
-            try:
-                this_type = three2one[res.get_resname()]
-            except:
-                log.warning("residue %s, %s, %d not recognized. It will be skipped." % (res.get_resname(), chain.get_id(), res.get_id()[1]))
-                continue
-            res_ids.append("%s%s%d" % (this_type, chain.get_id(), res.get_id()[1]))
+
+models = structure.get_list()
+
+if len(models) > 1:
+    log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
+if len(models) < 1:
+    log.error("The input PDB file does not contain any model. Exiting ...")
+    exit(1)
+
+model = models[0]
+
+for chain in model:
+    for res in chain:
+        try:
+            this_type = three2one[res.get_resname()]
+        except:
+            log.warning("residue %s, %s, %d not recognized. It will be skipped." % (res.get_resname(), chain.get_id(), res.get_id()[1]))
+            continue
+        res_ids.append("%s%s%d" % (this_type, chain.get_id(), res.get_id()[1]))
 
 log.info("The following files will be considered: %s" % ", ".join(res_ids))
 
