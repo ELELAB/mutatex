@@ -209,7 +209,7 @@ class FoldXVersion4(FoldXVersion):
 		for pdb in pdbs:
 			results_basedir = os.path.splitext(os.path.basename(pdb))[0]
 
-			file_pattern = "%s%s_m[0-9]+_BM\.fxout" % (self.dif_fxout_prefix, results_basedir)
+			file_pattern = "%s%s_m([0-9]+)_BM\.fxout" % (self.dif_fxout_prefix, results_basedir)
 			#print "fp", file_pattern
 
 			for fname in files:
@@ -218,7 +218,8 @@ class FoldXVersion4(FoldXVersion):
 					#print "MATCH", fname
    					fnames.append(fname)
 
-		return fnames
+
+		return sorted(fnames, key=lambda fname: int(re.match(file_pattern,fname).group(1)))
 
 	def check_dif_file_size(self, cwd, fname, nmuts, nruns):
 		#if self.foldx_version(check_dif_file_size(dif_file)):
