@@ -59,8 +59,8 @@
 \end_index
 \secnumdepth 3
 \tocdepth 3
-\paragraph_separation indent
-\paragraph_indentation default
+\paragraph_separation skip
+\defskip smallskip
 \quotes_language english
 \papercolumns 1
 \papersides 1
@@ -84,7 +84,7 @@ Matteo Tiberti
 \end_layout
 
 \begin_layout Date
-10/06/2015
+4/11/2015
 \end_layout
 
 \begin_layout Section
@@ -1443,8 +1443,539 @@ results
  
 \end_layout
 
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+dirtree{% 
+\end_layout
+
+\begin_layout Plain Layout
+
+ .1 CWD.
+\end_layout
+
+\begin_layout Plain Layout
+
+ .2 results.
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+ .3 RepairPDB
+\backslash
+_structure
+\backslash
+_model0
+\backslash
+_checked.
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+ .3 final
+\backslash
+_averages.
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
 Visualizing the output of MutateX
+\end_layout
+
+\begin_layout Standard
+Visualization of MutateX output can be performed using a set of supplied
+ tools for graphical representation.
+ These include scripts for generating: heatmaps, stemplots, cross correlation
+ matrixes and excel sheets of results for further analysis.
+\end_layout
+
+\begin_layout Subsection
+Heatmap.
+\end_layout
+
+\begin_layout Standard
+The ddg2matrix tool may be used to generate heatmaps of protein ∆∆G.
+ Ddg2matrix is run by specifying the path to the “results” directory under
+ CWD.
+ The final_averages can be used or, if a specific protein model is of interest,
+ the name of the model-file (see section 5.4).
+ In addition to the results directory, the original model.pdb file and list
+ of mutations must be supplied.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2matrix -d results/final_averages 
+\end_layout
+
+\begin_layout Plain Layout
+
+-p singel_model.pdb -l mutation_list.txt
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+By default wildtype amino acids are represented on the y-axis and mutated-to
+ amino acids on the x-axis, however, using the option -t (transpose) these
+ may be swapped.
+ Other user-specified options include:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+-o : Name of output image file.
+\end_layout
+
+\begin_layout Plain Layout
+
+-i : Plot title.
+\end_layout
+
+\begin_layout Plain Layout
+
+-c : Color of heatmap.
+\end_layout
+
+\begin_layout Plain Layout
+
+-s : Number of residues for each single image.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+For full list of user specified options see the ddg2matrix help option.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2matrix -h
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The example below shows the command for running ddg2matrix using 2KLZ, the
+ tandem UIM domain of Ataxin-3.
+ The mutation_list.txt is the default including all 20 natural occurring
+ amino acids.
+ Resulting heatmaps may be seen in figure 1, page 11.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2matrix -d results/final_averages -p 2KLZ.pdb
+\end_layout
+
+\begin_layout Plain Layout
+
+-l mutation_list.txt -o heatmaps -i my_heatmap -s 25   
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename 0_heatmap-1.png
+	lyxscale 30
+	scale 23
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename 1_heatmap-1.png
+	lyxscale 30
+	scale 23
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Heatmaps generated from ddg2matrix run using 2KLZ.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Stemplot.
+\end_layout
+
+\begin_layout Standard
+The ddg2stemplot tool can be used to generate stemplots of the mean protein
+ ∆∆G for any mutated wildtype amino acid.
+ The stemplot depict the significance of a given wildtype amino acid for
+ protein stability irrespectively of what it is mutated to.
+ Errorbars (stems) represent the standard error of mean.
+ Ddg2stemplot may be run using the same users-specified parameters as for
+ ddg2matrix (see section 6.1 above).
+ The path to the “results” directory (either final_averages or a specific
+ protein model of interest), original model.pdb file and list of mutations
+ are mandatory parameters.
+ 
+\end_layout
+
+\begin_layout Standard
+For full list of user specified options see the ddg2stemplot help option.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2stemplot -h 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The example below shows the command for running ddg2stemplot using 2KLZ,
+ the tandem UIM domain of Ataxin-3.
+ The mutation_list.txt is the default including all 20 natural occurring
+ amino acids.
+ Resulting stemplots may be seen in figure 2, page 12.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2stemplot -d results/final_averages -p 2KLZ.pdb
+\end_layout
+
+\begin_layout Plain Layout
+
+-l mutation_list.txt -o stemplots -i my_stemplot -s 25
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename stemplot_0-1.png
+	lyxscale 30
+	scale 23
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename stemplot_1-1.png
+	lyxscale 30
+	scale 23
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Stemplots generated from ddg2stemplot run using 2KLZ.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Cross Correlation Matrix.
+ 
+\end_layout
+
+\begin_layout Standard
+The ddg2pdb tool can be used to analyse cross correlations between residues
+ as measured from molecular dynamics simulations.
+ Running ddg2pdb requires the path to the “results” directory (either final_aver
+ages or a specific protein model of interest), original model.pdb file and
+ list of mutations.
+ Additionally, an upper and lower cut-off of protein ∆∆G is needed, as the
+ tool will save for each residue the number of mutations which are within
+ the specified parameters.
+ Default cut-off values are: lower = -99999.0 and upper = 99999.0.
+ If the ddg2pdb option -t is set to "between" the tool will extract the
+ values between upper and lower.
+ Alternatively -t may be set to "outside" specifying that everything < then
+ the lower cut-off and/or everything  > than the upper sould be included.
+\end_layout
+
+\begin_layout Standard
+For full list of user specified options see the ddg2pdb help option.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2pdb -h 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The example below shows the command for running ddg2pdb using 2KLZ, the
+ tandem UIM domain of Ataxin-3.
+ The mutation_list.txt is the default including all 20 natural occurring
+ amino acids.
+ Cut-offs are set to between lower = 3.0 and upper = 99999.0 in order to capture
+ only the mutations which leads to a destabilising free energy of > 3.0.
+  
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2pdb -d results/final_averages -i 2KLZ.pdb -a 3.0 
+\end_layout
+
+\begin_layout Plain Layout
+
+-b 99999.0 -t between -l mutation_list.txt 
+\end_layout
+
+\begin_layout Plain Layout
+
+-o my_scanned.pdb -m my_scanned.mat   
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The output generated by ddg2pdb is a pdb structure file and a corresponding
+ cross correlation matrix, which may be visualised with pymol.
+ Visualisation requires the xpyder plugin for pymol which can be aquired
+ from: 
+\end_layout
+
+\begin_layout Standard
+http://sourceforge.net/projects/xpyder.
+ 
+\end_layout
+
+\begin_layout Standard
+Documentation for xpyder may be seen at: 
+\end_layout
+
+\begin_layout Standard
+ftp://ftp.heanet.ie/mirrors/sourceforge/x/xp/xpyder/documentation
+\end_layout
+
+\begin_layout Standard
+/xPyder_user_manual.pdf.
+\end_layout
+
+\begin_layout Subsection
+Excel Sheet.
+\end_layout
+
+\begin_layout Standard
+Ddg2xlsx is a tool for writing out results in an excel sheet.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2xlsx -d results/final_averages -p simple_model.pdb
+\end_layout
+
+\begin_layout Plain Layout
+
+-l mutation_list.txt -o my_excel_sheet   
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Section
