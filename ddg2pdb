@@ -31,8 +31,8 @@ def parse_ddg_file(fname, reslist, thisres):
                 counter += 1
             elif counter == reslist[thisres]:
                 counter += 1
-                if abs(float(line.strip())) > 0.5:
-                    log.warning("self-mutation in %s has DDG %.3f !"  % (fname, float(line.strip())))
+                if abs(float(line.split()[0])) > 0.5:
+                    log.warning("self-mutation in %s has DDG %.3f !"  % (fname, float(line.split()[0])))
                 
     if len(ddgs) != values:
         log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), values))
