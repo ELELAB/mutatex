@@ -44,7 +44,7 @@ parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
 parser.add_argument("-d","--data-directory", dest="input_path", type=str, help="input data directory")
 parser.add_argument("-l","--mutation_list", dest="mutations",  help="mutation_list")
 parser.add_argument("-o","--output", dest="outfile", type=str, default='stemplot')
-parser.add_argument("-i","--title", dest='title', type=str, default='stemplot', help="Title for the output image file")
+parser.add_argument("-i","--title", dest='title', type=str, default=None, help="Title for the output image file")
 parser.add_argument("-c","--color-map",dest='cmap', type=unicode, default="YlGnBu", help="Color map used to plot the DDG values (choose from: %s)" % ", ".join(cmaps_list))
 parser.add_argument("-s","--splice",dest='sv',action='store', type=int, default=20, help="Number of residues for each single image")
 
