@@ -32,7 +32,7 @@ def parse_ddg_file(fname, reslist, thisres):
     ddgs = []
     for line in fh:
         if line and not line.startswith("#"): 
-            ddgs.append(float(line.strip()))
+            ddgs.append(float(line.split()[0]))
                 
     if len(ddgs) != len(reslist):
         log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), values))
@@ -214,29 +214,38 @@ res_ids = []
 res_ids_str = []
 data = []
 
-for model in structure:
-    for chain in model:
-        for res in chain:
-            try:
-                this_type = three2one[res.get_resname()]
-            except:
-                log.warning("residue %s, %s, %d not recognized. It will be skipped." % (res.get_resname(), chain.get_id(), res.get_id()[1]))
-                continue
+models = structure.get_list()
 
-            res_ids.append((chain.get_id(), res.get_id()[1], this_type))
-            res_ids_str.append("%s%s%d" % (res_ids[-1][2],res_ids[-1][0],res_ids[-1][1]))
-            this_data = parse_ddg_file("%s/%s" % (options.dir, res_ids_str[-1]), reslist=res_order, thisres=res_ids[-1][0])
+if len(models) > 1:
+    log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
+if len(models) < 1:
+    log.error("The input PDB file does not contain any model. Exiting ...")
+    exit(1)
 
-            if this_data:
-                data.append(np.array(this_data))
-                continue
-            elif options.includeblank:
-                this_data = np.empty((len(res_order)))
-                this_data[:] = np.NAN
-                data.append(this_data)
-            else:
-                res_ids.pop()
-                res_ids_str.pop()
+model = models[0]
+
+for chain in model:
+    for res in chain:
+        try:
+            this_type = three2one[res.get_resname()]
+        except:
+            log.warning("residue %s, %s, %d not recognized. It will be skipped." % (res.get_resname(), chain.get_id(), res.get_id()[1]))
+            continue
+
+        res_ids.append((chain.get_id(), res.get_id()[1], this_type))
+        res_ids_str.append("%s%s%d" % (res_ids[-1][2],res_ids[-1][0],res_ids[-1][1]))
+        this_data = parse_ddg_file("%s/%s" % (options.dir, res_ids_str[-1]), reslist=res_order, thisres=res_ids[-1][0])
+
+        if this_data:
+            data.append(np.array(this_data))
+            continue
+        elif options.includeblank:
+            this_data = np.empty((len(res_order)))
+            this_data[:] = np.NAN
+            data.append(this_data)
+        else:
+            res_ids.pop()
+            res_ids_str.pop()
 
 data = np.vstack(tuple(data))
 

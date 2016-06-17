@@ -105,9 +105,34 @@ class FoldXVersion:
 		fh.close()
 		return energies
 
-class FoldXVersion3b6(FoldXVersion):
-	version="3b6"
-	runfile_string = "-runfile"
+	def get_fnames(self, directory, pdbs):
+
+		fnames = []
+		files = os.listdir(directory)
+
+		for pdb in pdbs:
+			results_basedir = os.path.splitext(os.path.basename(pdb))[0]
+
+			file_pattern = "%s%s_m([0-9]+)_BM\.fxout" % (self.dif_fxout_prefix, results_basedir)
+			#print "fp", file_pattern
+
+			for fname in files:
+				#print "fn", fname
+				if re.match(file_pattern, fname):
+					#print "MATCH", fname
+   					fnames.append(fname)
+
+
+		return sorted(fnames, key=lambda fname: int(re.match(file_pattern,fname).group(1)))
+
+	def check_dif_file_size(self, cwd, fname, nmuts, nruns):
+		#if self.foldx_version(check_dif_file_size(dif_file)):
+		with open("%s/%s" % (cwd,fname)) as fh:
+			fsize = len(fh.readlines())
+		
+		if fsize-self.len_dif_file_header == nruns:
+			return True
+		return False
 
 class FoldXRun:
 
