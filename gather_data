@@ -1,0 +1,173 @@
+#!/usr/bin/env python
+#./gather_data -p file.pdb -d final_averages -L cancer_mutations -l mutation_list.txt
+
+#    ddg2matrix: plot DDG MutateX results as heat maps.
+#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import argparse
+import os
+
+def parse_ddg_file(fname, reslist, thisres):
+    try:
+        fh = open(fname, 'r')
+    except:
+        log.warning("file %s cannot be opened." % fname)
+        return None
+
+    ddgs = []
+    for line in fh:
+        if line and not line.startswith("#"): 
+            ddgs.append(float(line.split()[0]))
+                
+    if len(ddgs) != len(reslist):
+        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), len(reslist)))
+        exit(1)
+    return ddgs
+
+def parse_list_file(fname):
+    fh = open(fname, 'r')
+    restypes = []
+    for line in fh:
+        if line and not line.startswith("#"):
+            restypes.append(line.strip()[0])
+    return restypes
+
+def parse_mutation_list(fname):
+    # LA289
+    strings = map(str.strip, open(fname,'r').readlines())
+    wts = set(map(lambda x: x[:-1], strings))
+    muts = {}
+    for wt in wts:
+        muts["%s%s%s"%(wt[1],wt[0],wt[2:])] = []
+    for res in strings:
+        muts["%s%s%s"%(res[1],res[0],res[2:-1])].append(res[-1])
+    return muts
+
+
+three2one = {'ALA':'A',
+             'CYS':'C',
+             'ASP':'D',
+             'GLU':'E',
+             'PHE':'F',
+             'GLY':'G',
+             'HIS':'H',
+             'ILE':'I',
+             'LYS':'K',
+             'LEU':'L',
+             'MET':'M',
+             'ASN':'N',
+             'PRO':'P',
+             'GLN':'Q',
+             'ARG':'R',
+             'SER':'S',
+             'THR':'T',
+             'VAL':'V',
+             'TRP':'W',
+             'TYR':'Y'}
+
+LOGFMT = "%(levelname)s: %(message)s"
+
+if not __name__ == "__main__":
+    exit()
+
+
+parser = argparse.ArgumentParser(
+description='FoldX DDG converter to the OOXML xlsx format',)
+
+parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
+parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
+parser.add_argument("-L","--mutation-list", dest="mutations",  help="mutation list")
+parser.add_argument("-l","--list", dest="residues",  help="default order list")
+parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
+
+options = parser.parse_args()
+
+import numpy as np
+import logging as log
+import os
+from Bio import PDB
+from matplotlib import pyplot as plt
+
+if options.verbose:
+    log.basicConfig(level=log.INFO,    format=LOGFMT)
+else:
+    log.basicConfig(level=log.WARNING, format=LOGFMT)
+
+pdb_parser = PDB.PDBParser()
+
+try:
+    structure = pdb_parser.get_structure('s', options.in_pdb)
+except:
+    log.error("Couldn't open or parse input pdb file. Exiting...")
+    exit(1)
+ 
+res_ids = []
+res_ids_str = []
+data = []
+
+models = structure.get_list()
+
+if len(models) > 1:
+    log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
+if len(models) < 1:
+    log.error("The input PDB file does not contain any model. Exiting ...")
+    exit(1)
+
+model = models[0]
+
+mutation_list = parse_mutation_list(options.mutations)
+residue_list = parse_list_file(options.residues)
+good = []
+bad = []
+
+
+for chain in model:
+    for res in chain:
+        try:
+            this_type = three2one[res.get_resname()]
+        except:
+            log.warning("residue %s, %s, %d not recognized. It will be skipped." % (res.get_resname(), chain.get_id(), res.get_id()[1]))
+            continue
+
+        res_ids.append((chain.get_id(), res.get_id()[1], this_type))
+
+        fname = "%s%s%d" % (res_ids[-1][2],res_ids[-1][0],res_ids[-1][1])
+        fpos = "%s/%s" % (options.dir, fname)
+        if not os.path.isfile(fpos):
+            log.info("File %s does not exist; skipping" % fname)
+            continue
+
+        if fname not in mutation_list.keys():
+            log.info("Residue %s not in list; skipping" % fname)
+            continue
+        try: 
+            data.append(np.loadtxt(fpos))
+        except:
+            log.error("Couldn't open file %s" % fpos)
+            continue
+
+        res_ids_str.append(fname)
+
+with open("summary.txt",'w') as fh:
+    for i,rid in enumerate(res_ids_str):
+        for mut in mutation_list[rid]:
+            idx = residue_list.index(mut)
+            fh.write("%s%s\t"%(rid,mut))
+            fh.write("%.3f\t%.3f\t%.3f\t%.3f\n" % (data[i][idx][0],data[i][idx][1],data[i][idx][2],data[i][idx][3]))
+        #fh.write("\n")
+
+            
+
