@@ -1,0 +1,216 @@
+#!/usr/bin/env python
+
+#    ddg2matrix: plot DDG MutateX results as heat maps.
+#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com> (and Thilde Bagger Terkelsen <ThildeBT@gmail.com>)
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+# Imports
+import matplotlib
+matplotlib.use('Agg')
+import argparse
+from scipy.stats.kde import gaussian_kde
+from numpy import linspace
+from pylab import plot, hist
+import logging as log
+from Bio import PDB
+from matplotlib import pyplot as plt
+import numpy as np
+
+
+# User options
+
+
+parser = argparse.ArgumentParser(
+description='FoldX densityplot',)
+
+
+parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
+parser.add_argument("-d","--data-directory", dest="input_path", type=str, help="input data directory")
+parser.add_argument("-l","--mutation_list", dest="mutations",  help="mutation_list")
+parser.add_argument("-o","--output", dest="outfile", type=str, default="densityplot")
+parser.add_argument("-i","--title", dest='title', type=str, default=None, help="Title for the output image file")
+parser.add_argument("-c","--color", dest='mycolor', type=unicode, default="blue", help="Color used to plot the DDG values")
+parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Font size")
+parser.add_argument("-u","--ddgfile", dest="ddgfile", type=str, default="ddgvalues")
+parser.add_argument("-k","--kdvfile", dest="kdvfile", type=str, default="kdvvalues")
+options = parser.parse_args()
+
+
+
+
+
+# Parser
+
+pdb_parser = PDB.PDBParser()
+
+try:
+    user_structure = pdb_parser.get_structure('s', options.in_pdb)
+except:
+    log.error("Couldn't open or parse input pdb file. Exiting...")
+    exit(1)
+
+
+
+# Mutation list
+
+try:
+    fh = open(options.mutations, 'r')
+except:
+    log.warning("mutationlist cannot be opened.")
+muts = []
+for line in fh:
+    mut = line.rstrip()
+    muts.append(mut)
+
+
+
+d = {}
+for value in muts:
+    d[value] = muts.index(value)
+
+
+
+
+def parse_file(fname):
+
+    try:
+        fh = open(fname, 'r')
+    except:
+        log.warning("file %s cannot be opened." % fname)
+        return None
+
+    values =[]
+    for line in fh:
+        if line and not line.startswith("#"):
+            values.append(float(line.split()[0]))
+
+    if len(values) != len(muts):
+        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(values), len(muts)))
+        exit(1)
+
+    return(values)
+
+
+
+
+three2one = {'ALA':'A',
+             'CYS':'C',
+             'ASP':'D',
+             'GLU':'E',
+             'PHE':'F',
+             'GLY':'G',
+             'HIS':'H',
+             'ILE':'I',
+             'LYS':'K',
+             'LEU':'L',
+             'MET':'M',
+             'ASN':'N',
+             'PRO':'P',
+             'GLN':'Q',
+             'ARG':'R',
+             'SER':'S',
+             'THR':'T',
+             'VAL':'V',
+             'TRP':'W',
+             'TYR':'Y'}
+
+
+
+
+def pdbmodel(structure):
+
+    res_ids = []
+    res_ids_str = []
+    data = []
+    remove =  []
+
+    models = structure.get_list()
+
+    if len(models) > 1:
+        log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
+    if len(models) < 1:
+        log.error("The input PDB file does not contain any model. Exiting ...")
+        exit(1)
+
+    model = models[0]
+
+    for chain in model:
+        for res in chain:
+            try:
+                this_type = three2one[res.get_resname()]
+            except:
+                log.warning("residue %s, %s, %d not recognized. It will be skipped." % (res.get_resname(), chain.get_id(), res.get_id()[1]))
+                continue
+
+            res_ids.append((chain.get_id(), res.get_id()[1], this_type))
+            res_ids_str.append("%s%s%d" % (res_ids[-1][2],res_ids[-1][0],res_ids[-1][1]))
+
+            this_data = parse_file("%s/%s" % (options.input_path, res_ids_str[-1]))
+
+            data.append(np.array(this_data))
+
+    data = np.vstack(data)
+
+    for tp in res_ids:
+        remove.append(d[tp[2]])
+
+    N, K = data.shape[0], data.shape[1]
+    mask = np.ones_like(data, dtype='bool')
+    mask[np.arange(data.shape[0]), remove] = 0
+    data = data[mask].reshape(N, K-1)
+    data = data.tolist()
+    data = [item for sublist in data for item in sublist]
+
+    return data
+
+
+
+user_data = pdbmodel(user_structure)
+
+ddgvalues = np.asarray(user_data)
+np.savetxt(options.ddgfile, ddgvalues, fmt='%.3f', newline='\n', header='DDG', footer='', comments='# ')
+
+
+
+def densityplot(data, outfile, title, mycolor):
+    try:
+        plt.style.use('ggplot')
+    except:
+        print("ggplot-grid not avalible continuing without")
+    finally:
+        fig = plt.figure()
+	KDE = gaussian_kde(data)
+        xmin = -5
+        xmax = 10
+        spaces = 150
+        x = linspace(xmin,xmax,spaces)
+        KDV = [KDE(i)[0] for i in linspace(xmin, xmax, spaces)]
+        np.savetxt(options.kdvfile+'.txt', zip(x,KDV), fmt='%.3f', newline='\n', header='xaxis, kdv', footer='', comments='# ')
+        plot(x,KDE(x),'r', c=mycolor)
+        hist(data, int(len(data)/10) , normed=1,alpha=.3, facecolor=mycolor)
+        plt.xlabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
+        plt.ylabel('Density')
+        if title is not None:
+            plt.title(title)
+        plt.savefig(outfile+'.pdf', bbox_inches='tight')
+        plt.clf()
+
+
+densityplot(user_data, options.outfile, options.title, options.mycolor)
+
+
+
+
