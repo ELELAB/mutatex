@@ -1,4 +1,4 @@
-#!/usr/env/python
+#!/usr/bin/env python
 
 #    mutatex: automate FoldX in-silico mutagenesis experiments
 #    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
@@ -45,7 +45,6 @@ class ResList:
 
 	__str__ = __repr__
 
-
 	def parse_list_file(self, fname):
 		try: 
 			fh = open(fname, 'r')
@@ -61,7 +60,6 @@ class ResList:
 		fh.close()
 		return tuple(restypes)
 
-
 class FoldXVersion:
 	def __init__(self, binary=None):
 		if binary:
@@ -74,56 +72,252 @@ class FoldXVersion:
 
 	out_ext = "fxout"
 
-	repaired_pdb_prefix = "RepairPDB_"
+	#repaired_pdb_prefix = "RepairPDB_"
 	average_fxout_prefix = "Average_BuildModel_"
 	dif_fxout_prefix = "Dif_BuildModel_"
+	summary_fxout_prefix = "Summary_AnalyseComplex_"
+	mutation_output_pdb_WT_prefix = "WT_"
+	mutation_output_pdb_prefix = ""
+
 
 	mut_list_file = "individual_list.txt"
 	
 	len_dif_file_header = 9
 
-	def parse_fxout(self, fname):
-		pattern = '(\s+([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)){12}'
+	def repair_pdb_output_fname(self, basename):
+		return "RepairPDB_%s" % basename
+
+	def mutate_average_fxout_output_fname(self, basename, *args, **kwargs):
+		return "Average_BuildModel_%s.fxout" % basename
+
+	def mutate_dif_fxout_output_fname(self, basename, *args, **kwargs):
+		return "Dif_BuildModel_%s.fxout" % basename
+
+	def parse_mutations_fxout(self, directory, pdb, this_run):
+		pattern = '(\s+([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)){12}'		
+		fnames = self.get_mutation_fxout_fnames(directory, pdb)
 
 		energies = []
-		log.info("Parsing file %s ..." %fname)
-		try: 
-			fh = open(fname, 'r')
-		except:
-			log.warning("Couldn't open file %s." % fname)
-			raise
+		for fname in fnames:
+			log.info("Parsing file %s ..." %fname)
+			if True:
+				fh = open(fname, 'r')
+			else:
+				log.warning("Couldn't open file %s." % fname)
+				raise
 
-		for line in fh:
-			if re.search(pattern, line.strip()):
-				energies.append(float(line.strip().split()[2]))
+			for line in fh:
+				if re.search(pattern, line.strip()):
+					energies.append(float(line.strip().split()[1]))
 
-		if len(energies) < 1:
+			if len(energies) < 1:
+				fh.close()
+				log.warning("No energy values found in file %s!" % fname)
+				raise
+
 			fh.close()
-			log.warning("No energy values found in file %s!" % fname)
-			raise
 
-		fh.close()
+		energies = np.array(energies)
+		energies = energies.reshape(len(this_run.prepare_finalization['mutlist']),
+									energies.shape[0]/len(this_run.prepare_finalization['mutlist']))
+
 		return energies
 
-	def get_fnames(self, directory, pdbs):
+	def parse_interaction_energy_summary_fxout(self, directory, pdbs, run):
+		#pattern = '\s+([A-Z])\s+([A-Z])(\s+([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)){5}'
+		pattern='\s+([A-Z])\s+([A-Z])\s+[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?\s+([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)\s+([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?){3}'
 
+		#print "IUIU3", directory, pdb
+
+		fnames = self.get_interaction_fxout_fnames(directory, pdbs, run, original_pdb=True)
+		#print "IUIU1", 	fnames[0][-1], len(fnames), len(fnames[0])
+		#print "IUIU2", 	fnames[1][-1], len(fnames), len(fnames[1])
+
+		energies = {}
+		delta_energies = {}
+		groups = []
+		types = ['wt','mutated']
+
+		for i,prefix in enumerate(types):
+			energies[prefix] = {}
+			for fname in fnames[i]:
+				log.info("Parsing file %s ..." %fname)
+				try:
+					fh = open(fname, 'r')
+				except:
+					log.warning("Couldn't open file %s." % fname)
+					raise
+
+				for line in fh:
+					match = re.search(pattern, line.strip())
+					if match:
+						idx = frozenset((match.group(1),match.group(2)))
+						if idx in energies[prefix].keys():
+							#print "YESIN", idx, energies.keys()
+							energies[prefix][idx].append(float(match.group(4)))
+						else:
+							#print "NOTIN", idx, energies.keys()
+							energies[prefix][idx] = [float(match.group(4))]
+						#print "enes", energies, prefix, fname
+
+				fh.close()
+
+			for k,v in energies[prefix].iteritems():
+				#print energies[prefix][k], 'QQ'
+				v = np.array(v)
+				#print '--', v
+				energies[prefix][k] = 	v.reshape((len(run.prepare_finalization['mutlist']),
+										v.shape[0]/len(run.prepare_finalization['mutlist'])))
+				#print '!!', energies[prefix][k]
+
+		#print "AABB", energies[types[0]].keys(), energies[types[1]].keys()
+		#print "AABB", energies[types[0]].keys(), energies[types[1]].keys()
+		#print "CC", energies.keys()
+
+		interaction_groups = set(energies[types[0]].keys() + energies[types[1]].keys())
+
+		#print interaction_groups, "IG"
+		#print energies, "ENE"
+
+		for ig in interaction_groups:
+			#print "GR1", energies[types[0]][ig] 
+			#print "GR2", energies[types[1]][ig]
+			#print "GR1-2", energies[types[0]][ig] - energies[types[1]][ig]
+
+			delta_energies[ig] = energies[types[1]][ig] - energies[types[0]][ig]
+
+			#print delta_energies, "DELTAS"
+
+		return delta_energies
+
+	def get_mutation_fxout_fnames(self, directory, pdbs):
+		fnames = []
+		for pdb in pdbs:
+			results_basedir = os.path.splitext(os.path.basename(pdb))[0]
+			fnames.append(directory+"/"+self.dif_fxout_prefix+results_basedir+".fxout")
+		return fnames
+
+	def get_mutation_pdb_fnames(self, directory, pdbs, run, WT=True, include_original=False):
 		fnames = []
 		files = os.listdir(directory)
+		if WT:
+			prefixes = (self.mutation_output_pdb_WT_prefix, self.mutation_output_pdb_prefix)
+		else:
+			prefixes = (self.mutation_output_pdb_prefix)
 
 		for pdb in pdbs:
 			results_basedir = os.path.splitext(os.path.basename(pdb))[0]
+			fnames.append([[] for i in range(len(prefixes)+int(include_original))])
 
+			for p,prefix in enumerate(prefixes):
+				for i in range(1,len(run.prepare_finalization['mutlist'])+1):
+					for j in range(run.runfile_processing['nruns']):
+						#print "dir", directory
+						#print "prefix", self.summary_fxout_prefix
+						#print "basedir", results_basedir
+						#print "ij",i,j
+						fnames[-1][p].append("%s/%s%s_%d_%d.pdb" % (directory, prefix, results_basedir, i, j))
+						fnames[-1][-1].append(pdb)
+
+		if len(fnames) == 1:
+			if len(fnames[0]) == 1:
+				return fnames[0][0]
+			return fnames[0]
+		return fnames
+
+	def get_interaction_fxout_fnames(self, directory, pdbs, run, original_pdb=False):
+		fnames = []
+		for pdb in pdbs:
+			if original_pdb:
+				results_basedir = os.path.splitext(os.path.basename(pdb))[0]
+			else:
+				results_basedir = "_".join(os.path.splitext(os.path.basename(pdb))[0].split("_")[0:-2])
+			for prefix in (self.mutation_output_pdb_WT_prefix, self.mutation_output_pdb_prefix):
+				fnames.append([])
+				for i in range(1,len(run.prepare_finalization['mutlist'])+1):
+					for j in range(run.runfile_processing['nruns']):
+						#print "dir", directory
+						#print "prefix", self.summary_fxout_prefix
+						#print "basedir", results_basedir
+						#print "ij",i,j
+						if original_pdb:
+							fnames[-1].append("%s/%s%s%s_%d_%d.fxout" % (directory, self.summary_fxout_prefix, prefix, results_basedir, i, j))
+						else:
+							fnames[-1].append("%s/%s%s_%d_%d.fxout" % (directory, self.summary_fxout_prefix, results_basedir, i, j))
+		return fnames
+
+	def check_dif_file_size(self, cwd, fname, nmuts, nruns):
+		#if self.foldx_version(check_dif_file_size(dif_file)):
+		with open("%s/%s" % (cwd,fname)) as fh:
+			fsize = len(fh.readlines())
+		
+		if fsize-self.len_dif_file_header == nmuts*nruns:
+			return True
+		return False
+
+class FoldXVersion3b6(FoldXVersion):
+	version="3b6"
+	runfile_string = "-runfile"
+
+class FoldXVersion3b8(FoldXVersion):
+	version="3b8"
+	runfile_string = "-runfile"
+
+class FoldXVersion4(FoldXVersion):
+	version="4"
+	runfile_string = "-f"
+	repaired_pdb_prefix = "RepairPDB_"
+	average_fxout_prefix = "Average_BuildModel_"
+	dif_fxout_prefix = "Dif_"
+
+	def repair_pdb_output_fname(self, basename):
+		return "%s_Repair.pdb" % "".join(os.path.splitext(basename)[:-1])
+
+	def mutate_average_fxout_output_fname(self, basename, *args, **kwargs):
+		return "Average_BuildModel_%s.fxout" % basename
+
+	def mutate_dif_fxout_output_fname(self, basename, *args, **kwargs):
+		return "Dif_BuildModel_%s.fxout" % basename
+
+	def parse_mutations_fxout(self, directory, pdb, *args, **kwargs):
+
+		names = self.get_mutation_fxout_fnames(directory, pdb)
+
+		pattern = '(\s+([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)){12}'
+
+		energies = []
+
+		for fname in names:
+			log.info("Parsing file %s ..." %fname)
+			
+			energies.append([])
+
+			try:
+				with open(os.path.join(directory,fname), 'r') as fh:
+					for line in fh:
+						if re.search(pattern, line.strip()):
+							energies[-1].append(float(line.strip().split()[1]))
+			except:
+				log.error("Couldn't open or parse file %s" % fname)
+
+			#print "energies", energies
+
+		if len(energies) < 1:
+			log.error("No energy values found in energy files!")
+
+		return energies
+
+	def get_mutation_fxout_fnames(self, directory, pdbs):
+		fnames = []
+		files = os.listdir(directory)
+		for pdb in pdbs:
+			results_basedir = os.path.splitext(os.path.basename(pdb))[0]
 			file_pattern = "%s%s_m([0-9]+)_BM\.fxout" % (self.dif_fxout_prefix, results_basedir)
-			#print "fp", file_pattern
-
 			for fname in files:
-				#print "fn", fname
 				if re.match(file_pattern, fname):
-					#print "MATCH", fname
-   					fnames.append(fname)
+					fnames.append(fname)
+		return sorted(fnames, key=lambda fname: int(re.match(file_pattern,fname).group(1)))   		
 
-
-		return sorted(fnames, key=lambda fname: int(re.match(file_pattern,fname).group(1)))
 
 	def check_dif_file_size(self, cwd, fname, nmuts, nruns):
 		#if self.foldx_version(check_dif_file_size(dif_file)):
@@ -134,6 +328,194 @@ class FoldXVersion:
 			return True
 		return False
 
+        def parse_interaction_energy_summary_fxout(self, directory, pdb, run):
+               pass 
+
+class FoldXSuiteVersion4(FoldXVersion4):
+	version="suite4"
+	runfile_string = "-f"
+	repaired_pdb_prefix = "RepairPDB_"
+	average_fxout_prefix = "Average_BuildModel_"
+	dif_fxout_prefix = "Dif_"
+	pdblist_fxout_prefix = "PdbList_"
+	summary_fxout_prefix = "Summary_"
+	summary_fxout_suffix= "_AC"
+
+
+	def repair_pdb_output_fname(self, basename):
+		return "%s_Repair.pdb" % "".join(os.path.splitext(basename)[:-1])
+
+	def mutate_average_fxout_output_fname(self, basename, *args, **kwargs):
+		return "Average_%s.fxout" % basename
+
+	def mutate_dif_fxout_output_fname(self, basename, *args, **kwargs):		
+		return "Dif_%s.fxout" % basename
+
+	def mutate_pdblist_fxout_output_fname(self, basename, *args, **kwargs):
+		return "%s%s.fxout" % (self.pdblist_fxout_prefix, basename)
+
+	def ac_summary_fxout_output_fname(self, basename, *args, **kwargs):
+		return "%s%s%s.fxout" % (self.summary_fxout_prefix, basename, self.summary_fxout_suffix)
+
+	def get_mutation_fxout_fnames(self, directory, pdbs):
+		basenames = ["".join(os.path.splitext(os.path.basename(pdb))[:-1]) for pdb in pdbs]
+		return [os.path.join(directory,self.mutate_dif_fxout_output_fname(basename)) for basename in basenames]
+
+	def parse_mutations_fxout(self, directory, pdb, this_run):
+
+		pattern = '(\s+([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)){22}'
+
+		pdb = pdb[0]
+		
+		fname = self.mutate_dif_fxout_output_fname("".join(os.path.splitext(os.path.basename(pdb))[:-1]))
+
+		energies = []
+
+		log.info("Parsing file %s ..." %fname)
+
+		try:
+			with open(os.path.join(directory,fname), 'r') as fh:
+				for line in fh:
+					if re.search(pattern, line.strip()):
+						energies.append(float(line.strip().split()[1]))
+		except:
+			log.error("Couldn't open or parse file %s" % fname)
+
+		if len(energies) < 1:
+			log.error("No energy values found in energy files!")
+
+		this_run.prepare_finalization['mutlist']
+
+		energies = np.array(energies)
+		energies = energies.reshape(len(this_run.prepare_finalization['mutlist']),
+										energies.shape[0]/len(this_run.prepare_finalization['mutlist']))
+
+		return energies
+
+	def get_mutation_pdb_fnames(self, directory, pdbs, run, WT=True, include_original=False):
+		fnames = []
+		files = os.listdir(directory)
+		if WT:
+			prefixes = (self.mutation_output_pdb_WT_prefix, self.mutation_output_pdb_prefix)
+		else:
+			prefixes = (self.mutation_output_pdb_prefix)
+
+		for pdb in pdbs:
+			results_basedir = os.path.splitext(os.path.basename(pdb))[0]
+			fnames.append([[] for i in range(len(prefixes)+int(include_original))])
+
+			for p,prefix in enumerate(prefixes):
+				for i in range(1,len(run.prepare_finalization['mutlist'])+1):
+					for j in range(run.runfile_processing['nruns']):
+						fnames[-1][p].append("%s/%s%s_%d_%d.pdb" % (directory, prefix, results_basedir, i, j))
+						fnames[-1][-1].append(pdb)
+
+		if len(fnames) == 1:
+			if len(fnames[0]) == 1:
+				return fnames[0][0]
+			return fnames[0]
+		return fnames
+
+	def get_interaction_fxout_fnames(self, directory, pdbs, run, original_pdb=False):
+
+		#prefixes = (self.mutation_output_pdb_WT_prefix, self.mutation_output_pdb_prefix):
+
+		fnames = [[],[]]
+	
+		for pdb in pdbs:
+			pdb_basename = "".join(os.path.splitext(os.path.basename(pdb))[:-1])
+			if self.mutation_output_pdb_WT_prefix in pdb:
+				fnames[0].append(os.path.join(directory, self.ac_summary_fxout_output_fname(pdb_basename)))
+			else:
+				fnames[1].append(os.path.join(directory, self.ac_summary_fxout_output_fname(pdb_basename)))
+
+		return fnames
+
+	def parse_interaction_energy_summary_fxout(self, directory, pdbs, run):
+		#pattern = '\s+([A-Z])\s+([A-Z])(\s+([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)){5}'
+		pattern='\s+([A-Z])\s+([A-Z])\s+[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?\s+([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)\s+([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?){3}'
+
+		#print "IUIU3", directory, pdb
+
+		fnames = self.get_interaction_fxout_fnames(directory, pdbs, run, original_pdb=True)
+		#print "IUIU1", 	fnames[0][-1], len(fnames), len(fnames[0])
+		#print "IUIU2", 	fnames[1][-1], len(fnames), len(fnames[1])
+
+
+
+		energies = {}
+		delta_energies = {}
+		groups = []
+		types = ['wt','mutated']
+
+		for i,prefix in enumerate(types):
+			energies[prefix] = {}
+			for fname in fnames[i]:
+				log.info("Parsing file %s ..." %fname)
+				try:
+					fh = open(fname, 'r')
+				except:
+					log.warning("Couldn't open file %s." % fname)
+					raise
+
+				for line in fh:
+					match = re.search(pattern, line.strip())
+					if match:
+						tmp = line.strip().split()
+						idx = frozenset((tmp[1], tmp[2]))
+						if idx in energies[prefix].keys():
+							energies[prefix][idx].append(float(tmp[5]))
+						else:
+							energies[prefix][idx] = [float(tmp[5])]
+
+
+				fh.close()
+				print "From file %s: " %fname , energies[prefix][idx][-1], prefix, idx
+
+			print energies, '\n-------\n'
+			for k,v in energies[prefix].iteritems():
+				#print energies[prefix][k], 'QQ'
+				v = np.array(v)
+				#print '--', v
+				energies[prefix][k] = 	v.reshape((len(run.prepare_finalization['mutlist']),
+										v.shape[0]/len(run.prepare_finalization['mutlist'])))
+
+		#print '====', energies
+
+
+
+		#print "AABB", energies[types[0]].keys(), energies[types[1]].keys()
+		#print "AABB", energies[types[0]].keys(), energies[types[1]].keys()
+		#print "CC", energies.keys()
+
+		interaction_groups = set(energies[types[0]].keys() + energies[types[1]].keys())
+
+		#print interaction_groups, "IG"
+		#print energies, "ENE"
+
+		for ig in interaction_groups:
+			print "GR1", energies[types[0]][ig] 
+			print "GR2", energies[types[1]][ig]
+			print "GR1-2", energies[types[0]][ig] - energies[types[1]][ig]
+
+			delta_energies[ig] = energies[types[1]][ig] - energies[types[0]][ig]
+
+			#print delta_energies, "DELTAS"
+
+		return delta_energies
+
+	def check_dif_file_size(self, cwd, fname, nmuts, nruns):
+		#if self.foldx_version(check_dif_file_size(dif_file)):
+		with open("%s/%s" % (cwd,fname)) as fh:
+			fsize = len(fh.readlines())
+		
+		print fsize, self.len_dif_file_header, nruns*nmuts, "YY"
+		if fsize-self.len_dif_file_header == nruns*nmuts:
+			return True
+		return False
+
+
+
 class FoldXRun:
 
 	ready = False
@@ -141,6 +523,8 @@ class FoldXRun:
 	finished = False
 
 	runfile_name = "runfile.txt"
+
+	logfile_name = "FoldXrun.log"
 
 	runfile_content = ""
 
@@ -157,7 +541,11 @@ class FoldXRun:
 				output_processing={},
 				rotabase=None, 
 				link_files=False,
-				write_log=False):
+				write_log=False,
+				clean=False,
+				*args,
+				**kwargs):
+
 
 		self.name = name
 		self.pdbs = pdbs
@@ -169,11 +557,15 @@ class FoldXRun:
 		self.prepare_finalization = prepare_finalization
 		self.foldx_binary = foldx_binary
 		self.foldx_version = foldx_version
-		self.output_processing = output_processing
+		if output_processing is None:
+			self.output_processing = {}
+		else:
+			self.output_processing = output_processing
 		self.rotabase = rotabase
 		self.link_files = link_files
 		self.write_log = write_log
 		self.ready = False
+		self.do_clean = clean
 
 
 	def prepare(self):
@@ -205,9 +597,11 @@ class FoldXRun:
 
 		# Copy the PDB file(s) in the working directory
 		for pdb in self.pdbs:
-			try:
+			if True:
+				#print 'source', os.path.abspath(pdb)
+				#print 'dest', self.working_directory+"/"+os.path.basename(os.path.abspath(pdb))				
 				safe_cp(os.path.abspath(pdb), self.working_directory+"/"+os.path.basename(os.path.abspath(pdb)), dolink=self.link_files, doexit=False)
-			except:
+			else:
 				log.warning("Couldn't copy essential files for run %s; it will be skipped." % self.name)
 				self.ready = False
 				return False
@@ -221,18 +615,18 @@ class FoldXRun:
 				return False
 
 		# process runfile (if required)
-		try: 
+		if True: 
 			self.process_runfile(**self.runfile_processing)
-		except:
+		else:
 			log.warning("Couldn't process the runfile as required for run %s; it will be skipped." % self.name)
 			self.ready = False
 			return False
 
 		# Write runfile
-		try:
+		if True: #try:
 			with open(self.working_directory+"/"+self.runfile_name, 'w') as fh:
 				fh.write(self.runfile_content)
-		except:
+		else: #except:
 			log.warning("Couldn't write runfile for run %s; it will be skipped." % self.name)
 			self.ready = False
 			return False
@@ -259,9 +653,10 @@ class FoldXRun:
 
 		runline = [self.foldx_binary, self.foldx_version.runfile_string, self.runfile_name]
 		log.info("now running: %s" % self.name)
+		log.info("command is %s" % " ".join(runline)) 
 
 		if self.write_log:
-			this_stdout_str = self.working_directory+"/"+'FoldXrun.log'
+			this_stdout_str = self.working_directory+"/"+self.logfile_name
 		else:
 			this_stdout_str = os.devnull
 
@@ -271,17 +666,21 @@ class FoldXRun:
 		if returncode == 0:
 			log.info("run %s has completed successfully" % self.name)
 			self.finished = True
+
+			self.process_output(**self.output_processing)
+
 			return True
 		else: 
 			log.warning("FoldX exited with error for run %s!" % self.name)
 			return False
 
-		self.process_output(**self.output_processing)
 
-	def status_check(self, **kwargs):
-		if os.path.exists(self.working_directory):
-			log.warning("working directory %s already exists." % self.working_directory)
+	def check_status(self, **kwargs):
+		if not os.path.exists(self.working_directory):
 			return "not_done"
+		else:
+			log.warning("working directory %s already exists." % self.working_directory)			
+			print "listdir", os.listdir(self.working_directory)
 			for f in os.listdir(self.working_directory):
 				if f.endswith(".fxout"):
 					log.warning(".fxout files already exist in directory %s; run %s will be skipped" % (self.working_directory, self.name))
@@ -294,41 +693,55 @@ class FoldXRun:
 		pass
 
 	def process_output(self, **kwargs):
-		pass
+		log.info("Processing output ...")
+		if self.do_clean:
+			self.clean()
 
 	def finalize_prepare(self, **kwargs):
 		pass
+
+	def clean(self):
+		log.info("Cleaning working directory %s" % self.working_directory)
+		for f in os.listdir(self.working_directory):
+			fname = os.path.join(self.working_directory, f)
+			if os.path.isfile(fname) and not fname.endswith(".fxout") and not fname == os.path.basename(fname):
+				log.info("removing %s" % fname)
+				os.remove(fname)
+				
 
 class FoldXRepairRun(FoldXRun):
 	def check_status(self):
 		if os.path.exists(self.working_directory):
 			log.warning("working directory %s already exists." % self.working_directory)
-			if self.foldx_version.repaired_pdb_prefix + self.pdbs[0] in os.listdir(self.working_directory):
+			if self.foldx_version.repair_pdb_output_fname(self.pdbs[0]) in os.listdir(self.working_directory):
 				log.warning("PDB output file already present; run %s will be skipped" % self.name)
 				return "already_done"
-			else:
-				return "not_done"
-		else:
-			return "not_done"
+		return "not_done"
 		
 	def process_runfile(self, **kwargs):
 		pdbs = [os.path.basename(i) for i in self.pdbs]
 		pdbstring = ",".join(pdbs)
 		self.runfile_content = self.runfile_content.replace('$PDBS$',pdbstring)
 
+	def clean(self):
+		pass
+
 class FoldXMutateRun(FoldXRun):
+
+	logfile_name = "MutateFoldXRun.log"
+
 	def check_status(self):
 		# Check if working directory exists
 		if os.path.exists(self.working_directory):
 			log.warning("working directory %s already exists." % self.working_directory)
 			
 			mutlist = []
-			if True: #try:
+			try:
 				with open(self.working_directory+"/"+self.foldx_version.mut_list_file, 'r') as fh:
 					for line in fh:
 						if line:
 							mutlist.append(line.strip()[-2])
-			else: #except:
+			except:
 				log.warning("Couldn't open mutation file, so it's not clear what's in here. Run will be repeated.")
 				return "not_done"
 
@@ -336,22 +749,25 @@ class FoldXMutateRun(FoldXRun):
 				log.warning("mutation list file does not agree with the current mutation list! Run will be skipped.")
 				return "conflicting"
 
-			dif_files = [f for f in os.listdir(self.working_directory) if f.startswith(self.foldx_version.dif_fxout_prefix) and f.endswith(self.foldx_version.out_ext)]
-
-			if len(dif_files) > 1:
-				log.warning("More than one Dif_*.fxout files present in dir! Something fishy is going on. Run will be skipped.")
-				return "conflicting"
-			elif len(dif_files) == 0:
+			dif_files = self.foldx_version.get_mutation_fxout_fnames(self.working_directory, self.pdbs)
+			print "ZZ", dif_files
+			if not set(map(os.path.basename, dif_files)).issubset(os.listdir(self.working_directory)):
 				return "not_done"
-			if True:
-				with open(self.working_directory+"/"+dif_files[0],'r') as fh:
-					dif_file_len = len(fh.readlines())
-					if (dif_file_len - self.foldx_version.len_dif_file_header) != self.runfile_processing["nruns"]*len(mutlist):
-						log.warning("The  Dif_*.fxout file wasn't large as expected. The run didn't complete; it will be rerun.")
-						return "not_done"
-					else:
+			#dif_files = [f for f in os.listdir(self.working_directory) if f.startswith(self.foldx_version.dif_fxout_prefix) and f.endswith(self.foldx_version.out_ext)]
+
+			#if len(dif_files) > 1:
+			#	log.warning("More than one Dif_*.fxout files present in dir! Something fishy is going on. Run will be skipped.")
+			#	return "conflicting"
+			#elif len(dif_files) == 0:
+			try:	
+				#print "diffile", dif_file
+				for dif_file in set(map(os.path.basename, dif_files)):
+					if self.foldx_version.check_dif_file_size(self.working_directory, dif_file, len(self.prepare_finalization['mutlist']), self.runfile_processing['nruns']):
 						return "already_done"
-			else:
+					else:
+						log.warning("File %s wasn't large as expected. The run didn't complete; it will be rerun." % dif_file)
+						return "not_done"
+			except:
 				log.warning("Couldn't read Dif_*.fxout out file; run will be skipped")
 				return "conflicting"
 
@@ -359,10 +775,9 @@ class FoldXMutateRun(FoldXRun):
 		else:
 			return "not_done"
 
-	
 	def process_runfile(self, **kwargs):
 		pdbs = [os.path.basename(i) for i in self.pdbs]
-		pdbstring = ",".join(pdbs)		
+		pdbstring = ",".join(pdbs)
 		self.runfile_content = self.runfile_content.replace('$PDBS$',pdbstring)
 		self.runfile_content = self.runfile_content.replace('$NRUNS$', str(kwargs["nruns"]))
 
@@ -379,6 +794,74 @@ class FoldXMutateRun(FoldXRun):
 			fh.write("%s%s;\n" % (self.name, res))
 		fh.close()
 
+class FoldXInterfaceRun(FoldXRun):
+
+	logfile_name = "InterfaceFoldXRun.log"
+
+	def __init__(self, mr, pdbs=None, *args, **kwargs):
+		self.name = mr.name
+		self.original_pdb = os.path.basename(mr.pdbs[0])
+
+		if pdbs:
+			self.pdbs = pdbs
+		else:
+			pdb_basename = "".join(os.path.splitext(self.original_pdb)[:-1])
+			self.pdb_list = mr.foldx_version.mutate_pdblist_fxout_output_fname(pdb_basename)
+			self.pdbs    = map(lambda x: os.path.join(mr.working_directory, x), self.parse_pdb_list(os.path.join(mr.working_directory, self.pdb_list)))
+			print self.pdbs, 'PP'
+			print mr.working_directory
+
+		self.base_directory = mr.base_directory
+		self.working_directory = mr.working_directory
+		self.runfile_name = mr.runfile_name
+		self.runfile_content = ""
+		self.prepare_finalization = mr.prepare_finalization
+		self.foldx_binary = mr.foldx_binary
+		self.foldx_version = mr.foldx_version
+		self.output_processing = {}
+		self.rotabase = mr.rotabase
+		self.link_files = mr.link_files
+		self.write_log = mr.write_log
+		self.ready = False
+		self.runfile_processing = {'pdb_list' : self.pdb_list}
+		self.do_clean = mr.do_clean
+
+	def parse_pdb_list(self, pdb_list=None):
+		if not pdb_list:
+			pdb_list = self.pdb_list
+
+		if True:
+			with open(pdb_list) as fh:
+				#print "SS",fh.read().splitlines()
+				return fh.read().splitlines()
+		else:
+			log.error("Couldn't parse PdbList file %s!" % pdb_list)
+
+	def check_status(self):
+		# Check if working directory exists
+		print "WD", self.working_directory
+		if os.path.exists(self.working_directory):
+			log.warning("working directory %s already exists." % self.working_directory)
+			dif_files = self.foldx_version.get_interaction_fxout_fnames(self.working_directory, self.pdbs, self)
+			#print "diffiles", dif_files
+			#print dif_files
+			#print "SETO", set(map(os.path.basename,dif_files[0]+dif_files[1]))
+			#print os.listdir(self.working_directory)
+			#print "TUTO", set(os.listdir(self.working_directory))
+			#print dif_files[0]+dif_files[1]
+			#print "INTERSECTO", set(map(os.path.basename,dif_files[0]+dif_files[1])).difference(set(os.listdir(self.working_directory)))
+			if not set(map(os.path.basename,dif_files[0]+dif_files[1])).issubset(set(os.listdir(self.working_directory))):
+				#print "NODONE1"
+				return "not_done"
+		else:
+			#print "NODONE2"
+			return "not_done"
+		#print "DONEE"
+		return "already_done"
+
+	def process_runfile(self, **kwargs):
+		print kwargs, 'PP'
+		self.runfile_content = self.runfile_content.replace('$PDBLIST$', kwargs['pdb_list'])
 
 def safe_makedirs(dirname, doexit=True):
 	if os.path.exists(dirname):
@@ -403,8 +886,10 @@ def safe_makedirs(dirname, doexit=True):
 				log.warning("Could not create directory %s." % dirname)
 				raise
 
-
 def safe_cp(source, destination, dolink=True, doexit=True):
+
+	if os.path.abspath(source) == os.path.abspath(destination):
+		return
 
 	if dolink:
 		verb = "link"
@@ -449,7 +934,6 @@ def safe_cp(source, destination, dolink=True, doexit=True):
 				else:
 					raise
 
-
 def load_models(pdb, check_models=False):
 	pdb_parser = PDB.PDBParser()
 
@@ -485,37 +969,25 @@ def load_runfile(runfile):
 
 	return data 
 
-def foldx_worker(work_queue, done_queue):
-	for run in iter(work_queue.get, 'STOP'):
-		log.info("starting FoldX run %s" % run.name)
-		run_out = run.run()
-		done_queue.put((run.name, run_out))
-	return True
+def foldx_worker(run):
+	log.info("starting FoldX run %s" % run.name)
+	return (run.name, run.run())
 
 def parallel_foldx_run(foldx_runs, np):
-	work_queue = mp.Queue()
-	done_queue = mp.Queue()
 
-	for run in foldx_runs:
-		work_queue.put(run)
+	pool = mp.Pool(np)
+	
+	print foldx_runs
 
-	processes = []
-	for w in xrange(np):
-		work_queue.put('STOP')
-		p = mp.Process(target = foldx_worker, args=[work_queue, done_queue])
-		p.start()
-		processes.append(p)
+	result = pool.imap_unordered(foldx_worker, foldx_runs)
+	
+	pool.close()
+	pool.join()
 
-	for p in processes:
-		p.join()
+	print result
 
-	out = []
-	done_queue.put('STOP')
+	return list(result)
 
-	for status in iter(done_queue.get, 'STOP'):
-		out.append(status)
-
-	return out
 
 def split_pdb(filename, structure, checked):
 	pdb_list = []
@@ -542,7 +1014,7 @@ def get_foldx_sequence(pdb):
 		structure = pdb_parser.get_structure('structure',pdb)
 	except:
 		log.error("Couldn't open file %s." % pdb)
-		raise 
+		exit(1)
 
 	residue_list = []
 	for model in structure:
@@ -558,18 +1030,69 @@ def get_foldx_sequence(pdb):
 
 	return tuple(residue_list)
 
-def save_energy_file(fname, data, fmt="%.5f"):
-	try:
-		np.savetxt(fname, data, fmt=fmt)
-	except:
-		log.warning("Couldn't write file %s" % fname)	
+def save_energy_file(fname, data, fmt="%.5f", do_avg=True, do_std=False, do_min=False, do_max=False, axis=1):
+	
+	out = []
+	header_cols = []
+
+	if do_avg:
+		out.append(np.average(data, axis=axis))
+		header_cols.append("avg")
+	if do_std:
+		out.append(np.std(data, axis=axis))
+		header_cols.append("std")
+	if do_min:
+		out.append(np.min(data, axis=axis))
+		header_cols.append("min")
+	if do_max:
+		out.append(np.max(data, axis=axis))
+		header_cols.append("max")
+
+	header = "\t".join(header_cols)
+
+	out = np.array(out).T
+
+	if True: #try:
+		np.savetxt(fname, out, fmt=fmt, header=header)
+	else: #except:
+		log.error("Couldn't write file %s" % fname)
+
+
+def save_interaction_energy_file(fname, data, fmt="%.5f", do_avg=True, do_std=False, do_min=False, do_max=False, axis=1):
+
+	out = []
+	header_cols = []
+
+	if do_avg:
+		out.append(np.average(data, axis=axis))
+		header_cols.append("avg")
+	if do_std:
+		out.append(np.std(data, axis=axis))
+		header_cols.append("std")
+	if do_min:
+		out.append(np.min(data, axis=axis))
+		header_cols.append("min")
+	if do_max:
+		out.append(np.max(data, axis=axis))
+		header_cols.append("max")
+
+	header = "\t".join(header_cols)
+
+	out = np.array(out).T
+
+	if True: #try:
+		np.savetxt(fname, out, fmt=fmt, header=header)
+	else: #except:
+		log.error("Couldn't write file %s" % fname)
+
 
 # Gather info about FoldX version
 
+mutatex_version = "0.3"
 
 def main():
 
-	foldx_versions = [FoldXVersion3b6]
+	foldx_versions = [FoldXVersion3b6, FoldXVersion3b8, FoldXVersion4, FoldXSuiteVersion4]
 
 	supported_foldx_versions = {v.version:v for v in foldx_versions}
 
@@ -581,7 +1104,7 @@ def main():
 	if foldx_rotabase_var is None:
 		foldx_rotabase_var = ""
 
-	parser = argparse.ArgumentParser(description='Setup and run in silico saturation mutagenesis with FoldX.')
+	parser = argparse.ArgumentParser(description='Setup and run in silico saturation mutagenesis with FoldX. Release %s' % mutatex_version)
 
 	parser.add_argument('pdb', metavar='PDBFILE', type=str, nargs='+',  )
 	parser.add_argument('--skip-check', '-r', dest='skip_check', default=False, action='store_true', help="Skip PDB checking phase")
@@ -601,6 +1124,9 @@ def main():
 	parser.add_argument('-l','--use-links', dest="use_links", default=False, action='store_true', help="Use links instead of copying files as much as possibile")
 	parser.add_argument('--repair-runfile-template','--repair', dest="repair_runfile_template", type=str, default="repair_runfile_template.txt", help="Template runfile for repair runs (default: ./repair_runfile_template.txt)")
 	parser.add_argument('--mutate-runfile-template','--mutate', dest="mutate_runfile_template", type=str, default="mutate_runfile_template.txt", help="Template runfile for mutation runs (default: ./mutate_runfile_template.txt)")
+	parser.add_argument('--interface-runfile-template','--interface', dest="interface_runfile_template", type=str, default="interface_runfile_template.txt", help="Template runfile for mutation runs (default: ./interface_runfile_template.txt)")
+	parser.add_argument('--binding-interface', dest="interface", action='store_true', default=False, help="Do calculate binding DDG with mutations")
+	parser.add_argument('--clean', dest="clean", action='store_true', default=False, help="Clean output directories after calculation")
 
 
 # XXX: remove default verbose mode
@@ -636,10 +1162,14 @@ def main():
 
 	current_version = supported_foldx_versions[args.foldx_version](binary=args.foldx_binary)
 
+	log.info("FoldX version %s will be used" % current_version.version)
+
 # defaults 
 	repair_dirname = "repair"
 	mutations_dirname = "mutations"
 	results_dirname = "results"
+	mutations_results_dirname = "mutation_ddgs"
+	interface_results_dirname = "interface_ddgs"
 	averages_dirname = "final_averages"
 	DEVNULL = open(os.devnull, 'w')
 	default_mutlist = ('G','A','V','L','I','M','F','W','P','S','T','C','Y','N','Q','D','E','K','R','H')
@@ -689,11 +1219,10 @@ def main():
 										rotabase = args.rotabase,
 										link_files = args.use_links,
 										write_log = args.write_log,
+										clean = args.clean
 										))
 
-
 # Prepare repair runs
-
 	if not args.skip_repair:
 		for r in repair_runs:
 			log.info("Preparing for repair run %s" % (r.name))
@@ -718,6 +1247,7 @@ def main():
 		try:
 			mutlist = ResList(fname=args.mutlist)
 		except:
+			log.error("Couldn't parse mutation list")
 			exit(1)
 	else:
 		log.info("default mutation list will be used.")
@@ -726,10 +1256,10 @@ def main():
 	log.info("mutation list is: %s" % mutlist)
 
 # Select PDB(s) to be used
-	if args.skip_repair:
-		repaired_pdbs_list = args.pdb
-	else:
-		repaired_pdbs_list = [repair_runs[i].working_directory+"/"+current_version.repaired_pdb_prefix+pdbs_list[i] for i in range(len(pdbs_list))]
+	#if args.skip_repair:
+		#repaired_pdbs_list = args.pdb
+	#else:
+	repaired_pdbs_list = [repair_runs[i].working_directory+"/"+current_version.repair_pdb_output_fname(pdbs_list[i]) for i in range(len(pdbs_list))]
 	log.info("list of PDBs to be used: %s" % ", ".join(repaired_pdbs_list))
 
 # create working directory
@@ -751,13 +1281,11 @@ def main():
 		residues_list.append(get_foldx_sequence(pdb))
 		log.info("Sequence for pdb %s is: %s)" % (pdb, ",".join(residues_list[-1])))
 		    
-
 	residue_sets = [set(l) for l in residues_list]
 	for i in range(len(residue_sets)):
 		for j in range(len(residue_sets)):
 			if residue_sets[i] != residue_sets[j]:
 				log.warning("PDB %s has a different sequence respect to %s!" % (repaired_pdbs_list[i], repaired_pdbs_list[j]))
-
 
 	unique_residues = sorted(list(set.intersection(*residue_sets)), key=lambda x: ord(x[1])*10**12+int(x[2:]))
 
@@ -766,6 +1294,11 @@ def main():
 		exit(1)
 
 	mutation_runs = []
+
+	if args.interface:
+		mutate_clean = False
+	else:
+		mutate_clean = args.clean
 
 	for r in unique_residues:
 		this_pdbs = []
@@ -785,11 +1318,11 @@ def main():
 										link_files = args.use_links,
 										write_log = args.write_log,
 										runfile_processing = {"nruns":args.nruns},
-										prepare_finalization = {"mutlist":mutlist.reslist}
+										prepare_finalization = {"mutlist":mutlist.reslist},
+										clean = mutate_clean
 										))
 
 	if not args.skip_mutate:
-
 		for r in mutation_runs:
 			log.info("Preparing for mutation run %s" % r.name)
 			r.prepare()
@@ -805,35 +1338,142 @@ def main():
 	else:
 		log.info("Mutation phase skipped, as requested")
 
-	working_directory = main_dir+"/"+results_dirname
+	#working_directory = os.path.join(main_dir, results_dirname)
 	log.info("Working directory is: %s" % working_directory)
 
+	if args.interface:
+		log.debug("Calculating interfaces")
+		interface_runs = []
+		for mr in mutation_runs:
+			#this_pdbs = zip(*current_version.get_mutation_pdb_fnames(mr.working_directory, mr.pdbs, mr, include_original=True))
+			#print "pdbs:", this_pdbs
+			#for i,pdbs in enumerate(this_pdbs):
+				#original_pdb = pdbs[-1]
+				#pdbs = pdbs[:-1]
+			this_interaction_run = FoldXInterfaceRun(mr)
+			this_interaction_run.runfile_content = load_runfile(args.interface_runfile_template)
+			this_interaction_run.runfile_name = "interaction_energy_runfile.txt"
+			this_interaction_run.prepare()
+			interface_runs.append(this_interaction_run)
+		log.info("Running interface runs")
+		interface_outcome = parallel_foldx_run(interface_runs, np=args.np)
+		if False in zip(*mutate_outcome)[1]:
+			log.warning("Some interface runs failed to complete.")
+
 	if not args.skip_report:
+		working_directory = os.path.join(main_dir, results_dirname, mutations_results_dirname)
 		safe_makedirs(working_directory)
 
 		for pdb in repaired_pdbs_list:
 			this_pdb_dir = working_directory+"/"+os.path.splitext(os.path.basename(pdb))[0]
 			safe_makedirs(this_pdb_dir)
 		safe_makedirs(working_directory+"/"+averages_dirname)
-	
+
 		for res in unique_residues:
 			energies = []
 			this_runs = filter(lambda x: x.name == res, mutation_runs)
 			for r in this_runs:
 				for pdb in r.pdbs:
-					results_basedir = os.path.splitext(os.path.basename(pdb))[0]
-					try:
-						energies.append( current_version.parse_fxout(r.working_directory+"/"
-														+current_version.average_fxout_prefix
-														+results_basedir
-														+".fxout"))
-					except:
+					if True:
+						energies.append(current_version.parse_mutations_fxout(r.working_directory, [os.path.basename(pdb)], r))
+					else:
 						log.warning("Couldn't parse energy file for PDB %s; mutation site %s will be skipped." % (pdb, r.name))
 						continue
-					save_energy_file(working_directory+"/"+results_basedir+"/"+r.name, energies[-1])
-			save_energy_file(working_directory+"/"+averages_dirname+"/"+r.name, np.average(energies, axis=0))
-	else:
-		log.info("Reporting phase was skipped, as requested.")
+					save_energy_file(working_directory+"/"+"".join(os.path.splitext(os.path.basename(pdb))[:-1])+"/"+r.name, energies[-1], do_avg=True, do_std=True, do_max=True, do_min=True)
+			save_energy_file(working_directory+"/"+averages_dirname+"/"+r.name, np.average(energies, axis=2), axis=0, do_avg=True, do_std=True, do_max=True, do_min=True)
+
+		if args.interface:
+			working_directory = os.path.join(main_dir, results_dirname, interface_results_dirname)
+
+			for pdb in repaired_pdbs_list:
+				this_pdb_dir = os.path.join(working_directory, os.path.splitext(os.path.basename(pdb))[0])
+				safe_makedirs(this_pdb_dir)
+			safe_makedirs(os.path.join(working_directory, averages_dirname))
+
+			for res in unique_residues:
+				energies = {}
+				done = []
+				this_runs = []
+				tmp_this_runs = filter(lambda x: x.name == res, interface_runs)
+				original_pdbs = list(set([r.original_pdb for r in tmp_this_runs]))
+				for op in original_pdbs:
+					this_runs.append(next((r for r in tmp_this_runs if r.original_pdb == op)))
+
+				#print "RUNNY", [r.name for r in this_runs]
+				for run in this_runs:
+                                        #print "RUNNN", run, run.name, run.pdbs
+					if True:
+						this_energies = run.foldx_version.parse_interaction_energy_summary_fxout(	run.working_directory,
+																									run.pdbs,
+																									run	)
+					else:
+						log.warning("Couldn't parse energy file for PDB %s; mutation site %s will be skipped." % (pdb, r.name))
+						continue
+
+					for k in this_energies.keys():
+						labels = tuple(sorted(list(k)))
+						print working_directory
+						print os.path.splitext(os.path.basename(run.original_pdb))[:-1]
+						this_wd = os.path.join(	working_directory,
+												"".join(os.path.splitext(os.path.basename(run.original_pdb))[:-1]),
+												"%s-%s" % labels)
+						safe_makedirs(this_wd)
+						#print "KEYIN", k
+						if k not in energies.keys():
+							energies[k] = [this_energies[k]]
+							#print "NOVEL"
+						else:
+							#print "OLDEL"
+							energies[k].append(this_energies[k])
+
+                                                #print "SALVO", "%s/%s/%s_%s-%s" % (working_directory,"".join(os.path.splitext(os.path.basename(run.original_pdb))[:-1]),run.name,labels[0],labels[1])
+						save_interaction_energy_file(os.path.join(this_wd, run.name),
+														this_energies[k],
+														axis=1,
+														do_avg=True,
+														do_std=True,
+														do_max=True,
+														do_min=True)
+
+# working_directory+"/"+averages_dirname+"/"+r.name, np.average(energies, axis=0), axis=1, do_avg=True, do_std=True, do_max=True, do_min=True)
+
+				for k,e in energies.iteritems():
+					labels = tuple(sorted(list(k)))
+					this_wd = os.path.join(working_directory, averages_dirname,
+											"%s-%s" % labels)
+					safe_makedirs(this_wd)
+
+					print os.path.join(this_wd, run.name)
+					print os.path.isdir(this_wd)
+					save_interaction_energy_file(os.path.join(this_wd, run.name),
+							np.average(energies[k],axis=2),
+							axis=0,
+							do_avg=True,
+							do_std=True,
+							do_max=True,
+							do_min=True)
+				
+
+			# for run in interface_runs:
+			# 	#print "=== run %s" % run
+			# 	# def get_interaction_fxout_names(self, directory, pdbs, run):
+			# 	energies = run.foldx_version.parse_interaction_energy_summary_fxout(	run.working_directory,
+			# 																			[os.path.basename(run.original_pdb)],
+			# 																			run
+			# 																		)
+			# 	for k,v in energies.iteritems():
+			# 		k = sorted(list(k))
+			# 		working_directory+"/"+"".join(os.path.splitext(os.path.basename(pdb))[:-1])+"/"+r.name
+			# 		save_interaction_energy_file("%s/%s/%s_%s-%s" % (working_directory,"".join(os.path.splitext(os.path.basename(pdb))[:-1]),run.name,k[0],k[1]), 
+			# 											v,
+			# 											axis=1,
+			# 											do_avg=True,
+			# 											do_std=True,
+			# 											do_max=True,
+			# 											do_min=True)
+
+        else:
+	        log.info("Reporting phase was skipped, as requested.")
 
 	log.info("All done!")
 
