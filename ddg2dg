@@ -1,0 +1,182 @@
+#!/usr/bin/env python
+
+#    ddg2matrix: plot DDG MutateX results as heat maps.
+#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import argparse
+
+import matplotlib
+matplotlib.use('PDF')
+from matplotlib import cm
+
+def parse_ddg_file(fname):
+    
+    try:
+        ddgs = np.loadtxt(fname)[:,0]
+    except:
+        log.warning("file %s cannot be opened." % fname)
+        return None
+
+    return ddgs
+
+def parse_list_file(fname):
+
+    fh = open(fname, 'r')
+    restypes = []
+    for line in fh:
+        if line and not line.startswith("#"):
+            restypes.append(line.strip()[0])
+    return restypes
+ 
+def get_foldx_sequence(model, multimers=True):
+
+    sequences = {}
+    residue_list = []
+    
+    for chain in model:
+        chain_name = chain.get_id()
+        sequences[chain_name] = ''
+        for residue in chain:
+            try:
+                res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+            except:
+                log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
+                continue
+            if not multimers:
+                residue_list.append(("%s%s%d") % (res_code, chain.get_id(), residue.get_id()[1]))
+            else:
+                sequences[chain_name] += res_code
+
+    if multimers:
+        collated_chains = []
+        seq_ids, seqs = zip(*list(sequences.iteritems()))
+        seq_ids = np.array(seq_ids)
+        unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
+
+        for i in np.unique(unique_idxs):
+            collated_chains.append(seq_ids[unique_idxs == i])
+            
+        for cg in collated_chains:
+            for model in structure:
+                for residue in model[cg[0]]:
+                    resid = residue.get_id()[1]
+                    try:
+                        res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                    except:
+                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
+                        continue
+                    residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
+
+    return tuple(residue_list)
+    
+def seq_to_res(seq):
+    return "_".join(seq)
+
+
+three2one = {'ALA':'A',
+             'CYS':'C',
+             'ASP':'D',
+             'GLU':'E',
+             'PHE':'F',
+             'GLY':'G',
+             'HIS':'H',
+             'ILE':'I',
+             'LYS':'K',
+             'LEU':'L',
+             'MET':'M',
+             'ASN':'N',
+             'PRO':'P',
+             'GLN':'Q',
+             'ARG':'R',
+             'SER':'S',
+             'THR':'T',
+             'VAL':'V',
+             'TRP':'W',
+             'TYR':'Y'}
+
+LOGFMT = "%(levelname)s: %(message)s"
+
+if not __name__ == "__main__":
+    exit()
+
+cmaps_list = [m for m in cm.datad if not m.endswith("_r")]
+
+parser = argparse.ArgumentParser(
+description='FoldX DDG converter to the OOXML xlsx format',)
+
+parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
+parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
+parser.add_argument("-o","--output", dest="outdir", type=str, action='store', default='dgf')
+parser.add_argument("-m", "--slope", dest="m", type=float, action='store', default=1.0, help="slope value for the correction of DDG values")
+parser.add_argument("-b", "--y-intercept", dest="b", type=float, action='store', default=0.0, help="Y-intercept value for the correction of DDG values")
+parser.add_argument("-x", "--experimental-dg", dest="dg", type=float, default=0, action='store', help="Experimental energy of folding")
+parser.add_argument("-M", "--multimers", dest="multimers", default=True, action='store_false', help="Do not consider the same chains as multimers")
+
+options = parser.parse_args()
+
+import numpy as np
+import logging as log
+import os
+from Bio import PDB
+from matplotlib import pyplot as plt
+
+log.basicConfig(level=log.WARNING, format=LOGFMT)
+
+pdb_parser = PDB.PDBParser()
+
+try:
+    structure = pdb_parser.get_structure('s', options.in_pdb)
+except:
+    log.error("Couldn't open or parse input pdb file. Exiting...")
+    exit(1)
+ 
+res_ids = []
+res_ids_str = []
+data = []
+
+models = structure.get_list()
+
+if len(models) > 1:
+    log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
+if len(models) < 1:
+    log.error("The input PDB file does not contain any model. Exiting ...")
+    exit(1)
+
+model = models[0]    
+
+foldx_sequence = get_foldx_sequence(model, multimers=options.multimers)
+
+header="# dgf"
+
+if os.path.isdir(options.outdir):
+    log.warning("Directory %s already exists; contents will be overwritten" % options.outdir)
+else:
+    try:
+        os.mkdir(options.outdir)
+    except:
+        log.error("Directory %s couldn't be created. Exiting..." % options.outdir)
+        exit(1)
+
+for res in foldx_sequence:
+    resname = seq_to_res(res)
+    out_fname = "%s/%s" % (options.outdir, resname)
+    this_data = parse_ddg_file("%s/%s" % (options.dir, resname))
+    this_data = options.dg + this_data*options.m + options.b
+    try:
+        np.savetxt(out_fname, this_data, fmt="%.5f", header=header)
+    except:
+        log.error("Couldn't save file %s. Exiting..." % out_fname)
+        exit(1)
