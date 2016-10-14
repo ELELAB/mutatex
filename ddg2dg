@@ -115,7 +115,7 @@ if not __name__ == "__main__":
 cmaps_list = [m for m in cm.datad if not m.endswith("_r")]
 
 parser = argparse.ArgumentParser(
-description='FoldX DDG converter to the OOXML xlsx format',)
+description='Calculate folding DG from MutateX DDG and experimental DG, also applying a linear correction')
 
 parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
 parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
