@@ -3,5 +3,4 @@ pdb=$PDBS$
 mutant-file=individual_list.txt
 water=-CRYSTAL
 numberOfRuns=$NRUNS$
-outPDB=true
 complexWithDNA=true

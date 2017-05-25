@@ -5,5 +5,4 @@ temperature=298
 pH=7
 ionStrength=0.050
 vdwDesign=2
-outPDB=false
 pdbHydrogens=false
