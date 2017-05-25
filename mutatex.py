@@ -28,8 +28,16 @@ import numpy as np
 from Bio import PDB
 
 class MutationList(object):
-    def __init__(self, res_groups, mutations, name=""):
+    def __init__(self, res_groups, mutations, name="", selfmutate=False):
         self.name = name
+        if selfmutate:
+            self.res_groups = tuple([res_groups])
+            mutations = []
+            for rg in self.res_groups:
+                mutations.append(tuple([ rrg[0] for rrg in rg]))
+            self.mutations = tuple(mutations)
+            return
+
         if type(mutations) is ResList:
             # self.res_grups = [(A130, B130), (A130,B130)]
             self.res_groups = tuple([res_groups] * len(mutations.reslist))
@@ -47,7 +55,6 @@ class MutationList(object):
         if set(self.mutations) != set(other.mutations):
             return False
         return True
-        
         
     def __ne__(self, other):        
         return not self == other
@@ -948,6 +955,7 @@ def main():
     parser.add_argument('--nruns', '-n', dest='nruns', default=5, action='store', type=int, help="number of FoldX mutation runs per mutation (default: 5)")
     parser.add_argument('--np', dest='np', default=1, type=int, help="Number of FoldX processes to be run at the same time")
     parser.add_argument('--mutlist','-m', dest="mutlist", default=None, type=str, help="File containing the residue types that each ")
+    parser.add_argument('--self-mutate', dest="selfmutate", default=False, action="store_true", help="Ignore mutation list and perform mutation to the same residue")
     parser.add_argument('-x', '--foldx-binary', dest="foldx_binary", action='store', type=str, help="Location of the FoldX binary (default: content of the FOLDX_BINARY system variable", default=foldx_binary_var)
     parser.add_argument('--rotabase', dest="rotabase", action="store", type=str, help="Location of the FoldX rotabase.txt file (default: content of the FOLDX_ROTABASE system variable", default=foldx_rotabase_var)
     parser.add_argument('--foldx-version', dest="foldx_version", action='store', choices=supported_foldx_versions.keys(), default=supported_foldx_versions.keys()[0], help="FoldX version to be used (possible options: %s" % ", ".join(supported_foldx_versions.keys()))
@@ -1074,7 +1082,10 @@ def main():
 # PHASE TWO: mutate + energy
 
 # Prepare mutation list
-    if args.mutlist:
+    if args.selfmutate:
+        log.info("Mutation to self will be performed; mutlist will be ignored")
+        mutation_reslist = None
+    elif args.mutlist:
         log.info("File %s will be used as mutation list" % args.mutlist)
         try: # XXX to be changed
             mutation_reslist = ResList(fname=args.mutlist)
@@ -1095,6 +1106,9 @@ def main():
     log.info("list of PDBs to be used: %s" % ", ".join(repaired_pdbs_list))
 
 # create working directory
+    if args.selfmutate:
+        mutations_dirname = "selfmutations"
+
     working_directory = main_dir+"/"+mutations_dirname
     log.info("Working directory is: %s" % working_directory)
 
@@ -1137,7 +1151,9 @@ def main():
     for r in unique_residues:
         print "errR", r
         print "mres", mutation_reslist
-        mutlist = MutationList(r, mutation_reslist)
+
+        mutlist = MutationList(r, mutation_reslist, selfmutate=args.selfmutate)
+
         print mutlist.res_groups
         print mutlist.mutations
         name = name_separator.join(r)
