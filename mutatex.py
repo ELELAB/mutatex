@@ -93,6 +93,66 @@ class ResList(object):
         fh.close()
         return tuple(restypes)
 
+class EnergyReport:
+    def __init__(self, pdbs=None):
+        self.residues = {}
+        self.energies = {}
+        if pdbs:
+            for pdb in pdbs:
+                self.energies[pdb] = []
+                self.residues[pdb] = []
+    
+    def add_residue(self, res, energy, pdb, do_avg=None, do_std=None, do_max=None, do_min=None):
+        assert(energy.shape[0] == 1)
+        energy = energy[0]
+
+        if not pdb in self.energies.keys():
+            self.energies[pdb] = []
+            self.residues[pdb] = []
+
+        self.energies[pdb].append(energy)
+        self.residues[pdb].append(res)
+
+    def save(self, directory, fname="selfmutation_energies.dat", do_avg=True, do_std=True, do_min=True, do_max=True):
+
+        header_cols = []
+
+        if do_avg:
+            header_cols.append("avg")
+        if do_std:
+            header_cols.append("std")
+        if do_min:
+            header_cols.append("min")            
+        if do_max:
+            header_cols.append("max")            
+
+        dtype = [('res', 'S8')] + [(i, 'f') for i in header_cols]
+        header = "\t".join(header_cols)
+        #fmt= "%8s\t" + "\t".join(["%.10f" for f in header_cols])
+        fmt=["%8s"] + ["%10f" for f in header_cols]
+
+        for pdb,energies in self.energies.iteritems():
+
+            out = [self.residues[pdb]]
+
+            #print "ASAZ", energies, 
+
+            if do_avg:
+                out.append(np.average(energies, axis=1))
+            if do_std:
+                out.append(np.std(energies, axis=1))
+            if do_min:
+                out.append(np.min(energies, axis=1))
+            if do_max:
+                out.append(np.max(energies, axis=1))
+
+            out = np.array(zip(*out), dtype=dtype)
+
+            try:
+                np.savetxt(os.path.join(directory, pdb, fname), out, fmt=fmt, header=header)
+            except:
+                log.error("Couldn't write file %s" % fname) 
+
 class FoldXVersion:
     def __init__(self, binary=None):
         if binary:
@@ -867,33 +927,6 @@ def get_foldx_sequence(pdb, multimers=True):
     print "AA", residue_list
     return tuple(residue_list)
 
-def save_energy_file(fname, data, fmt="%.5f", do_avg=True, do_std=False, do_min=False, do_max=False, axis=1):
-
-    out = []
-    header_cols = []
-
-    if do_avg:
-        out.append(np.average(data, axis=axis))
-        header_cols.append("avg")
-    if do_std:
-        out.append(np.std(data, axis=axis))
-        header_cols.append("std")
-    if do_min:
-        out.append(np.min(data, axis=axis))
-        header_cols.append("min")
-    if do_max:
-        out.append(np.max(data, axis=axis))
-        header_cols.append("max")
-
-    header = "\t".join(header_cols)
-
-    out = np.array(out).T
-
-    try:
-        np.savetxt(fname, out, fmt=fmt, header=header)
-    except:
-        log.error("Couldn't write file %s" % fname)
-
 
 def save_interaction_energy_file(fname, data, fmt="%.5f", do_avg=True, do_std=False, do_min=False, do_max=False, axis=1):
 
@@ -1212,6 +1245,12 @@ def main():
             log.warning("Some interface runs failed to complete.")
 
     if not args.skip_report:
+
+        if args.selfmutate:
+            report = EnergyReport()
+
+        energies = []
+
         working_directory = os.path.join(main_dir, results_dirname, mutations_results_dirname)
         safe_makedirs(working_directory)
 
@@ -1222,9 +1261,9 @@ def main():
 
         for res in unique_residues:
             name = name_separator.join(res)
-            energies = []
+
             #print "UQ", unique_residues
-            for i in mutation_runs: print i.name
+            #for i in mutation_runs: print i.name
             this_runs = filter(lambda x: x.name == name, mutation_runs)
             #print this_runs, "THIS_RUNS"
             for r in this_runs:
@@ -1235,8 +1274,14 @@ def main():
                     except:
                         log.warning("Couldn't parse energy file for PDB %s; mutation site %s will be skipped." % (pdb, r.name))
                         continue
-                    save_energy_file(working_directory+"/"+"".join(os.path.splitext(os.path.basename(pdb))[:-1])+"/"+r.name, energies[-1], do_avg=True, do_std=True, do_max=True, do_min=True)
-            save_energy_file(working_directory+"/"+averages_dirname+"/"+r.name, np.average(energies, axis=2), axis=0, do_avg=True, do_std=True, do_max=True, do_min=True)
+                    if args.selfmutate:
+                        report.add_residue(pdb="".join(os.path.splitext(os.path.basename(pdb))[:-1]), res=r.name, energy=energies[-1])
+                    else:
+                        save_energy_file(working_directory+"/"+"".join(os.path.splitext(os.path.basename(pdb))[:-1])+"/"+r.name, energies[-1], do_avg=True, do_std=True, do_max=True, do_min=True)
+            if not args.selfmutate:
+                save_energy_file(working_directory+"/"+averages_dirname+"/"+r.name, np.average(energies, axis=2), axis=0, do_avg=True, do_std=True, do_max=True, do_min=True)
+
+        report.save(working_directory)
 
         if args.interface:
             working_directory = os.path.join(main_dir, results_dirname, interface_results_dirname)
