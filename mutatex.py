@@ -46,7 +46,7 @@ class MutationList(object):
         else:
             self.res_groups = tuple(res_groups)
             self.mutations = tuple(mutations)
-            
+
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return NotImplemented
@@ -55,10 +55,10 @@ class MutationList(object):
         if set(self.mutations) != set(other.mutations):
             return False
         return True
-        
-    def __ne__(self, other):        
+
+    def __ne__(self, other):
         return not self == other
-        
+
 
 class ResList(object):
     def __init__(self, reslist=None, fname=None):
@@ -101,7 +101,7 @@ class EnergyReport:
             for pdb in pdbs:
                 self.energies[pdb] = []
                 self.residues[pdb] = []
-    
+
     def add_residue(self, res, energy, pdb, do_avg=None, do_std=None, do_max=None, do_min=None):
         assert(energy.shape[0] == 1)
         energy = energy[0]
@@ -122,9 +122,9 @@ class EnergyReport:
         if do_std:
             header_cols.append("std")
         if do_min:
-            header_cols.append("min")            
+            header_cols.append("min")
         if do_max:
-            header_cols.append("max")            
+            header_cols.append("max")
 
         dtype = [('res', 'S8')] + [(i, 'f') for i in header_cols]
         header = "\t".join(header_cols)
@@ -135,7 +135,7 @@ class EnergyReport:
 
             out = [self.residues[pdb]]
 
-            #print "ASAZ", energies, 
+            #print "ASAZ", energies,
 
             if do_avg:
                 out.append(np.average(energies, axis=1))
@@ -151,7 +151,7 @@ class EnergyReport:
             try:
                 np.savetxt(os.path.join(directory, pdb, fname), out, fmt=fmt, header=header)
             except:
-                log.error("Couldn't write file %s" % fname) 
+                log.error("Couldn't write file %s" % fname)
 
 class FoldXVersion:
     def __init__(self, binary=None):
@@ -187,27 +187,27 @@ class FoldXSuiteVersion4(FoldXVersion):
 
         try:
             fh = open(fname, 'w')
-        except: 
+        except:
             log.error("Couldn't open file %s for writing!" % fname)
             return None
-            
+
         for i, rg in enumerate(mutlist.res_groups):
             fh.write(",".join(["%s%s" % (rg[j], mutlist.mutations[i][j]) for j,r in enumerate(rg) ]))
             fh.write(self.mutlist_eol)
-        
+
         fh.close()
-        
+
     def parse_mutlist(self, fname):
 
         try:
             fh = open(fname, 'r')
-        except: 
+        except:
             log.error("Couldn't open file %s for reading!" % fname)
-            raise IOError 
-            
+            raise IOError
+
         res_groups = []
         mutations = []
-        
+
         for line in fh:
             if line:
                 tmp = line.strip(self.mutlist_eol).split(",")
@@ -219,7 +219,7 @@ class FoldXSuiteVersion4(FoldXVersion):
         res_groups = tuple(res_groups)
         ml = MutationList(res_groups=res_groups, mutations=mutations)
         return ml
-        
+
     def repair_pdb_output_fname(self, basename):
         return "%s_Repair.pdb" % "".join(os.path.splitext(basename)[:-1])
 
@@ -267,7 +267,7 @@ class FoldXSuiteVersion4(FoldXVersion):
         energies = np.array(energies)
         energies = energies.reshape(len(this_run.mutlist.mutations),
                                         energies.shape[0]/len(this_run.mutlist.mutations))
-                                        
+
         print "NRG", energies
 
         return energies
@@ -573,11 +573,20 @@ class FoldXRun(object):
 
     def process_output(self, **kwargs):
         log.info("Processing output ...")
+        self.partial_clean()
         if self.do_clean:
             self.clean()
 
     def finalize_prepare(self, **kwargs):
         pass
+
+    def partial_clean(self):
+        log.info("Doing partial cleaning of the working directory %s" % self.working_directory)
+        for f in os.listdir(self.working_directory):
+            fname = os.path.join(self.working_directory, f)
+            if f.startswith("WT_") and f.endswith(".pdb"):
+                log.info("removing %s" % fname)
+                os.remove(fname)
 
     def clean(self):
         log.info("Cleaning working directory %s" % self.working_directory)
@@ -586,7 +595,6 @@ class FoldXRun(object):
             if os.path.isfile(fname) and not fname.endswith(".fxout") and not fname == os.path.basename(fname):
                 log.info("removing %s" % fname)
                 os.remove(fname)
-
 
 class FoldXRepairRun(FoldXRun):
     def check_status(self):
@@ -608,7 +616,7 @@ class FoldXRepairRun(FoldXRun):
 class FoldXMutateRun(FoldXRun):
 
     logfile_name = "MutateFoldXRun.log"
-    
+
     def __init__(self, mutlist=None, *args, **kwargs):
         super(FoldXMutateRun, self).__init__(*args, **kwargs)
         self.mutlist = mutlist
@@ -912,7 +920,7 @@ def get_foldx_sequence(pdb, multimers=True):
         for i in np.unique(unique_idxs):
             collated_chains.append(seq_ids[unique_idxs == i])
         print "COLLATED", collated_chains
-            
+
         for cg in collated_chains:
             for model in structure:
                 for residue in model[cg[0]]:
@@ -1185,15 +1193,15 @@ def main():
             continue
         residues_list.append(get_foldx_sequence(pdb, multimers=args.multimers))
         print residues_list
-    
+
     print residues_list,"ZZS"
     unique_residues = tuple(set(residues_list))
     if len(unique_residues) != 1:
         log.error("The supplied PDB files must have identical sequences. Exiting...")
         exit(1)
-    
+
     unique_residues = list(unique_residues[0])
-        
+
     str_unique_residues = ""
     for res in unique_residues:
         str_unique_residues += "(%s) " % ",".join(res)
@@ -1261,6 +1269,7 @@ def main():
                 #original_pdb = pdbs[-1]
                 #pdbs = pdbs[:-1]
             this_interaction_run = FoldXInterfaceRun(mr)
+            this_interaction_run.do_clean = args.clean
             this_interaction_run.runfile_content = load_runfile(args.interface_runfile_template)
             this_interaction_run.runfile_name = "interaction_energy_runfile.txt"
             this_interaction_run.prepare()
