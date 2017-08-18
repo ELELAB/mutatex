@@ -927,6 +927,32 @@ def get_foldx_sequence(pdb, multimers=True):
     print "AA", residue_list
     return tuple(residue_list)
 
+def save_energy_file(fname, data, fmt="%.5f", do_avg=True, do_std=False, do_min=False, do_max=False, axis=1):
+
+    out = []
+    header_cols = []
+
+    if do_avg:
+        out.append(np.average(data, axis=axis))
+        header_cols.append("avg")
+    if do_std:
+        out.append(np.std(data, axis=axis))
+        header_cols.append("std")
+    if do_min:
+        out.append(np.min(data, axis=axis))
+        header_cols.append("min")
+    if do_max:
+        out.append(np.max(data, axis=axis))
+        header_cols.append("max")
+
+    header = "\t".join(header_cols)
+
+    out = np.array(out).T
+
+    try:
+        np.savetxt(fname, out, fmt=fmt, header=header)
+    except:
+        log.error("Couldn't write file %s" % fname)
 
 def save_interaction_energy_file(fname, data, fmt="%.5f", do_avg=True, do_std=False, do_min=False, do_max=False, axis=1):
 
@@ -1261,11 +1287,13 @@ def main():
 
         for res in unique_residues:
             name = name_separator.join(res)
+            energies = []
 
             #print "UQ", unique_residues
             #for i in mutation_runs: print i.name
             this_runs = filter(lambda x: x.name == name, mutation_runs)
             #print this_runs, "THIS_RUNS"
+            dobreak = False
             for r in this_runs:
                 #print "NONO", r.name
                 for pdb in r.pdbs:
@@ -1273,15 +1301,19 @@ def main():
                         energies.append(current_version.parse_mutations_fxout(r.working_directory, [os.path.basename(pdb)], r))
                     except:
                         log.warning("Couldn't parse energy file for PDB %s; mutation site %s will be skipped." % (pdb, r.name))
-                        continue
+                        dobreak=True
+			break
                     if args.selfmutate:
                         report.add_residue(pdb="".join(os.path.splitext(os.path.basename(pdb))[:-1]), res=r.name, energy=energies[-1])
                     else:
                         save_energy_file(working_directory+"/"+"".join(os.path.splitext(os.path.basename(pdb))[:-1])+"/"+r.name, energies[-1], do_avg=True, do_std=True, do_max=True, do_min=True)
+            if dobreak:
+                continue
             if not args.selfmutate:
+                print "SHAPPO", np.array(energies).shape
                 save_energy_file(working_directory+"/"+averages_dirname+"/"+r.name, np.average(energies, axis=2), axis=0, do_avg=True, do_std=True, do_max=True, do_min=True)
-
-        report.save(working_directory)
+            else:
+                report.save(working_directory)
 
         if args.interface:
             working_directory = os.path.join(main_dir, results_dirname, interface_results_dirname)
