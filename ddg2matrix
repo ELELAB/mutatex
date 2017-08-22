@@ -22,7 +22,58 @@ import matplotlib
 matplotlib.use('PDF')
 from matplotlib import cm
 
-def parse_ddg_file(fname, reslist, thisres):
+def get_residue_list(structure, multimers=True):
+
+    models = structure.get_list()
+
+    if len(models) > 1:
+        log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
+    if len(models) < 1:
+        log.error("The input PDB file does not contain any model. Exiting ...")
+        exit(1)
+
+    model = models[0]
+
+    residue_list = []
+    sequences = {}
+
+    for chain in model:
+        chain_name = chain.get_id()
+        sequences[chain_name] = ''
+        for residue in chain:
+            try:
+                res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+            except:
+                log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
+                continue
+            if not multimers:
+                residue_list.append(("%s%s%d") % (res_code, chain.get_id(), residue.get_id()[1]))
+            else:
+                sequences[chain_name] += res_code
+
+    if args.multimers:
+        collated_chains = []
+        seq_ids, seqs = zip(*list(sequences.iteritems()))
+        seq_ids = np.array(seq_ids)
+        unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
+
+        for i in np.unique(unique_idxs):
+            collated_chains.append(seq_ids[unique_idxs == i])
+
+        for cg in collated_chains:
+            for model in structure:
+                for residue in model[cg[0]]:
+                    resid = residue.get_id()[1]
+                    try:
+                        res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                    except:
+                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
+                        continue
+                    residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
+    return residue_list
+
+
+def parse_ddg_file(fname, reslist):
     try:
         fh = open(fname, 'r')
     except:
@@ -31,9 +82,9 @@ def parse_ddg_file(fname, reslist, thisres):
 
     ddgs = []
     for line in fh:
-        if line and not line.startswith("#"): 
+        if line and not line.startswith("#"):
             ddgs.append(float(line.split()[0]))
-                
+
     if len(ddgs) != len(reslist):
         log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), values))
         exit(1)
@@ -178,6 +229,7 @@ parser.add_argument("-i","--title", dest='title', action='store', default=None, 
 parser.add_argument("-c","--color-map",dest='cmap',action='store', type=unicode, default='jet', help="Color map used to plot the DDG values (choose from: %s)" % ", ".join(cmaps_list))
 parser.add_argument("-s","--splice",dest='sv',action='store', type=int, default=20, help="Number of residues for each single image")
 parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Font size")
+parser.add_argument("-a","--multimers", dest="multimers", default=True, action='store_false')
 
 options = parser.parse_args()
 
@@ -209,43 +261,28 @@ try:
 except:
     log.error("Couldn't open or parse input pdb file. Exiting...")
     exit(1)
- 
+
 res_ids = []
 res_ids_str = []
 data = []
 
-models = structure.get_list()
+res_ids_str = get_residue_list(structure, multimers=options.multimers)
+fnames = ["_".join(r) for r in res_ids_str]
+res_id_labels = [", ".join(r) for r in res_ids_str]
 
-if len(models) > 1:
-    log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
-if len(models) < 1:
-    log.error("The input PDB file does not contain any model. Exiting ...")
-    exit(1)
+for fname in fnames:
+    this_data = parse_ddg_file("%s/%s" % (options.dir, fname), reslist=res_order)
 
-model = models[0]
-
-for chain in model:
-    for res in chain:
-        try:
-            this_type = three2one[res.get_resname()]
-        except:
-            log.warning("residue %s, %s, %d not recognized. It will be skipped." % (res.get_resname(), chain.get_id(), res.get_id()[1]))
-            continue
-
-        res_ids.append((chain.get_id(), res.get_id()[1], this_type))
-        res_ids_str.append("%s%s%d" % (res_ids[-1][2],res_ids[-1][0],res_ids[-1][1]))
-        this_data = parse_ddg_file("%s/%s" % (options.dir, res_ids_str[-1]), reslist=res_order, thisres=res_ids[-1][0])
-
-        if this_data:
-            data.append(np.array(this_data))
-            continue
-        elif options.includeblank:
-            this_data = np.empty((len(res_order)))
-            this_data[:] = np.NAN
-            data.append(this_data)
-        else:
-            res_ids.pop()
-            res_ids_str.pop()
+    if this_data:
+        data.append(np.array(this_data))
+        continue
+    elif options.includeblank:
+        this_data = np.empty((len(res_order)))
+        this_data[:] = np.NAN
+        data.append(this_data)
+    else:
+        res_ids.pop()
+        res_ids_str.pop()
 
 data = np.vstack(tuple(data))
 
@@ -256,22 +293,22 @@ if not options.vmin:
 
 print res_order
 
-spliced_data = splice_data(data, res_ids_str, options.sv)
+spliced_data = splice_data(data, res_id_labels, options.sv)
 
 #def save_matrix(mat, vertical_header, horizontal_header, fname):
 
 
 if options.raw:
-    save_matrix(data, res_order, res_ids_str, options.raw, options.transpose)
+    save_matrix(data, res_order, res_ids_labels, options.raw, options.transpose)
 
 for i in range(len(spliced_data)):
-    plot_matrix(spliced_data[i][0], 
-                spliced_data[i][1], 
-                res_order, 
-                cm.get_cmap(options.cmap), 
-                title=options.title, 
-                vmin=options.vmin, 
-                vmax=options.vmax, 
+    plot_matrix(spliced_data[i][0],
+                spliced_data[i][1],
+                res_order,
+                cm.get_cmap(options.cmap),
+                title=options.title,
+                vmin=options.vmin,
+                vmax=options.vmax,
                 transpose=options.transpose,
                 fontsize=options.fontsize)
     plt.savefig("%d_%s.pdf" %(i, options.outfile))

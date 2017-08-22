@@ -32,58 +32,6 @@ import numpy as np
 
 # User options
 
-
-parser = argparse.ArgumentParser(
-description='FoldX densityplot',)
-
-
-parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
-parser.add_argument("-d","--data-directory", dest="input_path", type=str, help="input data directory")
-parser.add_argument("-l","--mutation_list", dest="mutations",  help="mutation_list")
-parser.add_argument("-o","--output", dest="outfile", type=str, default="densityplot")
-parser.add_argument("-i","--title", dest='title', type=str, default=None, help="Title for the output image file")
-parser.add_argument("-c","--color", dest='mycolor', type=unicode, default="blue", help="Color used to plot the DDG values")
-parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Font size")
-parser.add_argument("-u","--ddgfile", dest="ddgfile", type=str, default="ddgvalues")
-parser.add_argument("-k","--kdvfile", dest="kdvfile", type=str, default="kdvvalues")
-options = parser.parse_args()
-
-
-
-
-
-# Parser
-
-pdb_parser = PDB.PDBParser()
-
-try:
-    user_structure = pdb_parser.get_structure('s', options.in_pdb)
-except:
-    log.error("Couldn't open or parse input pdb file. Exiting...")
-    exit(1)
-
-
-
-# Mutation list
-
-try:
-    fh = open(options.mutations, 'r')
-except:
-    log.warning("mutationlist cannot be opened.")
-muts = []
-for line in fh:
-    mut = line.rstrip()
-    muts.append(mut)
-
-
-
-d = {}
-for value in muts:
-    d[value] = muts.index(value)
-
-
-
-
 def parse_file(fname):
 
     try:
@@ -127,15 +75,7 @@ three2one = {'ALA':'A',
              'TRP':'W',
              'TYR':'Y'}
 
-
-
-
-def pdbmodel(structure):
-
-    res_ids = []
-    res_ids_str = []
-    data = []
-    remove =  []
+def get_residue_list(structure, multimers=True):
 
     models = structure.get_list()
 
@@ -147,25 +87,61 @@ def pdbmodel(structure):
 
     model = models[0]
 
+    residue_list = []
+    sequences = {}
+
     for chain in model:
-        for res in chain:
+        chain_name = chain.get_id()
+        sequences[chain_name] = ''
+        for residue in chain:
             try:
-                this_type = three2one[res.get_resname()]
+                res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
             except:
-                log.warning("residue %s, %s, %d not recognized. It will be skipped." % (res.get_resname(), chain.get_id(), res.get_id()[1]))
+                log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
                 continue
+            if not multimers:
+                residue_list.append(("%s%s%d") % (res_code, chain.get_id(), residue.get_id()[1]))
+            else:
+                sequences[chain_name] += res_code
 
-            res_ids.append((chain.get_id(), res.get_id()[1], this_type))
-            res_ids_str.append("%s%s%d" % (res_ids[-1][2],res_ids[-1][0],res_ids[-1][1]))
+    if args.multimers:
+        collated_chains = []
+        seq_ids, seqs = zip(*list(sequences.iteritems()))
+        seq_ids = np.array(seq_ids)
+        unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
 
-            this_data = parse_file("%s/%s" % (options.input_path, res_ids_str[-1]))
+        for i in np.unique(unique_idxs):
+            collated_chains.append(seq_ids[unique_idxs == i])
 
-            data.append(np.array(this_data))
+        for cg in collated_chains:
+            for model in structure:
+                for residue in model[cg[0]]:
+                    resid = residue.get_id()[1]
+                    try:
+                        res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                    except:
+                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
+                        continue
+                    residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
+    return residue_list
+
+def pdbmodel(residue_list, d):
+
+    res_ids = []
+    res_ids_str = []
+    data = []
+    remove =  []
+
+    res_ids.append((chain.get_id(), res.get_id()[1], this_type))
+    res_ids_str = ["_".join(r) for r in residue_list]
+    res_restypes = [r[0][0] for r in residue_list]
+    remove = [d[r] for r in res_restypes]
+
+    for fname in res_ids_str:
+        this_data = parse_file("%s/%s" % (options.input_path, fname))
+        data.append(np.array(this_data))
 
     data = np.vstack(data)
-
-    for tp in res_ids:
-        remove.append(d[tp[2]])
 
     N, K = data.shape[0], data.shape[1]
     mask = np.ones_like(data, dtype='bool')
@@ -176,15 +152,6 @@ def pdbmodel(structure):
 
     return data
 
-
-
-user_data = pdbmodel(user_structure)
-
-ddgvalues = np.asarray(user_data)
-np.savetxt(options.ddgfile, ddgvalues, fmt='%.3f', newline='\n', header='DDG', footer='', comments='# ')
-
-
-
 def densityplot(data, outfile, title, mycolor):
     try:
         plt.style.use('ggplot')
@@ -193,24 +160,68 @@ def densityplot(data, outfile, title, mycolor):
     finally:
         fig = plt.figure()
 	KDE = gaussian_kde(data)
-        xmin = -5
-        xmax = 10
-        spaces = 150
-        x = linspace(xmin,xmax,spaces)
-        KDV = [KDE(i)[0] for i in linspace(xmin, xmax, spaces)]
-        np.savetxt(options.kdvfile+'.txt', zip(x,KDV), fmt='%.3f', newline='\n', header='xaxis, kdv', footer='', comments='# ')
-        plot(x,KDE(x),'r', c=mycolor)
-        hist(data, int(len(data)/10) , normed=1,alpha=.3, facecolor=mycolor)
-        plt.xlabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
-        plt.ylabel('Density')
-        if title is not None:
-            plt.title(title)
-        plt.savefig(outfile+'.pdf', bbox_inches='tight')
-        plt.clf()
+    xmin = -5
+    xmax = 10
+    spaces = 150
+    x = linspace(xmin,xmax,spaces)
+    KDV = [KDE(i)[0] for i in linspace(xmin, xmax, spaces)]
+    np.savetxt(options.kdvfile+'.txt', zip(x,KDV), fmt='%.3f', newline='\n', header='xaxis, kdv', footer='', comments='# ')
+    plot(x,KDE(x),'r', c=mycolor)
+    hist(data, int(len(data)/10) , normed=1,alpha=.3, facecolor=mycolor)
+    plt.xlabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
+    plt.ylabel('Density')
+    if title is not None:
+        plt.title(title)
+    plt.savefig(outfile+'.pdf', bbox_inches='tight')
+    plt.clf()
+
+parser = argparse.ArgumentParser(description='FoldX densityplot',)
+
+parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
+parser.add_argument("-d","--data-directory", dest="input_path", type=str, help="input data directory")
+parser.add_argument("-l","--mutation_list", dest="mutations",  help="mutation_list")
+parser.add_argument("-o","--output", dest="outfile", type=str, default="densityplot")
+parser.add_argument("-i","--title", dest='title', type=str, default=None, help="Title for the output image file")
+parser.add_argument("-c","--color", dest='mycolor', type=unicode, default="blue", help="Color used to plot the DDG values")
+parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Font size")
+parser.add_argument("-u","--ddgfile", dest="ddgfile", type=str, default="ddgvalues")
+parser.add_argument("-k","--kdvfile", dest="kdvfile", type=str, default="kdvvalues")
+parser.add_argument("-m","--multimers", dest="multimers", default=True, action='store_false')
+
+options = parser.parse_args()
+
+
+# Parser
+pdb_parser = PDB.PDBParser()
+
+try:
+    user_structure = pdb_parser.get_structure('s', options.in_pdb)
+except:
+    log.error("Couldn't open or parse input pdb file. Exiting...")
+    exit(1)
+
+
+# Mutation list
+
+try:
+    fh = open(options.mutations, 'r')
+except:
+    log.warning("mutationlist cannot be opened.")
+muts = []
+for line in fh:
+    mut = line.rstrip()
+    muts.append(mut)
+
+d = {}
+for value in muts:
+    d[value] = muts.index(value)
+
+residue_list = get_residue_list(user_structure, multimers=args.multimers)
+user_data = pdbmodel(residue_list, d)
+
+ddgvalues = np.asarray(user_data)
+np.savetxt(options.ddgfile, ddgvalues, fmt='%.3f', newline='\n', header='DDG', footer='', comments='# ')
+
 
 
 densityplot(user_data, options.outfile, options.title, options.mycolor)
-
-
-
-
