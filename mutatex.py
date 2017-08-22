@@ -422,7 +422,7 @@ class FoldXRun(object):
                 rotabase=None,
                 link_files=False,
                 write_log=False,
-                clean=False,
+                clean='partial',
                 *args,
                 **kwargs):
 
@@ -573,9 +573,12 @@ class FoldXRun(object):
 
     def process_output(self, **kwargs):
         log.info("Processing output ...")
-        self.partial_clean()
-        if self.do_clean:
+        if self.do_clean == 'deep':
             self.clean()
+        elif self.do_clean == 'partial':
+            self.partial_clean()
+	elif self.do_clean == 'none':
+            log.info("No cleaning will be performed at this stage.")
 
     def finalize_prepare(self, **kwargs):
         pass
@@ -592,7 +595,7 @@ class FoldXRun(object):
         log.info("Cleaning working directory %s" % self.working_directory)
         for f in os.listdir(self.working_directory):
             fname = os.path.join(self.working_directory, f)
-            if os.path.isfile(fname) and not fname.endswith(".fxout") and not fname == os.path.basename(fname):
+            if os.path.isfile(fname) and not fname.endswith(".fxout") and not fname.endswith(".log") and not fname == os.path.basename(fname):
                 log.info("removing %s" % fname)
                 os.remove(fname)
 
@@ -1033,7 +1036,7 @@ def main():
     parser.add_argument('--mutate-runfile-template','--mutate', dest="mutate_runfile_template", type=str, default="mutate_runfile_template.txt", help="Template runfile for mutation runs (default: ./mutate_runfile_template.txt)")
     parser.add_argument('--interface-runfile-template','--interface', dest="interface_runfile_template", type=str, default="interface_runfile_template.txt", help="Template runfile for mutation runs (default: ./interface_runfile_template.txt)")
     parser.add_argument('--binding-interface', dest="interface", action='store_true', default=False, help="Do calculate binding DDG with mutations")
-    parser.add_argument('--clean', dest="clean", action='store_true', default=False, help="Clean output directories after calculation")
+    parser.add_argument('--clean', dest="clean", action='store', default='partial', choices=['partial','deep','none'], help="Clean output directories after calculation (partial, deep or none)")
     parser.add_argument('-c','--multimers', dest='multimers', action='store_false', default=True, help="Whether to consider multimers")
 
 # XXX: remove default verbose mode
@@ -1211,7 +1214,7 @@ def main():
     mutation_runs = []
 
     if args.interface:
-        mutate_clean = False
+        mutate_clean = 'none'
     else:
         mutate_clean = args.clean
 
@@ -1270,6 +1273,7 @@ def main():
                 #pdbs = pdbs[:-1]
             this_interaction_run = FoldXInterfaceRun(mr)
             this_interaction_run.do_clean = args.clean
+            print "CLEAN_STATUS:", this_interaction_run.do_clean
             this_interaction_run.runfile_content = load_runfile(args.interface_runfile_template)
             this_interaction_run.runfile_name = "interaction_energy_runfile.txt"
             this_interaction_run.prepare()
