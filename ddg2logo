@@ -1,0 +1,463 @@
+#!/usr/bin/env python
+
+#    ddg2matrix: plot DDG MutateX results as heat logo plots.
+#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+letters = (
+    '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',
+    'PwEGAOvqg0z5OKfeAAAAAElFTkSuQmCC',
+    )
+
+import argparse
+import base64
+import matplotlib
+import StringIO
+matplotlib.use('PDF')
+from matplotlib.image import imread
+
+def parse_letters_png(pngfile, letters="ACDEFGHIKLMNPQRSTVWXY"):
+    if type(pngfile) is tuple:
+        pngfile = StringIO.StringIO(base64.b64decode("".join(pngfile)))
+    
+    png = imread(pngfile)
+    side_length = png.shape[0]
+    if png.shape[1]%png.shape[0] != 0:
+        log.error("Input PNG file doesn't have the right shape (horizontal size is expected to be a multplie of vertical size)")
+        raise TypeError
+
+
+    if png.shape[1]/png.shape[0] != len(letters):
+        log.error("Input PNG file does not contain the right number of letters")
+        raise TypeError
+
+
+    out = {}
+    for i,l in enumerate(letters):
+        out[l] = png[:,i*side_length:(i+1)*side_length,:]
+
+    return out
+
+def parse_ddg_file(fname, reslist, thisres):
+    try:
+        fh = open(fname, 'r')
+    except:
+        log.warning("file %s cannot be opened." % fname)
+        return None
+
+    ddgs = []
+    for line in fh:
+        if line and not line.startswith("#"): 
+            ddgs.append(float(line.split()[0]))
+                
+    if len(ddgs) != len(reslist):
+        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), len(reslist)))
+        exit(1)
+    return ddgs
+
+def parse_list_file(fname):
+    fh = open(fname, 'r')
+    restypes = []
+    for line in fh:
+        if line and not line.startswith("#"):
+            restypes.append(line.strip()[0])
+    return restypes
+
+def plot_matrix(mat, reslist, letters, xlabels, title=None, fontsize=8, hgap=0.5, vgap=0.1, threshold=0.0):
+
+    width = 1.0
+    offset = width/2.0
+
+    xticks = np.arange(hgap, mat.shape[0]*width + mat.shape[0]*hgap, width+hgap) + offset
+
+    if title is None:
+        title = ""
+
+    plt.title(title)
+
+    s = np.arange(mat.shape[1])
+
+    fig, ax = plt.subplots(1, 1)
+
+    acc_max = 0
+    acc_min = 0
+
+    accs = []
+
+    for x,c in enumerate(mat):
+
+        pos_idx = np.where(c >= 0.0)
+        local_pos_idx = np.argsort(c[pos_idx])[::-1]
+        s_pos_idx = pos_idx[0][local_pos_idx]
+
+        neg_idx = np.where(c < 0.0)
+        local_neg_idx = np.argsort(c[neg_idx])
+        s_neg_idx = neg_idx[0][local_neg_idx]
+
+        #ax.axvline(xticks[x], linewidth=0.5)
+
+        vgaps = (vgap, -vgap)
+        for s,t in enumerate([s_pos_idx, s_neg_idx]):
+            this_vgap = vgaps[s]
+            accumulator = this_vgap            
+            for i in t:
+                if np.abs(c[i]) < threshold or c[i] is np.nan or c[i] == 0.0:
+                    continue
+                low_y = accumulator + this_vgap
+                accumulator += c[i]
+                if s == 0:
+                    ax.imshow(letters[reslist[i]], extent=(hgap + x*width + x*hgap, hgap + (x+1)*width + x*hgap, low_y, accumulator), interpolation='nearest')
+                else:
+                    ax.imshow(letters[reslist[i]][::-1,:,:], extent=(hgap + x*width + x*hgap, hgap + (x+1)*width + x*hgap, low_y, accumulator), interpolation='nearest')
+            accs.append(accumulator)
+            if accumulator > acc_max:
+                acc_max = accumulator
+            if accumulator < acc_min:
+                acc_min = accumulator
+
+    acc_min -= 5*vgap
+    acc_max += 5*vgap
+
+    ax.set_yticks([0])
+    ax.set_yticklabels("0")
+    ax.axhline(linewidth=2, color="r")
+
+    ax.set_xlim((0, mat.shape[0]*width +hgap*mat.shape[0] + hgap))
+    ax.set_ylim((acc_min, acc_max))
+
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xlabels)
+    """
+    ax.tick_params(
+        axis='y',          
+        which='both',      
+        left='on',      
+        right='off',    
+        labelleft='off',
+        labelright='off')
+    """
+    plt.setp(ax.get_xticklabels(), size=fontsize, rotation=90)
+
+    return fig
+
+
+
+def splice_data(data, labels, sv):
+
+    out = []
+
+    if data.shape[0] <= sv:
+        return [[data, labels]]
+
+    nsplice = data.shape[0] / int(sv)
+    rest =    data.shape[0] % int(sv)
+
+    if rest != 0:
+        nsplice += 1
+
+    for i in range(nsplice):
+        out.append([
+                data[i*sv:(i+1)*sv,:],
+                labels[i*sv:(i+1)*sv]
+            ])
+
+    return out
+
+
+
+three2one = {'ALA':'A',
+             'CYS':'C',
+             'ASP':'D',
+             'GLU':'E',
+             'PHE':'F',
+             'GLY':'G',
+             'HIS':'H',
+             'ILE':'I',
+             'LYS':'K',
+             'LEU':'L',
+             'MET':'M',
+             'ASN':'N',
+             'PRO':'P',
+             'GLN':'Q',
+             'ARG':'R',
+             'SER':'S',
+             'THR':'T',
+             'VAL':'V',
+             'TRP':'W',
+             'TYR':'Y'}
+
+LOGFMT = "%(levelname)s: %(message)s"
+
+if not __name__ == "__main__":
+    exit()
+
+parser = argparse.ArgumentParser(
+description='FoldX DDG converter to the OOXML xlsx format',)
+
+parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
+parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
+parser.add_argument("-m","--include-invalid-files",dest='includeblank',action='store_true', default=False, help="Include empty columns in output instead of ignoring missing files")
+parser.add_argument("-l","--order-list", dest="order",  help="default order list")
+parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
+parser.add_argument("-o","--output", dest="outfile", action='store', default='energies')
+parser.add_argument("-t","--threshold", dest="threshold", action='store', type=float, default=0.5, help="Do not consider mutations with absolute DDG lower than this value")
+parser.add_argument("-i","--title", dest='title', action='store', default=None, type=str, help="Title for the output image file")
+parser.add_argument("-c","--png-letter-map",dest='pngfile',action='store', default=letters, help="png file to be used for letters")
+parser.add_argument("-s","--splice",dest='sv',action='store', type=int, default=20, help="Number of residues for each single image")
+parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Font size")
+parser.add_argument("-D","--dpi", dest="dpi", type=float, action='store', default=150, help="number of DPI for the output image. !!WARNING!! Saving the images at higher DPI (as 300) uses a lot of memory, therefore use with caution" )
+
+options = parser.parse_args()
+
+import numpy as np
+import logging as log
+import os
+from Bio import PDB
+from matplotlib import pyplot as plt
+
+if options.verbose:
+    log.basicConfig(level=log.INFO,    format=LOGFMT)
+else:
+    log.basicConfig(level=log.WARNING, format=LOGFMT)
+
+if True: 
+    letters = parse_letters_png(options.pngfile)
+else:
+    exit(1)
+
+
+
+res_order = parse_list_file(options.order)
+
+log.info("Residues list is:")
+for i,r in enumerate(res_order):
+    log.info("%d\t%s" % (i,r))
+
+pdb_parser = PDB.PDBParser()
+
+try:
+    structure = pdb_parser.get_structure('s', options.in_pdb)
+except:
+    log.error("Couldn't open or parse input pdb file. Exiting...")
+    exit(1)
+ 
+res_ids = []
+res_ids_str = []
+data = []
+
+models = structure.get_list()
+
+if len(models) > 1:
+    log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
+if len(models) < 1:
+    log.error("The input PDB file does not contain any model. Exiting ...")
+    exit(1)
+
+model = models[0]
+
+for chain in model:
+    for res in chain:
+        try:
+            this_type = three2one[res.get_resname()]
+        except:
+            log.warning("residue %s, %s, %d not recognized. It will be skipped." % (res.get_resname(), chain.get_id(), res.get_id()[1]))
+            continue
+
+        res_ids.append((chain.get_id(), res.get_id()[1], this_type))
+        res_ids_str.append("%s%s%d" % (res_ids[-1][2],res_ids[-1][0],res_ids[-1][1]))
+        this_data = parse_ddg_file("%s/%s" % (options.dir, res_ids_str[-1]), reslist=res_order, thisres=res_ids[-1][0])
+
+        if this_data:
+            data.append(np.array(this_data))
+            continue
+        elif options.includeblank:
+            this_data = np.empty((len(res_order)))
+            this_data[:] = np.NAN
+            data.append(this_data)
+        else:
+            res_ids.pop()
+            res_ids_str.pop()
+
+data = np.vstack(tuple(data))
+
+spliced_data = splice_data(data, res_ids_str, options.sv)
+
+
+for i in range(len(spliced_data)):
+    fig = plot_matrix(spliced_data[i][0],
+                res_order,
+                letters,
+                spliced_data[i][1], 
+                title=options.title, 
+                fontsize=options.fontsize,
+                threshold=options.threshold)
+    plt.show()
+    fig.savefig("%d_%s.pdf" %(i, options.outfile), dpi=options.dpi)
