@@ -18,23 +18,71 @@
 
 import argparse
 
-def parse_ddg_file(fname, reslist, thisres):
+def get_residue_list(structure, multimers=True):
 
-    values = len(reslist)-1
-    fh = open(fname, 'r')
+    models = structure.get_list()
+
+    if len(models) > 1:
+        log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
+    if len(models) < 1:
+        log.error("The input PDB file does not contain any model. Exiting ...")
+        exit(1)
+
+    model = models[0]
+
+    residue_list = []
+    residue_ids = []
+    sequences = {}
+
+    for chain in model:
+        chain_name = chain.get_id()
+        sequences[chain_name] = ''
+        for residue in chain:
+            try:
+                res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+            except:
+                log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
+                continue
+            if not multimers:
+                residue_list.append(("%s%s%d") % (res_code, chain.get_id(), residue.get_id()[1]))
+            else:
+                sequences[chain_name] += res_code
+
+    if options.multimers:
+        collated_chains = []
+        seq_ids, seqs = zip(*list(sequences.iteritems()))
+        seq_ids = np.array(seq_ids)
+        unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
+
+        for i in np.unique(unique_idxs):
+            collated_chains.append(seq_ids[unique_idxs == i])
+
+        for cg in collated_chains:
+            for model in structure:
+                for residue in model[cg[0]]:
+                    resid = residue.get_id()[1]
+                    try:
+                        res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                    except:
+                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
+                        continue
+                    residue_ids.append([(res_code, c, resid) for c in cg])
+                    residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
+    return residue_ids, residue_list
+
+def parse_ddg_file(fname, reslist):
+    try:
+        fh = open(fname, 'r')
+    except:
+        log.warning("file %s cannot be opened." % fname)
+        return None
+
     ddgs = []
-    counter = 0
     for line in fh:
-        if line and not line.startswith("#"): 
-            if counter != reslist[thisres]:
-                ddgs.append(float(line.split()[0]))
-                counter += 1
-            elif counter == reslist[thisres]:
-                counter += 1
-                if abs(float(line.split()[0])) > 0.5:
-                    log.warning("self-mutation in %s has DDG %.3f !"  % (fname, float(line.split()[0])))
-                
-    if len(ddgs) != values:
+        if line and not line.startswith("#"):
+            ddgs.append(float(line.split()[0]))
+
+    if len(ddgs) != len(reslist):
         log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), values))
         exit(1)
     return ddgs
@@ -80,13 +128,13 @@ description='FoldX DDG parser & plotter',
 epilog='''Please notice that cut-offs (i.e. DDG thresholds) are mandatory. In fact,
 the program will save for each residue the number of mutations which are
 within the specified parameters. You can control this behaviour using options
--a (low threshold), -b (high threshold)  and -t (mode). 
+-a (low threshold), -b (high threshold)  and -t (mode).
 By default, the program will consider valid values < low_thr OR (logical) > high_thr.
 If -a or -b are not specified, the values of low and high thresholds are defaulted to,
 respectively, -99999.0 and 99999.0. If "between" mode is selected
 (option -t between), it will consider as valid those values found between the low
 and high threshold. For instance, these options generate the relative
-validity intervals: -a 0.5 = ]-inf,0.5] U [99999.0,+inf[ ; 
+validity intervals: -a 0.5 = ]-inf,0.5] U [99999.0,+inf[ ;
 -b 0.5 = ]-inf,-99999.0] U [0.5,+inf[;
 -a 0.5 -b 1.0 = ]-inf,0.5] U [1.0,+inf[;
 -a 0.5 -b 1.0 -t between = [0.5,1.0]
@@ -96,15 +144,19 @@ parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input d
 parser.add_argument("-i","--input-pdb", dest="in_pdb", help="Input pdb file")
 parser.add_argument("-m","--matrix", dest="dat", default="ala_scanning.mat", help="output xPyder-compatible matrix")
 parser.add_argument("-o","--output-pdb", dest="out_pdb", default="ala_scanning.pdb", help="Output pdb file")
-parser.add_argument("-a","--lower-free-energy-threshold", dest="low_thres", default=None, type=float, help="lower threhsold; default value: -99999.0")
-parser.add_argument("-b","--upper-free-energy-threshold", dest="high_thres", default=None, type=float, help="upper threhsold; default value: 99999.0")
+parser.add_argument("-a","--lower-free-energy-threshold", dest="low_thres",  default=-99999.0, type=float, help="lower threhsold; default value: -99999.0")
+parser.add_argument("-b","--upper-free-energy-threshold", dest="high_thres", default= 99999.0, type=float, help="upper threhsold; default value: 99999.0")
 parser.add_argument("-t","--threshold-mode", dest='thres_mode', choices=['between','outside'], default='outside', action='store', help="threshold mode: between=between upper and lower value, outside: <lower OR >upper")
 parser.add_argument("-l","--order-list", dest="order",  help="default order list")
 parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
+parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false')
+
 
 # parse ddg files
 
 options = parser.parse_args()
+
+print "AA", options.low_thres, options.high_thres
 
 import numpy as np
 import logging as log
@@ -129,7 +181,7 @@ res_order = parse_list_file(options.order)
 log.info("Residues list is:")
 for k,v in sorted(res_order.iteritems(), key=lambda x: x[1]):
     log.info("%d\t%s" % (v+1,k))
- 
+
 res_ids = []
 
 models = structure.get_list()
@@ -142,25 +194,12 @@ if len(models) < 1:
 
 model = models[0]
 
-for chain in model:
-    for res in chain:
-        try:
-            this_type = three2one[res.get_resname()]
-        except:
-            log.warning("residue %s, %s, %d not recognized. It will be skipped." % (res.get_resname(), chain.get_id(), res.get_id()[1]))
-            continue
-        res_ids.append("%s%s%d" % (this_type, chain.get_id(), res.get_id()[1]))
+res_ids, res_ids_str = get_residue_list(structure, multimers=options.multimers)
+fnames = ["_".join(r) for r in res_ids_str]
 
-log.info("The following files will be considered: %s" % ", ".join(res_ids))
+log.info("The following files will be considered: %s" % ", ".join(fnames))
 
-data = np.zeros((len(res_ids)))
-
-
-if options.high_thres or options.low_thres:
-    if not options.high_thres:
-        options.high_thres = 99999.0
-    if not options.low_thres:
-        options.low_thres = -99999.0
+data = []
 
 if not options.high_thres and not options.low_thres:
     log.error("Please provide a DDG cut-off (options -a, -b, -t). Exiting...")
@@ -177,33 +216,28 @@ elif options.thres_mode == 'between':
 
 for i,r in enumerate(res_ids):
     #try:
-    tmp_data = np.array(parse_ddg_file("%s/%s" % (options.dir, r), reslist=res_order, thisres=res_ids[i][0]))
-
+    tmp_data = np.array(parse_ddg_file("%s/%s" % (options.dir, fnames[i]), reslist=res_order))
     if options.thres_mode == 'outside':
-        data[i] = np.sum(np.logical_or(tmp_data <= options.low_thres, tmp_data >= options.high_thres))
+        processed_data = np.sum(np.logical_or(tmp_data <= options.low_thres, tmp_data >= options.high_thres))
     elif options.thres_mode == 'between':
-        data[i] = np.sum(np.logical_and(tmp_data <= options.high_thres, tmp_data >= options.low_thres))
-    #except:
-        #log.error("File %s not found, not openeable or not in the right format! Exiting..."%r)
-        #exit(1)
+        processed_data = np.sum(np.logical_and(tmp_data <= options.high_thres, tmp_data >= options.low_thres))
 
-mat = np.zeros((len(res_ids),len(res_ids)))
+    for sr in r:
+        for model in structure:
+            for atom in model[sr[1]][sr[2]]:
+                atom.set_bfactor(processed_data)
 
-for i,v in enumerate(data):
-    mat[i][i] = v
+for chain in structure[0]:
+    for residue in chain:
+        data.append(residue['CA'].get_bfactor())
+data = np.array(data)
+print data
+print options.low_thres, options.high_thres
 
-np.savetxt(options.dat, mat, fmt="%.1f") 
+mat = np.zeros((data.shape[0], data.shape[0]))
+np.fill_diagonal(mat, data)
 
-i = 0
-for model in structure:
-    for chain in model:
-        for i,residue in enumerate(chain):
-            if residue.get_resname() in three2one.keys():
-                for atom in residue:
-                    atom.set_bfactor(data[i])
-                i += 1
-            else:
-                atom.set_bfactor = 0
+np.savetxt(options.dat, mat, fmt="%.1f")
 
 pdb_io = PDB.PDBIO()
 pdb_io.set_structure(structure)
