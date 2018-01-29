@@ -18,14 +18,65 @@
 
 import argparse
 
-def parse_ddg_file(fname, reslist, thisres):
+def get_residue_list(structure, multimers=True):
 
+    models = structure.get_list()
+
+    if len(models) > 1:
+        log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
+    if len(models) < 1:
+        log.error("The input PDB file does not contain any model. Exiting ...")
+        exit(1)
+
+    model = models[0]
+
+    residue_list = []
+    residue_ids = []
+    sequences = {}
+
+    for chain in model:
+        chain_name = chain.get_id()
+        sequences[chain_name] = ''
+        for residue in chain:
+            try:
+                res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+            except:
+                log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
+                continue
+            if not multimers:
+                residue_list.append(("%s%s%d") % (res_code, chain.get_id(), residue.get_id()[1]))
+            else:
+                sequences[chain_name] += res_code
+
+    if options.multimers:
+        collated_chains = []
+        seq_ids, seqs = zip(*list(sequences.iteritems()))
+        seq_ids = np.array(seq_ids)
+        unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
+
+        for i in np.unique(unique_idxs):
+            collated_chains.append(seq_ids[unique_idxs == i])
+
+        for cg in collated_chains:
+            for model in structure:
+                for residue in model[cg[0]]:
+                    resid = residue.get_id()[1]
+                    try:
+                        res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                    except:
+                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
+                        continue
+                    residue_ids.append([(res_code, c, resid) for c in cg])
+                    residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
+    return residue_ids, residue_list
+
+def parse_ddg_file(fname, reslist):
     fh = open(fname, 'r')
     ddgs = []
     for line in fh:
-        if line and not line.startswith("#"): 
+        if line and not line.startswith("#"):
             ddgs.append(float(line.split()[0]))
-                
+
     if len(ddgs) != len(reslist):
         log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), values))
         exit(1)
@@ -74,6 +125,8 @@ parser.add_argument("-l","--order-list", dest="order",  help="default order list
 parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
 parser.add_argument("-o","--output", dest="outfile", action='store', default='energies.xlsx')
 parser.add_argument("-t","--transpose",dest='transpose',action="store_true",default=False,help="Swap rows and columns")
+parser.add_argument("-a","--multimers", dest="multimers", default=True, action='store_false')
+
 
 # parse ddg files
 
@@ -106,7 +159,7 @@ try:
 except:
     log.error("Couldn't open or parse input pdb file. Exiting...")
     exit(1)
- 
+
 res_ids = []
 
 models = structure.get_list()
@@ -119,66 +172,59 @@ if len(models) < 1:
 
 model = models[0]
 
-for chain in model:
-    for res in chain:
-        try:
-            this_type = three2one[res.get_resname()]
-        except:
-            log.warning("residue %s, %s, %d not recognized. It will be skipped." % (res.get_resname(), chain.get_id(), res.get_id()[1]))
-            continue
-        res_ids.append((chain.get_id(), res.get_id()[1], this_type))
-
-print res_ids
-res_ids_str = ["%s%s%d" % (res[2],res[0],res[1]) for res in res_ids]
-
-log.info("The following files will be considered: %s" % ", ".join(res_ids_str))
-
+res_ids, res_ids_str = get_residue_list(structure, multimers=options.multimers)
+res_ids_labels = [", ".join(r) for r in res_ids_str]
+max_len_res_ids = np.max([len(r) for r in res_ids])
+fnames = ["_".join(r) for r in res_ids_str]
+res_id_labels = [", ".join(r) for r in res_ids_str]
 data = []
 
-for i,r in enumerate(res_ids):
-    data.append(np.array(parse_ddg_file("%s/%s" % (options.dir, res_ids_str[i]), reslist=res_order, thisres=res_ids[i][0])))
+log.info("The following files will be considered: %s" % ", ".join(res_ids_labels))
+
+for i,f in enumerate(fnames):
+    data.append(np.array(parse_ddg_file("%s/%s" % (options.dir, f), reslist=res_order, )))
 
 wb = pyxl.Workbook()
 #ws = wb.create_sheet(0)
 ws = wb.get_sheet_by_name('Sheet')
 ws.title = 'FoldX mutations DDG'
 
-
-
 #prepare header
-
-ws.cell(row=0, column=0).value = "Chain ID"
-if options.transpose:
-    ws.cell(row=1, column=0).value = "Residue #"
-    ws.cell(row=2, column=0).value = "WT Residue type"
-else:
-    ws.cell(row=0, column=1).value = "Residue #"
-    ws.cell(row=0, column=2).value = "WT Residue type"
-
-
-for i,res in enumerate(res_ids):
+for i in range(max_len_res_ids):
+    offset=i*3
     if options.transpose:
-        ws.cell(row=0,column=i+1).value = res[0]
-        ws.cell(row=1,column=i+1).value = res[1]
-        ws.cell(row=2,column=i+1).value = res[2]
+        ws.cell(row=1+offset, column=1).value = "WT Residue type"
+        ws.cell(row=1+offset+1, column=1).value = "Chain ID"
+        ws.cell(row=1+offset+2, column=1).value = "Residue #"
     else:
-        ws.cell(row=i+1,column=0).value = res[0]
-        ws.cell(row=i+1,column=1).value = res[1]
-        ws.cell(row=i+1,column=2).value = res[2]
-     
-offset = 3
+        ws.cell(row=1, column=1+offset).value = "WT Residue type"
+        ws.cell(row=1, column=1+offset+1).value = "Chain ID"
+        ws.cell(row=1, column=1+offset+2).value = "Residue #"
 
+offset = 0
+for i,resset in enumerate(res_ids):
+    for j,res in enumerate(resset):
+        offset = j*3
+        if options.transpose:
+            ws.cell(row=1+offset,  column=1+i+1).value = res[0]
+            ws.cell(row=1+offset+1,column=1+i+1).value = res[1]
+            ws.cell(row=1+offset+2,column=1+i+1).value = res[2]
+        else:
+            ws.cell(row=1+i+1,column=1+offset  ).value = res[0]
+            ws.cell(row=1+i+1,column=1+offset+1).value = res[1]
+            ws.cell(row=1+i+1,column=1+offset+2).value = res[2]
+offset += 3
 for i,mut in enumerate(res_order):
     if options.transpose:
-        ws.cell(row=i+offset,column=0).value = mut
+        ws.cell(row=1+i+offset,column=1).value = mut
     else:
-        ws.cell(row=0,column=i+offset).value = mut
+        ws.cell(row=1,column=1+i+offset).value = mut
 
 for i,res in enumerate(res_ids):
     for j,ddg in enumerate(data[i]):
         if options.transpose:
-            ws.cell(row=j+offset, column=i+1).value = ddg
+            ws.cell(row=1+j+offset, column=1+i+1).value = ddg
         else:
-            ws.cell(row=i+1, column=j+offset).value = ddg
+            ws.cell(row=1+i+1, column=1+j+offset).value = ddg
 
 wb.save(options.outfile)
