@@ -184,10 +184,60 @@ import StringIO
 matplotlib.use('PDF')
 from matplotlib.image import imread
 
+def get_residue_list(structure, multimers=True):
+
+    models = structure.get_list()
+
+    if len(models) > 1:
+        log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
+    if len(models) < 1:
+        log.error("The input PDB file does not contain any model. Exiting ...")
+        exit(1)
+
+    model = models[0]
+
+    residue_list = []
+    sequences = {}
+
+    for chain in model:
+        chain_name = chain.get_id()
+        sequences[chain_name] = ''
+        for residue in chain:
+            try:
+                res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+            except:
+                log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
+                continue
+            if not multimers:
+                residue_list.append(("%s%s%d") % (res_code, chain.get_id(), residue.get_id()[1]))
+            else:
+                sequences[chain_name] += res_code
+
+    if options.multimers:
+        collated_chains = []
+        seq_ids, seqs = zip(*list(sequences.iteritems()))
+        seq_ids = np.array(seq_ids)
+        unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
+
+        for i in np.unique(unique_idxs):
+            collated_chains.append(seq_ids[unique_idxs == i])
+
+        for cg in collated_chains:
+            for model in structure:
+                for residue in model[cg[0]]:
+                    resid = residue.get_id()[1]
+                    try:
+                        res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                    except:
+                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
+                        continue
+                    residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
+    return residue_list
+
 def parse_letters_png(pngfile, letters="ACDEFGHIKLMNPQRSTVWXY"):
     if type(pngfile) is tuple:
         pngfile = StringIO.StringIO(base64.b64decode("".join(pngfile)))
-    
+
     png = imread(pngfile)
     side_length = png.shape[0]
     if png.shape[1]%png.shape[0] != 0:
@@ -206,7 +256,7 @@ def parse_letters_png(pngfile, letters="ACDEFGHIKLMNPQRSTVWXY"):
 
     return out
 
-def parse_ddg_file(fname, reslist, thisres):
+def parse_ddg_file(fname, reslist):
     try:
         fh = open(fname, 'r')
     except:
@@ -215,9 +265,9 @@ def parse_ddg_file(fname, reslist, thisres):
 
     ddgs = []
     for line in fh:
-        if line and not line.startswith("#"): 
+        if line and not line.startswith("#"):
             ddgs.append(float(line.split()[0]))
-                
+
     if len(ddgs) != len(reslist):
         log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), len(reslist)))
         exit(1)
@@ -267,7 +317,7 @@ def plot_matrix(mat, reslist, letters, xlabels, title=None, fontsize=8, hgap=0.5
         vgaps = (vgap, -vgap)
         for s,t in enumerate([s_pos_idx, s_neg_idx]):
             this_vgap = vgaps[s]
-            accumulator = this_vgap            
+            accumulator = this_vgap
             for i in t:
                 if np.abs(c[i]) < threshold or c[i] is np.nan or c[i] == 0.0:
                     continue
@@ -297,10 +347,10 @@ def plot_matrix(mat, reslist, letters, xlabels, title=None, fontsize=8, hgap=0.5
     ax.set_xticklabels(xlabels)
     """
     ax.tick_params(
-        axis='y',          
-        which='both',      
-        left='on',      
-        right='off',    
+        axis='y',
+        which='both',
+        left='on',
+        right='off',
         labelleft='off',
         labelright='off')
     """
@@ -374,7 +424,7 @@ parser.add_argument("-c","--png-letter-map",dest='pngfile',action='store', defau
 parser.add_argument("-s","--splice",dest='sv',action='store', type=int, default=20, help="Number of residues for each single image")
 parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Font size")
 parser.add_argument("-D","--dpi", dest="dpi", type=float, action='store', default=150, help="number of DPI for the output image. !!WARNING!! Saving the images at higher DPI (as 300) uses a lot of memory, therefore use with caution" )
-
+parser.add_argument("-a","--multimers", dest="multimers", default=True, action='store_false')
 options = parser.parse_args()
 
 import numpy as np
@@ -388,7 +438,7 @@ if options.verbose:
 else:
     log.basicConfig(level=log.WARNING, format=LOGFMT)
 
-if True: 
+if True:
     letters = parse_letters_png(options.pngfile)
 else:
     exit(1)
@@ -408,7 +458,7 @@ try:
 except:
     log.error("Couldn't open or parse input pdb file. Exiting...")
     exit(1)
- 
+
 res_ids = []
 res_ids_str = []
 data = []
@@ -423,40 +473,37 @@ if len(models) < 1:
 
 model = models[0]
 
-for chain in model:
-    for res in chain:
-        try:
-            this_type = three2one[res.get_resname()]
-        except:
-            log.warning("residue %s, %s, %d not recognized. It will be skipped." % (res.get_resname(), chain.get_id(), res.get_id()[1]))
-            continue
+res_ids_str = get_residue_list(structure, multimers=options.multimers)
+fnames = ["_".join(r) for r in res_ids_str]
+res_id_labels = [", ".join(r) for r in res_ids_str]
 
-        res_ids.append((chain.get_id(), res.get_id()[1], this_type))
-        res_ids_str.append("%s%s%d" % (res_ids[-1][2],res_ids[-1][0],res_ids[-1][1]))
-        this_data = parse_ddg_file("%s/%s" % (options.dir, res_ids_str[-1]), reslist=res_order, thisres=res_ids[-1][0])
+data = []
 
-        if this_data:
-            data.append(np.array(this_data))
-            continue
-        elif options.includeblank:
-            this_data = np.empty((len(res_order)))
-            this_data[:] = np.NAN
-            data.append(this_data)
-        else:
-            res_ids.pop()
-            res_ids_str.pop()
+for fname in fnames:
+    this_data = parse_ddg_file("%s/%s" % (options.dir, fname), reslist=res_order)
+
+    if this_data:
+        data.append(np.array(this_data))
+        continue
+    elif options.includeblank:
+        this_data = np.empty((len(res_order)))
+        this_data[:] = np.NAN
+        data.append(this_data)
+    else:
+        res_ids.pop()
+        res_ids_str.pop()
 
 data = np.vstack(tuple(data))
 
-spliced_data = splice_data(data, res_ids_str, options.sv)
-
+res_ids_labels = [", ".join(r) for r in res_ids_str]
+spliced_data = splice_data(data, res_ids_labels, options.sv)
 
 for i in range(len(spliced_data)):
     fig = plot_matrix(spliced_data[i][0],
                 res_order,
                 letters,
-                spliced_data[i][1], 
-                title=options.title, 
+                spliced_data[i][1],
+                title=options.title,
                 fontsize=options.fontsize,
                 threshold=options.threshold)
     plt.show()
