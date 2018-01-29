@@ -336,9 +336,10 @@ def plot_matrix(mat, reslist, letters, xlabels, title=None, fontsize=8, hgap=0.5
     acc_min -= 5*vgap
     acc_max += 5*vgap
 
-    ax.set_yticks([0])
-    ax.set_yticklabels("0")
+    #ax.set_yticks([0])
+    #ax.set_yticklabels("0")
     ax.axhline(linewidth=2, color="r")
+    ax.set_ylabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
 
     ax.set_xlim((0, mat.shape[0]*width +hgap*mat.shape[0] + hgap))
     ax.set_ylim((acc_min, acc_max))
@@ -355,6 +356,7 @@ def plot_matrix(mat, reslist, letters, xlabels, title=None, fontsize=8, hgap=0.5
         labelright='off')
     """
     plt.setp(ax.get_xticklabels(), size=fontsize, rotation=90)
+    plt.tight_layout()
 
     return fig
 
