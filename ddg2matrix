@@ -51,7 +51,7 @@ def get_residue_list(structure, multimers=True):
             else:
                 sequences[chain_name] += res_code
 
-    if args.multimers:
+    if options.multimers:
         collated_chains = []
         seq_ids, seqs = zip(*list(sequences.iteritems()))
         seq_ids = np.array(seq_ids)
@@ -71,7 +71,6 @@ def get_residue_list(structure, multimers=True):
                         continue
                     residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
     return residue_list
-
 
 def parse_ddg_file(fname, reslist):
     try:
@@ -100,8 +99,8 @@ def parse_list_file(fname):
 
 def plot_matrix(mat, xlabels, ylabels, cmap, title=None, vmin=None, vmax=None, transpose=False, fontsize=8):
 
-    yt = xlabels
-    xt = ylabels
+    xt = xlabels
+    yt = ylabels
 
     xticks = np.arange(0,mat.shape[1])
     yticks = np.arange(0,mat.shape[0])
@@ -112,7 +111,7 @@ def plot_matrix(mat, xlabels, ylabels, cmap, title=None, vmin=None, vmax=None, t
     plt.title(title)
 
     orientation='vertical'
-    rotation_xt=0
+    rotation_xt=90
 
     if transpose:
         mat = mat.T
@@ -134,10 +133,6 @@ def plot_matrix(mat, xlabels, ylabels, cmap, title=None, vmin=None, vmax=None, t
 
 def save_matrix(mat, horizontal_header, vertical_header, fname, transpose=False):
 
-    #assert mat.shape[0] == len(horizontal_header)
-    #assert mat.shape[1] == len(vertical_header)
-
-
     this_mat = np.array(mat, copy=True)
 
     str_mat = np.char.mod("%.2f", this_mat)
@@ -145,8 +140,6 @@ def save_matrix(mat, horizontal_header, vertical_header, fname, transpose=False)
     str_mat[str_mat == 'nan'] = '-'
 
     vertical_header = ['%s.%s'%(i[2:],i[0]) for i in vertical_header]
-    print vertical_header
-
     out = np.zeros((mat.shape[0]+1, mat.shape[1]+1), dtype="|S10")
     out[0,0] = ''
     out[1:,1:] = str_mat
@@ -165,18 +158,18 @@ def splice_data(data, labels, sv):
 
     out = []
 
-    if data.shape[0] <= sv:
+    if data.shape[1] <= sv:
         return [[data, labels]]
 
-    nsplice = data.shape[0] / int(sv)
-    rest =    data.shape[0] % int(sv)
+    nsplice = data.shape[1] / int(sv)
+    rest =    data.shape[1] % int(sv)
 
     if rest != 0:
         nsplice += 1
 
     for i in range(nsplice):
         out.append([
-                data[i*sv:(i+1)*sv,:],
+                data[:,i*sv:(i+1)*sv],
                 labels[i*sv:(i+1)*sv]
             ])
 
@@ -284,19 +277,14 @@ for fname in fnames:
         res_ids.pop()
         res_ids_str.pop()
 
-data = np.vstack(tuple(data))
+data = np.vstack(tuple(data)).T
 
 if not options.vmax:
     options.vmax = np.max(data)
 if not options.vmin:
     options.vmin = np.min(data)
 
-print res_order
-
 spliced_data = splice_data(data, res_id_labels, options.sv)
-
-#def save_matrix(mat, vertical_header, horizontal_header, fname):
-
 
 if options.raw:
     save_matrix(data, res_order, res_ids_labels, options.raw, options.transpose)
@@ -311,5 +299,5 @@ for i in range(len(spliced_data)):
                 vmax=options.vmax,
                 transpose=options.transpose,
                 fontsize=options.fontsize)
-    plt.savefig("%d_%s.pdf" %(i, options.outfile))
+    plt.savefig("%d_%s" %(i, options.outfile))
     plt.clf()
