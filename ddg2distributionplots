@@ -107,8 +107,10 @@ def plot_box(mat, xlabels, title=None, fontsize=8):
 
     plt.title("Box plot - " + title)
     
-    rotation_xt=90
     box = plt.boxplot(mat)
+    plt.xlabel("Mutation id")
+    plt.ylabel("delta delta G")
+    rotation_xt=90
     plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
     
 def plot_violin(mat, xlabels, title=None, fontsize=8):
@@ -119,7 +121,6 @@ def plot_violin(mat, xlabels, title=None, fontsize=8):
 
     plt.title("Violoin plot - " + title)
      
-    rotation_xt=90
     violin = plt.violinplot(mat, 
                             xticks, 
                             showmeans = True, 
@@ -127,8 +128,42 @@ def plot_violin(mat, xlabels, title=None, fontsize=8):
                             showmedians = True, 
                             points = 100, 
                             bw_method='scott')
+    plt.xlabel("Mutation id")
+    plt.ylabel("delta delta G")
+    rotation_xt=90
     plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
     plt.xlim(0,mat.shape[1]+1)
+    
+    
+    
+def plot_scatter(mat, xlabels, res_order, title=None, fontsize=8):
+    xt = xlabels
+    xticks = np.arange(1,mat.shape[1]+1)
+    if title == None:
+        title = ""
+
+    plt.title("Scatter plot - " + title)
+    
+    #Plot graph
+    for i in range(len(res_order)):
+        plt.scatter(xticks, mat[i])
+    
+    fontsize = 12 / abs(plt.ylim()[0] - plt.ylim()[1])
+    
+    
+    #Add labels
+    for i in range(len(res_order)):
+        res = res_order[i]        
+        for j in xticks:
+            plt.annotate(res, (j, mat[i][j-1]), fontsize = 12)
+    
+    plt.xlabel("Mutation id")
+    plt.ylabel("delta delta G")
+    rotation_xt=90
+    plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
+    plt.xlim(0,mat.shape[1]+1)
+    
+    
 ################################################
 
 
@@ -268,14 +303,16 @@ spliced_data = splice_data(data, res_id_labels, options.sv)
 
 #Plot and safe each plot after another
 for i in range(len(spliced_data)):
-    plot_violin(spliced_data[i][0], spliced_data[i][1], title=options.title, fontsize=options.fontsize)
-    plt.savefig("violin_%d_%s" %(i, options.outfile))
-    plt.clf()
-    plot_box(spliced_data[i][0], spliced_data[i][1], title=options.title, fontsize=options.fontsize)
-    plt.savefig("box_%d_%s" %(i, options.outfile))
+#     plot_violin(spliced_data[i][0], spliced_data[i][1], title=options.title, fontsize=options.fontsize)
+#     plt.savefig("violin_%d_%s" %(i, options.outfile))
+#     plt.clf()
+#     plot_box(spliced_data[i][0], spliced_data[i][1], title=options.title, fontsize=options.fontsize)
+#     plt.savefig("box_%d_%s" %(i, options.outfile))
+#     plt.clf()
+    mutationList = "hello world"
+    plot_scatter(spliced_data[i][0], spliced_data[i][1], res_order, title=options.title, fontsize=options.fontsize)
+    plt.savefig("scatter_%d_%s" %(i, options.outfile))
     plt.clf()
     print "Plot: " + str(i)
-    
-    
-    
+    break
     
