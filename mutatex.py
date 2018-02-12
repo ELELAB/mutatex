@@ -25,6 +25,7 @@ import logging as log
 import shutil
 import re
 import numpy as np
+import tarfile as tar
 from Bio import PDB
 
 class MutationList(object):
@@ -446,7 +447,6 @@ class FoldXRun(object):
         self.ready = False
         self.do_clean = clean
 
-
     def prepare(self):
 
         # Check if base directory exists
@@ -577,8 +577,9 @@ class FoldXRun(object):
             self.clean()
         elif self.do_clean == 'partial':
             self.partial_clean()
-	elif self.do_clean == 'none':
+        elif self.do_clean == 'none':
             log.info("No cleaning will be performed at this stage.")
+
 
     def finalize_prepare(self, **kwargs):
         pass
@@ -992,6 +993,34 @@ def save_interaction_energy_file(fname, data, fmt="%.5f", do_avg=True, do_std=Fa
     else: #except:
         log.error("Couldn't write file %s" % fname)
 
+def compress_mutations_dir(cwd, mutations_dirname, mutations_archive_fname='mutations.tar.gz'):
+
+    archive_path = os.path.join(cwd, mutations_archive_fname)
+    mutations_dir_path = mutations_dirname
+
+    log.info("Compressing mutations directory as per user request")
+    if not os.path.isdir(cwd):
+        log.warning("Directory mutations doesn't exist; it won't be compressed.")
+
+    try:
+        fh = tar.open(archive_path, 'w:gz')
+    except:
+        log.warning("Couldn't open file %s for writing." % mutations_archive_fname)
+        return
+
+    try:
+        print mutations_dir_path
+        fh.add(mutations_dir_path)
+    except:
+        log.warning("Couldn't build compressed archive. This step will be skipped.")
+        fh.close()
+        os.remove(archive_path)
+        return
+
+    fh.close()
+    log.info("Removing mutations directory ...")
+    shutil.rmtree(mutations_dir_path)
+    return
 
 # Gather info about FoldX version
 
@@ -1037,6 +1066,7 @@ def main():
     parser.add_argument('--interface-runfile-template','--interface', dest="interface_runfile_template", type=str, default="interface_runfile_template.txt", help="Template runfile for mutation runs (default: ./interface_runfile_template.txt)")
     parser.add_argument('--binding-interface', dest="interface", action='store_true', default=False, help="Do calculate binding DDG with mutations")
     parser.add_argument('--clean', dest="clean", action='store', default='partial', choices=['partial','deep','none'], help="Clean output directories after calculation (partial, deep or none)")
+    parser.add_argument('--compress', dest="compress", action='store_true', default=False, help="Compress mutations directory to .tar.gz file")
     parser.add_argument('-c','--multimers', dest='multimers', action='store_false', default=True, help="Whether to consider multimers")
 
 # XXX: remove default verbose mode
@@ -1416,6 +1446,9 @@ def main():
 
     else:
         log.info("Reporting phase was skipped, as requested.")
+
+    if args.compress and not args.skip_mutate:
+        compress_mutations_dir(main_dir, mutations_dirname)
 
     log.info("All done!")
 
