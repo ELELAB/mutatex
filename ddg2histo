@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #    ddg2matrix: plot DDG MutateX results as histograms, one per residue.
-#    Copyright (C) 2018,  Isabelle da Piedade <isabdapiedade@gmail.com>, Matteo Tiberti <matteo.tiberti@gmail.com>
+#    Copyright (C) 2018,  Isabelle da Piedade <isap@cancer.dk>, Matteo Tiberti <matteo.tiberti@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
