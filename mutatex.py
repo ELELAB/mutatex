@@ -319,6 +319,8 @@ class FoldXSuiteVersion4(FoldXVersion):
         #print "IUIU3", directory, pdb
 
         fnames = self.get_interaction_fxout_fnames(directory, pdbs, run, original_pdb=True)
+        for f in fnames[0]:
+            print "ZAZZERA", f
         #print "IUIU1",     fnames[0][-1], len(fnames), len(fnames[0])
         #print "IUIU2",     fnames[1][-1], len(fnames), len(fnames[1])
 
@@ -390,8 +392,17 @@ class FoldXSuiteVersion4(FoldXVersion):
         with open("%s/%s" % (cwd,fname)) as fh:
             fsize = len(fh.readlines())
 
-        print fsize, self.len_dif_file_header, nruns*nmuts, "YY"
+        print fsize, self.len_dif_file_header, nruns*nmuts,
         if fsize-self.len_dif_file_header == nruns*nmuts:
+            return True
+        return False
+
+    def check_pdb_file_size(self, cwd, fname, nmuts, nruns):
+        #if self.foldx_version(check_dif_file_size(dif_file)):
+        with open("%s/%s" % (cwd,fname)) as fh:
+            fsize = len(fh.readlines())
+
+        if fsize == 2*nruns*nmuts:
             return True
         return False
 
@@ -399,15 +410,14 @@ class FoldXSuiteVersion4(FoldXVersion):
 
 class FoldXRun(object):
 
-    ready = False
-
-    finished = False
-
     runfile_name = "runfile.txt"
 
     logfile_name = "FoldXrun.log"
 
     runfile_content = ""
+
+    finished = False
+    ready = False
 
     def __init__(self,
                 name,
@@ -444,7 +454,6 @@ class FoldXRun(object):
         self.rotabase = rotabase
         self.link_files = link_files
         self.write_log = write_log
-        self.ready = False
         self.do_clean = clean
 
     def prepare(self):
@@ -455,14 +464,20 @@ class FoldXRun(object):
             self.ready = False
             return False
 
-        # Check status. Possible statuses: "already_done", "conflicting", "not_done"
+        # Check status. Possible statuses: "already_done", "conflicting", "not_done", "broken", "interface_missing_data"
         status = self.check_status()
+
+        if status == "interface_missing_data":
+            log.warning("The corresponding mutation run %s hasn't been completed successfully; skipping" % self.name)
+            self.ready = False
+            return False
 
         if status == "already_done":
             self.finished = True
             return True
 
-        elif status == "conflicting":
+        elif status == "conflicting" or status == "broken":
+            log.warning("Something went wrong with run %s; it will be skipped." % self.name)
             self.finished = False
             return False
 
@@ -542,12 +557,13 @@ class FoldXRun(object):
         with open(this_stdout_str, 'w') as this_stdout:
             returncode = sp.call(runline, cwd=self.working_directory, stderr=sp.STDOUT, stdout=this_stdout)
 
+        print "RETURNCODE", returncode
         if returncode == 0:
             log.info("run %s has completed successfully" % self.name)
             self.finished = True
 
             self.process_output(**self.output_processing)
-
+            print "VEDIAMO_SETTING %s" % self.name, self.finished
             return True
         else:
             log.warning("FoldX exited with error for run %s!" % self.name)
@@ -600,6 +616,24 @@ class FoldXRun(object):
                 log.info("removing %s" % fname)
                 os.remove(fname)
 
+    def reset_working_directory(self):
+        ftypes = [".pdb", ".fxout", ".log"]
+        individual_files = ["individual_list.txt", "rotabase.txt", "runfile.txt"]
+        for f in os.listdir(self.working_directory):
+            if os.path.splitext(f)[-1] in ftypes:
+                try:
+                    os.remove(os.path.join(self.working_directory, f))
+                except:
+                    pass
+        for f in individual_files:
+            full_path = os.path.join(self.working_directory, f)
+            if os.path.isfile(full_path):
+                log.info("removing %s" % os.path.join(self.working_directory, f))
+                try:
+                    os.remove(full_path)
+                except:
+                    pass
+
 class FoldXRepairRun(FoldXRun):
     def check_status(self):
         if os.path.exists(self.working_directory):
@@ -625,6 +659,80 @@ class FoldXMutateRun(FoldXRun):
         super(FoldXMutateRun, self).__init__(*args, **kwargs)
         self.mutlist = mutlist
 
+    def prepare(self):
+
+        # Check if base directory exists
+        if not os.path.exists(self.base_directory):
+            log.warning("base directory %s does not exist; run %s will be skipped." % (self.base_directory, self.name))
+            self.ready = False
+            return False
+
+        # Check status. Possible statuses: "already_done", "conflicting", "not_done", "broken"
+        status = self.check_status()
+
+        if status == "already_done":
+            self.finished = True
+            return True
+
+        elif status == "broken" or status == "conflicting" or status == "partially_done":
+            self.finished = False
+            log.warning("Working directory of run %s was left in an undefined state; it will be reset" % self.name)
+            self.reset_working_directory()
+
+        # Create the working directory
+        try:
+            safe_makedirs(self.working_directory, doexit=False)
+        except:
+            log.warning("Could not create working directory %s; run %s will be skipped." % (    self.working_directory, self.name))
+            self.ready = False
+            return False
+
+        # Copy the PDB file(s) in the working directory
+        for pdb in self.pdbs:
+            try:
+                #print 'source', os.path.abspath(pdb)
+                #print 'dest', self.working_directory+"/"+os.path.basename(os.path.abspath(pdb))
+                safe_cp(os.path.abspath(pdb), self.working_directory+"/"+os.path.basename(os.path.abspath(pdb)), dolink=self.link_files, doexit=False)
+            except:
+                log.warning("Couldn't copy essential files for run %s; it will be skipped." % self.name)
+                self.ready = False
+                return False
+
+        if self.rotabase:
+            try:
+                safe_cp(os.path.abspath(self.rotabase), self.working_directory+"/"+os.path.basename(os.path.abspath(self.rotabase)), dolink=self.link_files, doexit=False)
+            except:
+                log.warning("Couldn't copy essential rotabase.txt for run %s; it will be skipped." % self.name)
+                self.ready = False
+                return False
+
+        # process runfile (if required)
+        try:
+            self.process_runfile(**self.runfile_processing)
+        except:
+            log.warning("Couldn't process the runfile as required for run %s; it will be skipped." % self.name)
+            self.ready = False
+            return False
+
+        # Write runfile
+        try:
+            with open(self.working_directory+"/"+self.runfile_name, 'w') as fh:
+                fh.write(self.runfile_content)
+        except:
+            log.warning("Couldn't write runfile for run %s; it will be skipped." % self.name)
+            self.ready = False
+            return False
+
+        try:
+            self.finalize_prepare(**self.prepare_finalization)
+        except:
+            log.warning("Couldn't finalize preparation step for run %s; it will be skipped." % self.name)
+            self.ready = False
+            return False
+
+        # Finally ...
+        self.ready = True
+        return True
 
     def check_status(self):
         # Check if working directory exists
@@ -632,37 +740,40 @@ class FoldXMutateRun(FoldXRun):
             log.warning("working directory %s already exists." % self.working_directory)
 
             try:
-                old_mutlist = self.foldx_version.parse_mutlist(self.working_directory+"/"+self.foldx_version.mut_list_file)
+                old_mutlist = self.foldx_version.parse_mutlist(os.path.join(self.working_directory, self.foldx_version.mut_list_file))
+                if old_mutlist != self.mutlist:
+                    return "conflicting"
             except:
-                log.warning("Couldn't open mutation file, so it's not clear what's in here. Run will be repeated.")
-                return "not_done"
+                log.warning("Couldn't open mutation file, so it's not clear what's in here. Continuing anyway")
 
-            if old_mutlist != self.mutlist:
-                return "conflicting"
 
             dif_files = self.foldx_version.get_mutation_fxout_fnames(self.working_directory, self.pdbs)
             if not set(map(os.path.basename, dif_files)).issubset(os.listdir(self.working_directory)):
-                return "not_done"
-            #dif_files = [f for f in os.listdir(self.working_directory) if f.startswith(self.foldx_version.dif_fxout_prefix) and f.endswith(self.foldx_version.out_ext)]
+                return "partially_done"
 
-            #if len(dif_files) > 1:
-            #    log.warning("More than one Dif_*.fxout files present in dir! Something fishy is going on. Run will be skipped.")
-            #    return "conflicting"
-            #elif len(dif_files) == 0:
+            dif_file_ok = True
             try:
-                #print "diffile", dif_file
                 for dif_file in set(map(os.path.basename, dif_files)):
                     print len(self.mutlist.mutations), self.runfile_processing['nruns'], "CHECK"
-                    if self.foldx_version.check_dif_file_size(self.working_directory, dif_file, len(self.mutlist.mutations), self.runfile_processing['nruns']):
-                        return "already_done"
-                    else:
+                    if not self.foldx_version.check_dif_file_size(self.working_directory, dif_file, len(self.mutlist.mutations), self.runfile_processing['nruns']):
                         log.warning("File %s wasn't large as expected. The run didn't complete; it will be rerun." % dif_file)
-                        return "not_done"
+                        dif_file_ok = False
             except:
                 log.warning("Couldn't read Dif_*.fxout out file; run will be skipped")
                 return "conflicting"
-        else:
-            return "not_done"
+
+            pdb_basename = "".join(os.path.splitext(os.path.basename(self.pdbs[0]))[:-1])
+            pdb_list_fname = self.foldx_version.mutate_pdblist_fxout_output_fname(pdb_basename)
+            pdb_file_ok = True
+            if not self.foldx_version.check_pdb_file_size(self.working_directory, pdb_list_fname, len(self.mutlist.mutations), self.runfile_processing['nruns']):
+                log.warning("File %s wasn't large as expected. The run didn't complete; it will be rerun." % pdb_list_fname)
+                pdb_file_ok = False
+
+            if dif_file_ok and pdb_file_ok:
+                return "already_done"
+            else:
+                return "broken"
+        return "not_done"
 
     def process_runfile(self, **kwargs):
         pdbs = [os.path.basename(i) for i in self.pdbs]
@@ -680,6 +791,9 @@ class FoldXInterfaceRun(FoldXRun):
     def __init__(self, mr, pdbs=None, *args, **kwargs):
         # super(FoldXInterfaceRun, self).__init__(*args, **kwargs)
 
+        print mr.finished, "VEDIAMO_CONST"
+        self.mr = mr
+        print self.mr.finished, "VEDIAMO_CONST2"
         self.name = mr.name
         self.original_pdb = os.path.basename(mr.pdbs[0])
 
@@ -718,7 +832,14 @@ class FoldXInterfaceRun(FoldXRun):
             log.error("Couldn't parse PdbList file %s!" % pdb_list)
 
     def check_status(self):
-        # Check if working directory exists
+        print self.mr.finished, "VEDIAMO"
+
+        if not self.mr.finished:
+            print self.mr.finished
+            print self.mr.name
+            print self.mr
+            return "interface_missing_data"
+
         print "WD", self.working_directory
         if os.path.exists(self.working_directory):
             log.warning("working directory %s already exists." % self.working_directory)
@@ -909,7 +1030,7 @@ def get_foldx_sequence(pdb, multimers=True):
                     log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
                     continue
                 if not multimers:
-                    residue_list.append(("%s%s%d") % (res_code, chain.get_id(), residue.get_id()[1]))
+                    residue_list.append(tuple(["%s%s%d" % (res_code, chain.get_id(), residue.get_id()[1])]))
                 else:
                     sequences[chain_name] += res_code
 
@@ -988,9 +1109,9 @@ def save_interaction_energy_file(fname, data, fmt="%.5f", do_avg=True, do_std=Fa
 
     out = np.array(out).T
 
-    if True: #try:
+    try:
         np.savetxt(fname, out, fmt=fmt, header=header)
-    else: #except:
+    except:
         log.error("Couldn't write file %s" % fname)
 
 def compress_mutations_dir(cwd, mutations_dirname, mutations_archive_fname='mutations.tar.gz'):
@@ -1279,13 +1400,20 @@ def main():
             r.prepare()
 
         log.info("Running mutate runs")
+        print "VEDIAMO_BEFORE",
 
         mutate_outcome = parallel_foldx_run(mutation_runs, np=args.np)
+
+        print "VEDIAMO_AFTER",
+        for i,outcome in enumerate(mutate_outcome):
+            mutation_runs[i].finished = outcome
+
         if False in zip(*mutate_outcome)[1]:
             log.warning("The following mutation runs failed to complete. The corresponding positions in sequence will be skipped.")
         for i in filter(lambda x: x[1] == False, mutate_outcome):
             log.warning("\t%s" % i[0])
             unique_residues.remove(i[0])
+
     else:
         log.info("Mutation phase skipped, as requested")
 
@@ -1301,6 +1429,7 @@ def main():
             #for i,pdbs in enumerate(this_pdbs):
                 #original_pdb = pdbs[-1]
                 #pdbs = pdbs[:-1]
+            print "VEDIAMO_FUORI", mr.finished
             this_interaction_run = FoldXInterfaceRun(mr)
             this_interaction_run.do_clean = args.clean
             print "CLEAN_STATUS:", this_interaction_run.do_clean
@@ -1312,6 +1441,7 @@ def main():
         interface_outcome = parallel_foldx_run(interface_runs, np=args.np)
         if False in zip(*interface_outcome)[1]:
             log.warning("Some interface runs failed to complete.")
+
 
     if not args.skip_report:
 
