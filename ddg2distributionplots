@@ -31,7 +31,10 @@ def get_residue_list(structure, multimers=True):
         exit(1)
 
     model = models[0]
-
+    
+    print "\n\n"
+    print model
+    
     residue_list = []
     sequences = {}
 
@@ -54,7 +57,7 @@ def get_residue_list(structure, multimers=True):
         seq_ids, seqs = zip(*list(sequences.iteritems()))
         seq_ids = np.array(seq_ids)
         unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
-
+        print unique_idxs
         for i in np.unique(unique_idxs):
             collated_chains.append(seq_ids[unique_idxs == i])
 
@@ -159,18 +162,22 @@ def plot_scatter(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
     fontsize_inch = (float(1) / 72) * 12    #label font size in inches
     label_size = (y_range / fig_height) * fontsize_inch
     
-    for residue in mat.T:
-        for i in range(len(residue)):
-            for j in range(len(residue)):
-                diff = abs(residue[i] - residue[j])
-                if(diff < label_size and i is not j): #Check for overlap
+    overlap = True
+    while overlap:
+        for residue in mat.T:
+            overlap = False
+            for i in range(len(residue)):
+                for j in range(len(residue)):
+                    diff = abs(residue[i] - residue[j])
                     offset = label_size - diff
-                    if(residue[i] > residue[j]):    #Devide offset between points
-                        residue[i] += offset/2
-                        residue[j] -= offset/2
-                    else:
-                        residue[i] -= offset/2
-                        residue[j] += offset/2
+                    if(diff < label_size and i is not j and offset > 0.001): #Check for overlap
+                        overlap = True                        
+                        if(residue[i] > residue[j]):    #Devide offset between points
+                            residue[i] += offset/2
+                            residue[j] -= offset/2
+                        else:
+                            residue[i] -= offset/2
+                            residue[j] += offset/2
     
     #Add labels
     x_offset = float(len(xticks)) / 270
@@ -263,6 +270,7 @@ import numpy as np
 import logging as log
 from Bio import PDB
 from matplotlib import pyplot as plt
+import math
 
 if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)
@@ -289,8 +297,14 @@ res_ids_str = []
 data = []
 
 res_ids_str = get_residue_list(structure, multimers=options.multimers)
-fnames = ["_".join(r) for r in res_ids_str]
-res_id_labels = [", ".join(r) for r in res_ids_str]
+
+if options.multimers:
+    fnames = ["_".join(r) for r in res_ids_str]
+    res_id_labels = [", ".join(r) for r in res_ids_str]
+else:
+    fnames = res_ids_str
+    res_id_labels = res_ids_str
+
 
 for fname in fnames:
     this_data = parse_ddg_file("%s/%s" % (options.dir, fname), reslist=res_order)
@@ -309,10 +323,12 @@ data = np.vstack(tuple(data)).T
 
 
 
+data_range = abs(np.max(data) - np.min(data))
 if not options.vmax:
-    options.vmax = np.max(data)
+    options.vmax = math.ceil(np.max(data) + data_range*0.2)
 if not options.vmin:
-    options.vmin = np.min(data)
+    options.vmin = math.floor(np.min(data) - data_range*0.2)
+
 
 spliced_data = splice_data(data, res_id_labels, options.sv)
 
