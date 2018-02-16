@@ -221,9 +221,14 @@ data = []
 stds = []
 
 res_ids_str = get_residue_list(structure, multimers=options.multimers)
-fnames = ["_".join(r) for r in res_ids_str]
-res_id_labels = [", ".join(r) for r in res_ids_str]
 
+if options.multimers:
+    fnames = ["_".join(r) for r in res_ids_str]
+    res_id_labels = [", ".join(r) for r in res_ids_str]
+else:
+    fnames = res_ids_str
+    res_id_labels = res_ids_str
+    
 for fname in fnames:
     this_data, this_std = parse_ddg_file("%s/%s" % (options.dir, fname), reslist=res_order)
     if this_data:
