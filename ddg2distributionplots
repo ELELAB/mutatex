@@ -32,9 +32,6 @@ def get_residue_list(structure, multimers=True):
 
     model = models[0]
     
-    print "\n\n"
-    print model
-    
     residue_list = []
     sequences = {}
 
@@ -160,12 +157,12 @@ def plot_scatter(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
     fig_height = plt.gcf().get_figheight()
     y_range = abs(plt.ylim()[0] - plt.ylim()[1])
     fontsize_inch = (float(1) / 72) * 12    #label font size in inches
-    label_size = (y_range / fig_height) * fontsize_inch
+    label_size = (y_range / fig_height) * fontsize_inch #Size of the labels on the y axis
     
     overlap = True
     while overlap:
+        overlap = False
         for residue in mat.T:
-            overlap = False
             for i in range(len(residue)):
                 for j in range(len(residue)):
                     diff = abs(residue[i] - residue[j])
