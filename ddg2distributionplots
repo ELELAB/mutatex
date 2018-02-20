@@ -144,7 +144,6 @@ def plot_scatter(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
         title = ""
 
     plt.title("Scatter plot - " + title)
-    plt.ylim(-5, )
     
     #Plot graph
     for i in range(len(res_order)):
@@ -257,9 +256,9 @@ parser.add_argument("-i","--title", dest='title', action='store', default=None, 
 parser.add_argument("-s","--splice",dest='sv',action='store', type=int, default=20, help="Number of residues for each single image")
 parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Axis label font size")
 parser.add_argument("-a","--multimers", dest="multimers", default=True, action='store_false')
-parser.add_argument("-B","--Boxplot", dest="box", default=False, action='store_true', help = "Create box plots from the data.")
-parser.add_argument("-V","--Violinplot", dest="violin", default=False, action='store_true', help = "Create violin plots from the data.")
-parser.add_argument("-S","--Scatterplot", dest="scatter", default=False, action='store_true', help = "Create scatter plots from the data.")
+parser.add_argument("-B","--boxplot", dest="box", default=False, action='store_true', help = "Create box plots from the data.")
+parser.add_argument("-V","--biolinplot", dest="violin", default=False, action='store_true', help = "Create violin plots from the data.")
+parser.add_argument("-S","--scatterplot", dest="scatter", default=False, action='store_true', help = "Create scatter plots from the data.")
 
 options = parser.parse_args()
 
