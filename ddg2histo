@@ -19,7 +19,6 @@
 import argparse
 import matplotlib
 import re
-from scipy.signal.signaltools import residue
 matplotlib.use('PDF')
 
 def get_residue_list(structure, multimers=True):
@@ -76,9 +75,8 @@ def parse_ddg_file(fname, reslist):
     try:
         fh = open(fname, 'r')
     except:
-        log.warning("file %s cannot be opened." % fname)
-        return None
-
+        log.warning("file %s cannot be opened; it will be skipped" % fname)
+        return None, None
     ddgs = []
     ddg_sd = []
     for line in fh:
@@ -89,6 +87,7 @@ def parse_ddg_file(fname, reslist):
     if len(ddgs) != len(reslist):
         log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), options.values))
         exit(1)
+    
     return ddgs, ddg_sd
 
 def parse_list_file(fname):
@@ -99,34 +98,41 @@ def parse_list_file(fname):
             restypes.append(line.strip()[0])
     return restypes
 
-def index_data(data, stds, labels):
-    data = data.T
-    stds = stds.T
-    out_dict = {}
-    for i in range(len(data)):
-        out_dict[labels[i]] = (data[i], stds[i])
-    return out_dict
 
 
-def parse_residues(residues):
-    out = []
-
+def parse_residues(residues, fnames):
+    selection = []
     residues = residues.split(",")
+    
     for residue in residues:
-        if "-" in residue:
+        if "-" in residue:  #Check if the selection is a range of residues
             residue_number = [int(s) for s in re.findall(r'\d+', residue)]
             residue_id = re.findall(r'[a-zA-Z]+', residue)
+            residue_range = abs(residue_number[0] - residue_number[-1])
+            match_count = 0
             for i in range(residue_number[0],residue_number[-1]+1):
-                if "_" in residue:                
-                    out.append(residue_id[0] + str(i) + ", " + residue_id[1] + str(i))
+                if "_" in residue:  #Check if the range contains multimers
+                    residue_name = residue_id[0] + str(i) + "_" + residue_id[1] + str(i)
                 else:
-                    out.append(residue_id[0] + str(i))
+                    residue_name = residue_id[0] + str(i)
+                
+                if residue_name in fnames:  #Check if the residue exists in the PDB file residue list
+                    match_count += 1
+                    selection.append(residue_name)
+            if match_count > 0:
+                log.info("Pdb file matched %d of %d residues in range: %s" % (match_count, residue_range, residue))
+            else:
+                log.warn("Selection: '%s' no match was found; it will be skipped" % (residue))
+            match_count = 0    
         else:
-            out.append(residue.replace("_",", "))
-    return out
+            if(residue in fnames):
+                selection.append(residue)
+            else:
+                log.warn("Selection: '%s' no match was found; it will be skipped" % (residue))
+    return selection
         
         
-def plot_hist(data, res_order, vmin, vmax, residue, color = "blue", title=None, fontsize=12):
+def plot_hist(data, stds, res_order, vmin, vmax, residue, color = "blue", title=None, fontsize=12):
     if title is None:
         title = ""
     if color not in matplotlib.colors.cnames:
@@ -134,7 +140,7 @@ def plot_hist(data, res_order, vmin, vmax, residue, color = "blue", title=None, 
         exit(1)
         
     plt.title(residue +" - " + title)
-    plt.bar(range(len(res_order)), data[0], 1/1.6, color = color, align="center", yerr = data[1])
+    plt.bar(range(len(res_order)), data, 1/1.6, color = color, align="center", yerr = stds)
     plt.xticks(range(len(res_order)), res_order, rotation='vertical', size = fontsize)
     plt.xlim(-0.5, 20)
     plt.ylim(vmin,vmax)
@@ -183,7 +189,7 @@ parser.add_argument("-x","--max", dest='vmax',action='store',default=None,type=f
 parser.add_argument("-i","--title", dest='title', action='store', default=None, type=str, help="Title for the output image file")
 parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=12, help="Axis label font size")
 parser.add_argument("-a","--multimers", dest="multimers", default=True, action='store_false')
-parser.add_argument("-r","--residues", dest="residues", type= str, help="Define a comma separated list with residues to plot. Include a range of residues seperated by \"-\" ")
+parser.add_argument("-r","--residues", dest="residues", type= str, help="Define a comma separated list with residues to plot. Include a range of residues seperated by '-' or use 'all' for all residues in the input fodler")
 parser.add_argument("-c","--color", dest="color", type= str, help="Name a color for the bar plot")
 
 
@@ -193,7 +199,6 @@ import numpy as np
 import logging as log
 from Bio import PDB
 from matplotlib import pyplot as plt
-import math
 
 if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)
@@ -222,6 +227,7 @@ stds = []
 
 res_ids_str = get_residue_list(structure, multimers=options.multimers)
 
+
 if options.multimers:
     fnames = ["_".join(r) for r in res_ids_str]
     res_id_labels = [", ".join(r) for r in res_ids_str]
@@ -229,8 +235,19 @@ else:
     fnames = res_ids_str
     res_id_labels = res_ids_str
     
-for fname in fnames:
-    this_data, this_std = parse_ddg_file("%s/%s" % (options.dir, fname), reslist=res_order)
+#Parse residue selection
+try:
+    if options.residues == "all":
+        residues = fnames
+    else:
+        residues = parse_residues(options.residues, fnames)
+except AttributeError:
+    log.error("No residue selection. Please select residues with atribute '-r'. Try 'ddg2hist --help' for more info.  Exiting...")
+    exit(1)
+
+
+for residue in residues[:]:
+    this_data, this_std = parse_ddg_file("%s/%s" % (options.dir, residue), reslist=res_order)
     if this_data:
         data.append(np.array(this_data))
         stds.append(np.array(this_std))
@@ -242,50 +259,34 @@ for fname in fnames:
         data.append(this_data)
         stds.append(this_data)
     else:
-        res_ids.pop()
-        res_ids_str.pop()
-
-data = np.vstack(tuple(data)).T
-stds = np.vstack(tuple(stds)).T
-
-#Parse residue selection
+        residues.remove(residue)
 try:
-    if options.residues == "all":
-        residues = res_id_labels
-    else:
-        residues = parse_residues(options.residues)
-except AttributeError:
-    log.error("Couldn't find any matching residues. Exiting...")
-    exit(1)
+    data = np.vstack(tuple(data))
+    stds = np.vstack(tuple(stds))
+except:
+    log.error("No residues found. Exiting...")
 
-#Put data into a dictionary
-indexed_data = index_data(data, stds, res_id_labels)
-    
 #Find min and max in selected data
-plot_data = []
-for residue in residues:
-    if residue in indexed_data:
-        plot_data.append(indexed_data[residue][0])
-data_range = abs(np.max(plot_data) - np.min(plot_data))
+data_range = abs(np.max(data) - np.min(data))
+
 
 if not options.vmax:
-    options.vmax = math.ceil(np.max(plot_data) + data_range*0.2)
+    options.vmax = np.ceil(np.max(data) + data_range*0.2)
 if not options.vmin:
-    options.vmin = math.floor(np.min(plot_data) - data_range*0.2)
+    options.vmin = np.floor(np.min(data) - data_range*0.2)
 
 #Make plots
-print "Ylim: " + str(options.vmax) + " , " + str(options.vmin)
-print "Plotting " + str(len(plot_data)) + " figures."
-for residue in residues:
-    if residue in indexed_data:
-        plot_hist(indexed_data[residue], 
-                  res_order, 
-                  options.vmin, 
-                  options.vmax,
-                  residue,
-                  color = options.color, 
-                  title = options.title, 
-                  fontsize = options.fontsize)
-        plt.savefig("%s_%s" %(residue.replace(", ", "_"), options.outfile))
-        plt.clf()
-        
+log.info("Plotting " + str(len(data)) + " figures.")
+log.info("Ylims: " + str(options.vmax) + " , " + str(options.vmin))
+for i in range(len(residues)):
+    plot_hist(data[i],
+              stds[i], 
+              res_order,
+              options.vmin, 
+              options.vmax,
+              residues[i],
+              color = options.color, 
+              title = options.title, 
+              fontsize = options.fontsize)
+    plt.savefig("%s_%s" %(residue, options.outfile))
+    plt.clf()
