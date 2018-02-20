@@ -125,7 +125,8 @@ def plot_violin(mat, xlabels, vmin, vmax, title=None, fontsize=8):
                             showmeans = True, 
                             showextrema = True, 
                             showmedians = True, 
-                            points = 100, 
+                            points = 100,
+                            widths = 0.7, 
                             bw_method='scott')
     plt.ylim(vmin, vmax)
     
