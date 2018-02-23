@@ -102,10 +102,15 @@ def plot_box(mat, xlabels, vmin, vmax, title=None, fontsize=8):
         title = ""
 
     plt.title("Box plot - " + title)
-    
     box = plt.boxplot(mat)
-    plt.ylim(vmin, vmax)
+    
+    #Set greyscale
+    if options.greyscale:
+        cm = plt.cm.get_cmap('Greys_r')
+        for i, key in enumerate(list(box.keys())):
+            plt.setp(box[key], color=cm(float(i)/10))
 
+    plt.ylim(vmin, vmax)
     plt.xlabel("Residue id")
     plt.ylabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
     rotation_xt=90
@@ -127,6 +132,11 @@ def plot_violin(mat, xlabels, vmin, vmax, title=None, fontsize=8):
                             points = 100,
                             widths = 0.7, 
                             bw_method='scott')
+    if options.greyscale:
+        cm = plt.cm.get_cmap('Greys_r')
+        for i, key in enumerate(list(violin.keys())):
+            plt.setp(violin[key], color=cm(float(i)/10))
+
     plt.ylim(vmin, vmax)
     
     plt.xlabel("Residue id")
@@ -142,14 +152,20 @@ def plot_scatter(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
     xticks = np.arange(1,mat.shape[1]+1)
     if title is None:
         title = ""
+    
+    if options.limit:
+        mat[mat > options.limit] = options.limit
+        vmax = options.limit * 1.2
 
     plt.title("Scatter plot - " + title)
     
     #Plot graph
-    for i in range(len(res_order)):
-        plt.scatter(xticks, mat[i])
-    
-    
+    if options.greyscale:
+        for i in range(len(res_order)):
+            plt.scatter(xticks, mat[i], color="black")
+    else:
+        for i in range(len(res_order)):
+            plt.scatter(xticks, mat[i])
     plt.ylim(vmin, vmax)
     
     #Calculate non-overlapping label coordinates    
@@ -257,6 +273,7 @@ parser.add_argument("-s","--splice",dest='sv',action='store', type=int, default=
 parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Axis label font size")
 parser.add_argument("-a","--multimers", dest="multimers", default=True, action='store_false')
 parser.add_argument("-t","--limit", dest="limit", action='store', default = None, type=int, help="Limit scatter plot ddg values to a maximum")
+parser.add_argument("-g","--greyscale", dest="greyscale", action="store_false", default=True, help="Togle greyscale, default = true")
 parser.add_argument("-B","--boxplot", dest="box", default=False, action='store_true', help = "Create box plots from the data.")
 parser.add_argument("-V","--biolinplot", dest="violin", default=False, action='store_true', help = "Create violin plots from the data.")
 parser.add_argument("-S","--scatterplot", dest="scatter", default=False, action='store_true', help = "Create scatter plots from the data.")
@@ -305,8 +322,6 @@ else:
 for fname in fnames:
     this_data = parse_ddg_file("%s/%s" % (options.dir, fname), reslist=res_order)
     if this_data:
-        if options.limit:
-            this_data = [x if x <= options.limit else options.limit for x in this_data]
         data.append(np.array(this_data))
         continue
     elif options.includeblank:
@@ -319,14 +334,14 @@ for fname in fnames:
 data = np.vstack(tuple(data)).T
 
 
-data_range = abs(np.max(data) - np.min(data))
 if not options.vmax:
-    options.vmax = math.ceil(np.max(data) + data_range*0.2)
+    options.vmax = math.ceil(np.max(data) + abs(0 - np.max(data))*0.2)
 if not options.vmin:
-    options.vmin = math.floor(np.min(data) - data_range*0.2)
+    options.vmin = math.floor(np.min(data) - abs(0 - np.min(data))*0.2)
 
 
 spliced_data = splice_data(data, res_id_labels, options.sv)
+log.info("Ylims: %d, %d" %(options.vmin, options.vmax))
 
 #Plot the plots
 for i in range(len(spliced_data)):
@@ -343,12 +358,13 @@ for i in range(len(spliced_data)):
     if(options.box):
         plot_box(spliced_data[i][0],
                 spliced_data[i][1], 
-                options.vmin ,options.vmax, 
-                title=options.title, 
+                options.vmin,
+                options.vmax, 
+                title=options.title,
                 fontsize=options.fontsize)
         plt.savefig("box_%d_%s" %(i, options.outfile))
         plt.clf()
-    
+
     if(options.scatter):
         plot_scatter(spliced_data[i][0], 
                      spliced_data[i][1], 
@@ -359,4 +375,4 @@ for i in range(len(spliced_data)):
                      fontsize=options.fontsize)
         plt.savefig("scatter_%d_%s" %(i, options.outfile))
         plt.clf()
-    print "Plot: " + str(i + 1) + "/" + str(len(spliced_data))
+    log.info("Plot: " + str(i + 1) + "/" + str(len(spliced_data)))
