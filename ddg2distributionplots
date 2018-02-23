@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 #    ddg2distributionplots: plot DDG MutateX results as distribution plots: boxplot, violinplot or scatterplot.
 #    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com, Tycho Canter Cremers <tycho.c.c@gmail.com>
 #
@@ -257,6 +256,7 @@ parser.add_argument("-i","--title", dest='title', action='store', default=None, 
 parser.add_argument("-s","--splice",dest='sv',action='store', type=int, default=20, help="Number of residues for each single image")
 parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Axis label font size")
 parser.add_argument("-a","--multimers", dest="multimers", default=True, action='store_false')
+parser.add_argument("-t","--limit", dest="limit", action='store', default = None, type=int, help="Limit scatter plot ddg values to a maximum")
 parser.add_argument("-B","--boxplot", dest="box", default=False, action='store_true', help = "Create box plots from the data.")
 parser.add_argument("-V","--biolinplot", dest="violin", default=False, action='store_true', help = "Create violin plots from the data.")
 parser.add_argument("-S","--scatterplot", dest="scatter", default=False, action='store_true', help = "Create scatter plots from the data.")
@@ -289,7 +289,6 @@ except:
     log.error("Couldn't open or parse input pdb file. Exiting...")
     exit(1)
 
-res_ids = []
 res_ids_str = []
 data = []
 
@@ -306,6 +305,8 @@ else:
 for fname in fnames:
     this_data = parse_ddg_file("%s/%s" % (options.dir, fname), reslist=res_order)
     if this_data:
+        if options.limit:
+            this_data = [x if x <= options.limit else options.limit for x in this_data]
         data.append(np.array(this_data))
         continue
     elif options.includeblank:
@@ -313,11 +314,9 @@ for fname in fnames:
         this_data[:] = np.NAN
         data.append(this_data)
     else:
-        res_ids.pop()
         res_ids_str.pop()
 
 data = np.vstack(tuple(data)).T
-
 
 
 data_range = abs(np.max(data) - np.min(data))
@@ -361,4 +360,3 @@ for i in range(len(spliced_data)):
         plt.savefig("scatter_%d_%s" %(i, options.outfile))
         plt.clf()
     print "Plot: " + str(i + 1) + "/" + str(len(spliced_data))
-    

@@ -255,7 +255,6 @@ except:
     log.error("Couldn't open or parse input pdb file. Exiting...")
     exit(1)
 
-res_ids = []
 res_ids_str = []
 data = []
 
@@ -278,7 +277,6 @@ for fname in fnames:
         this_data[:] = np.NAN
         data.append(this_data)
     else:
-        res_ids.pop()
         res_ids_str.pop()
 
 data = np.vstack(tuple(data)).T
