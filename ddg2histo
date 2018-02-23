@@ -132,7 +132,7 @@ def parse_residues(residues, fnames):
     return selection
         
         
-def plot_hist(data, stds, res_order, vmin, vmax, residue, color = "blue", title=None, fontsize=12):
+def plot_hist(data, stds, res_order, vmin, vmax, residue, color = "white", title=None, fontsize=12):
     if title is None:
         title = ""
     if color not in matplotlib.colors.cnames:
@@ -190,7 +190,7 @@ parser.add_argument("-i","--title", dest='title', action='store', default=None, 
 parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=12, help="Axis label font size")
 parser.add_argument("-a","--multimers", dest="multimers", default=True, action='store_false')
 parser.add_argument("-r","--residues", dest="residues", type= str, help="Define a comma separated list with residues to plot. Include a range of residues seperated by '-' or use 'all' for all residues in the input fodler")
-parser.add_argument("-c","--color", dest="color", type= str, help="Name a color for the bar plot")
+parser.add_argument("-c","--color", dest="color", default="white", type= str, help="Name a color for the bar plot")
 
 
 options = parser.parse_args()
