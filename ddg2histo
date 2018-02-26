@@ -288,5 +288,5 @@ for i in range(len(residues)):
               color = options.color, 
               title = options.title, 
               fontsize = options.fontsize)
-    plt.savefig("%s_%s" %(residue, options.outfile))
+    plt.savefig("%s_%s" %(residues[i], options.outfile))
     plt.clf()
