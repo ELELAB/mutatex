@@ -1133,7 +1133,7 @@ def main():
     parser.add_argument('--binding-interface', dest="interface", action='store_true', default=False, help="Do calculate binding DDG with mutations")
     parser.add_argument('--clean', dest="clean", action='store', default='partial', choices=['partial','deep','none'], help="Clean output directories after calculation (partial, deep or none)")
     parser.add_argument('--compress', dest="compress", action='store_true', default=False, help="Compress mutations directory to .tar.gz file")
-    parser.add_argument('-c','--multimers', dest='multimers', action='store_false', default=True, help="Whether to consider multimers")
+    parser.add_argument('-c','--no-multimers', dest='multimers', action='store_false', default=True, help="Whether to consider multimers")
 
 # XXX: remove default verbose mode
     log.basicConfig(level=log.INFO)
@@ -1402,11 +1402,10 @@ def main():
             #print this_runs, "THIS_RUNS"
             dobreak = False
             for r in this_runs:
-                #print "NONO", r.name
-                #r.working_directory, [os.path.basename(pdb)], r
+                pdb = r.pdbs[0]
                 try:
                     energies.append(current_version.parse_mutations_fxout(r))
-                else:
+                except:
                     log.warning("Couldn't parse energy file for PDB %s; mutation site %s will be skipped." % (pdb, r.name))
                     dobreak=True
                     break
