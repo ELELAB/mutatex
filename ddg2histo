@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #    ddg2matrix: plot DDG MutateX results as histograms, one per residue.
-#    Copyright (C) 2018,  Isabelle da Piedade <isap@cancer.dk>, Matteo Tiberti <matteo.tiberti@gmail.com>
+#    Copyright (C) 2018,  Isabelle da Piedade <isap@cancer.dk>, Matteo Tiberti <matteo.tiberti@gmail.com>, Tycho Canter Cremers <tycho.c.c@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -101,35 +101,51 @@ def parse_list_file(fname):
 
 
 def parse_residues(residues, fnames):
-    selection = []
     residues = residues.split(",")
-    
+    selections = []
     for residue in residues:
-        if "-" in residue:  #Check if the selection is a range of residues
+        if "-" in residue:  #Check if the selections is a range of residues
+            if len(residue.split("-")) > 2:
+                log.error("Selection: '%s' invalid range. A range can only be between 2 residues. Exiting..." %(residue))
+                exit(1)
+            for idx in residue.split("-"):
+                if "_" in idx:
+                    log.error("Selection: '%s' in range '%s' invalid residue format. Select a range using non-multimers. If a multimer falls within that range, it will be added. Exiting..." %(idx, residue))
+                    exit(1) 
+                elif not re.match(r'[A-Z]{2}\d+', idx):
+                    log.error("Selection: '%s' in range '%s' invalid residue format. Exiting..." %(idx, residue))
+                    exit(1)
+                    
             residue_number = [int(s) for s in re.findall(r'\d+', residue)]
-            residue_id = re.findall(r'[a-zA-Z]+', residue)
-            residue_range = abs(residue_number[0] - residue_number[-1])
-            match_count = 0
-            for i in range(residue_number[0],residue_number[-1]+1):
-                if "_" in residue:  #Check if the range contains multimers
-                    residue_name = residue_id[0] + str(i) + "_" + residue_id[1] + str(i)
-                else:
-                    residue_name = residue_id[0] + str(i)
-                
-                if residue_name in fnames:  #Check if the residue exists in the PDB file residue list
-                    match_count += 1
-                    selection.append(residue_name)
-            if match_count > 0:
-                log.info("Pdb file matched %d of %d residues in range: %s" % (match_count, residue_range, residue))
+            residue_number.sort()
+            residue_ids = re.findall(r'[a-zA-Z]+', residue)
+            chain_ids = [i[1] for i in residue_ids]
+            chain_ids.sort()
+            
+            residue_range = "|".join(str(i) + "($|_)" for i in reversed(range(residue_number[0],residue_number[-1]+1)))
+            r = r'[A-Z]{1}[' + chain_ids[0] + '-' + chain_ids[-1]+']{1}(' + residue_range  + ')'
+            reg = re.compile(r)
+            matches = filter(reg.findall, fnames) 
+            selections += matches
+            
+            if len(matches)> 0:
+                log.info("Pdb file matched %d residues in range '%s': %s" % (len(matches), residue, ", ".join(matches)))
             else:
                 log.warn("Selection: '%s' no match was found; it will be skipped" % (residue))
-            match_count = 0    
         else:
+            if not options.multimers and "_" in residue:
+                log.error("Selection: '%s' invalid residue format. Multimers are disabled. Exiting..." %(idx, residue))
+                exit(1)
+            if not re.match(r'[A-Z]{2}\d+', residue):
+                log.error("Selection: '%s' invalid residue format. Exiting..." %(idx, residue))
+                exit(1)
             if(residue in fnames):
-                selection.append(residue)
+                selections.append(residue)
             else:
                 log.warn("Selection: '%s' no match was found; it will be skipped" % (residue))
-    return selection
+    selections = list(set(selections))
+    log.info("Pdb file matched %d residues in total without duplicates" %(len(selections)))
+    return selections
         
         
 def plot_hist(data, stds, res_order, vmin, vmax, residue, color = "white", title=None, fontsize=12):
@@ -146,28 +162,6 @@ def plot_hist(data, stds, res_order, vmin, vmax, residue, color = "white", title
     plt.ylim(vmin,vmax)
     plt.ylabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
     plt.xlabel('Mutations')
-    
-
-three2one = {'ALA':'A',
-             'CYS':'C',
-             'ASP':'D',
-             'GLU':'E',
-             'PHE':'F',
-             'GLY':'G',
-             'HIS':'H',
-             'ILE':'I',
-             'LYS':'K',
-             'LEU':'L',
-             'MET':'M',
-             'ASN':'N',
-             'PRO':'P',
-             'GLN':'Q',
-             'ARG':'R',
-             'SER':'S',
-             'THR':'T',
-             'VAL':'V',
-             'TRP':'W',
-             'TYR':'Y'}
 
 LOGFMT = "%(levelname)s: %(message)s"
 
@@ -234,7 +228,8 @@ if options.multimers:
 else:
     fnames = res_ids_str
     res_id_labels = res_ids_str
-    
+
+
 #Parse residue selection
 try:
     if options.residues == "all":
@@ -264,7 +259,8 @@ try:
     data = np.vstack(tuple(data))
     stds = np.vstack(tuple(stds))
 except:
-    log.error("No residues found. Exiting...")
+    log.error("No mutation data could be loaded. Exiting...")
+    exit(1)
 
 #Find min and max in selected data
 data_range = abs(np.max(data) - np.min(data))
