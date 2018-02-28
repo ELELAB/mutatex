@@ -53,7 +53,6 @@ def get_residue_list(structure, multimers=True):
         seq_ids, seqs = zip(*list(sequences.iteritems()))
         seq_ids = np.array(seq_ids)
         unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
-        print unique_idxs
         for i in np.unique(unique_idxs):
             collated_chains.append(seq_ids[unique_idxs == i])
 
@@ -204,6 +203,32 @@ def plot_scatter(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
     plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
     plt.xlim(0,mat.shape[1]+1)
 
+
+
+def plot_stemplot(mat, xlabels, vmin, vmax, title=None, fontsize=8):
+    xt = xlabels
+    xticks = np.arange(1,mat.shape[1]+1)
+    if title is None:
+        title = ""
+    if options.greyscale:
+        cm = plt.cm.get_cmap('Greys')
+    else:
+        cm = plt.cm.get_cmap("jet")
+    
+    values = None
+    mean_means = [np.average(i) for i in mat.T]
+    ste = [float(np.std(i)/np.sqrt(len(i))) for i in mat.T]
+    
+    fig = plt.figure()
+    plt.title("Stem plot - " + title)
+    ax = plt.subplot(111)
+    sc = ax.scatter(xticks, mean_means, s=100, c=mean_means, marker='o', edgecolors='grey', cmap=cm, alpha=1)
+    ax.errorbar(xticks, mean_means, yerr=ste, ls='None', color='grey')
+    ax.set_xlabel('Wild-type Amino Acids')
+    ax.set_ylabel(r'Mean FoldX $\Delta\Delta{}G (kcal/mol)$')
+    plt.xticks(xticks, xt, rotation='vertical', size=fontsize)
+    plt.colorbar(sc)
+    
 ################################################
 
 
@@ -277,6 +302,7 @@ parser.add_argument("-g","--greyscale", dest="greyscale", action="store_false", 
 parser.add_argument("-B","--boxplot", dest="box", default=False, action='store_true', help = "Create box plots from the data.")
 parser.add_argument("-V","--biolinplot", dest="violin", default=False, action='store_true', help = "Create violin plots from the data.")
 parser.add_argument("-S","--scatterplot", dest="scatter", default=False, action='store_true', help = "Create scatter plots from the data.")
+parser.add_argument("-T","--stemplot", dest="stem", default=False, action='store_true', help = "Create stemplots from the data.")
 
 options = parser.parse_args()
 
@@ -375,4 +401,15 @@ for i in range(len(spliced_data)):
                      fontsize=options.fontsize)
         plt.savefig("scatter_%d_%s" %(i, options.outfile))
         plt.clf()
+        
+    if(options.stem):
+        plot_stemplot(spliced_data[i][0],
+            spliced_data[i][1], 
+            options.vmin,
+            options.vmax, 
+            title=options.title,
+            fontsize=options.fontsize)
+        plt.savefig("stem_%d_%s" %(i, options.outfile))
+        plt.clf()
+
     log.info("Plot: " + str(i + 1) + "/" + str(len(spliced_data)))
