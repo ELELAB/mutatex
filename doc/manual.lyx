@@ -1,7 +1,9 @@
-#LyX 2.1 created this file. For more info see http://www.lyx.org/
-\lyxformat 474
+#LyX 2.2 created this file. For more info see http://www.lyx.org/
+\lyxformat 508
 \begin_document
 \begin_header
+\save_transient_properties true
+\origin unavailable
 \textclass article
 \begin_preamble
 \usepackage{color}
@@ -14,16 +16,16 @@
 \language_package default
 \inputencoding auto
 \fontencoding global
-\font_roman default
-\font_sans default
-\font_typewriter default
-\font_math auto
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
 \font_default_family default
 \use_non_tex_fonts false
 \font_sc false
 \font_osf false
-\font_sf_scale 100
-\font_tt_scale 100
+\font_sf_scale 100 100
+\font_tt_scale 100 100
 \graphics default
 \default_output_format default
 \output_sync 1
@@ -291,7 +293,7 @@ Running calculations with MutateX
 The MutateX protocol
 \begin_inset CommandInset label
 LatexCommand label
-name "sub:The-MutateX-protocol"
+name "subsec:The-MutateX-protocol"
 
 \end_inset
 
@@ -368,7 +370,7 @@ Report.
 Required files
 \begin_inset CommandInset label
 LatexCommand label
-name "sub:Required-files"
+name "subsec:Required-files"
 
 \end_inset
 
@@ -391,7 +393,7 @@ reference "sec:Installation"
 
  for details).
  If any of those variables is empty, the position of the respective file
- can be supplied through the --foldx-binary or --rotabase command line options,
+ can be supplied through the –foldx-binary or –rotabase command line options,
  respectively.
  If the command line options are supplied the content of the system variables
  is ignored.
@@ -402,6 +404,10 @@ reference "sec:Installation"
 One (or more) PDB file, containing one (or more) models of the protein to
  be mutated.
  The PDB files need to adhere to the following guidelines:
+\begin_inset Separator latexpar
+\end_inset
+
+
 \end_layout
 
 \begin_deeper
@@ -429,21 +435,21 @@ A
 
 \begin_layout Itemize
 The PDB file should contain exclusively residues recognized by FoldX.
- See the FoldX 3b6 manual pages 33-34 for a complete list.
+ See the FoldXdocumentation for a complete list.
  Also notice that residues (even those with post-translational modifications
  such as phosphorilated residues) should be defined as whole residues under
  a single residues identifier.
  For instance, phosphorylated residues where the phosphate group is separated
  from the residue and defined as HETATM at the end of the PDB are not recognized
  correctly.
- See the FoldX 3b6 manual page 35 for details.
+ See the FoldX documentation for details.
 \end_layout
 
 \begin_layout Itemize
 The number of residues or atoms should monotonically increase progressing
  along the molecule (e.g., the first four residues of a chain should follow
  the order 1-2-3-4, and 1-3-2-4 is not ammissible.
- See the FoldX 3b6 manual page 35 for details.
+ See the FoldX documentation for details.
 \end_layout
 
 \end_deeper
@@ -454,7 +460,7 @@ ile_template.txt.
  MutateX looks for these files in the working directory (i.e.
  where it is run).
  Nonetheless, it is also possible to specify custom filenames or locations
- using the --repair-runfile-template and --mutate-runfile-template options.
+ using the –repair-runfile-template and –mutate-runfile-template options.
  Two examples of these template files are available within the MutateX package.
  These are normal FoldX RunFiles that perform a <PDBRepair> and <BuildModel>
  respectively, except for two details.
@@ -493,7 +499,7 @@ Optionally, one mutations list file (usually named mutations_list.txt).
  (see section 
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "sub:The-MutateX-protocol"
+reference "subsec:The-MutateX-protocol"
 
 \end_inset
 
@@ -620,7 +626,7 @@ G (Gly)
 
 \end_inset
 
-The mutation list file is provided by the user using the --mutlist command
+The mutation list file is provided by the user using the –mutlist command
  line option.
  If this option is not specified, the default mutation list will be used,
  which is:
@@ -756,7 +762,7 @@ reference "sec:Installation"
  and 
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "sub:Required-files"
+reference "subsec:Required-files"
 
 \end_inset
 
@@ -823,8 +829,8 @@ mutatex single_model1.pdb multiple_models.pdb --multiple-models
 \begin_layout Standard
 If you have a multi-core machine (as you most probably have) you can greatly
  shorten the calculation times by allowing MutateX to run more than one
- instance of FoldX at the same time, using option --np, which specifies
- the number of cores to be used at the same time:
+ instance of FoldX at the same time, using option –np, which specifies the
+ number of cores to be used at the same time:
 \end_layout
 
 \begin_layout Standard
@@ -869,10 +875,18 @@ That's about it.
 \end_layout
 
 \begin_layout Subsubsection
+Automatic detection of multimers
+\end_layout
+
+\begin_layout Subsubsection
+Mutation to self
+\end_layout
+
+\begin_layout Subsubsection
 Other options
 \begin_inset CommandInset label
 LatexCommand label
-name "sub:Other-options"
+name "subsec:Other-options"
 
 \end_inset
 
@@ -893,11 +907,6 @@ status open
 \begin_layout Plain Layout
 
 --skip-check
-\end_layout
-
-\begin_layout Plain Layout
-
---skip-repair
 \end_layout
 
 \begin_layout Plain Layout
@@ -936,7 +945,7 @@ status open
 
 This is the number of mutation runs to be performed by MutateX per position
  and residue type of mutation.
- As stated in the FoldX manual (page 27), 
+ As stated in the FoldX documentation, 
 \begin_inset Quotes eld
 \end_inset
 
@@ -957,7 +966,7 @@ Normally it should be set to 1.
 .
  As to keep the FoldX run as informative as possible, we have decided to
  set this value to 5 by default.
- The user can however use the --nruns option to change this behavior.
+ The user can however use the –nruns option to change this behavior.
 \end_layout
 
 \begin_layout Standard
@@ -973,7 +982,7 @@ status open
 \end_inset
 
 This option is used to tell MutateX which FoldX version it should expect.
- Right now, only version 3 beta 6 is supported.
+ Right now, only FoldX Suite version 4 is supported.
 \end_layout
 
 \begin_layout Standard
@@ -1018,6 +1027,43 @@ status open
 
 \end_inset
 
+Make links instead of copying files around to save on disk space.
+ Use this option only if you really have to; FoldX has been reported to
+ crash when using links instead of files, especially for the rotabase.txt
+ file.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+--self-mutate
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+--multimers
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
 Make links instead of copying files around to save on disk space.
  Use this option only if you really have to; FoldX has been reported to
  crash when using links instead of files, especially for the rotabase.txt
@@ -1074,7 +1120,7 @@ MutateX automatically prepares the FoldX runs necessary for the completion
  By default, the four FoldX phases (as described in section 
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "sub:The-MutateX-protocol"
+reference "subsec:The-MutateX-protocol"
 
 \end_inset
 
@@ -1124,7 +1170,7 @@ current working directory
 Phase 1: Preliminary operations and model check
 \begin_inset CommandInset label
 LatexCommand label
-name "sub:Phase-0:-Preliminary"
+name "subsec:Phase-0:-Preliminary"
 
 \end_inset
 
@@ -1133,8 +1179,8 @@ name "sub:Phase-0:-Preliminary"
 
 \begin_layout Standard
 MutateX first reads the PDB file(s) it will work on.
- If --skip-check is not used, a check and preliminary fix of the models
- will be performed, namely:
+ If –skip-check is not used, a check and preliminary fix of the models will
+ be performed, namely:
 \end_layout
 
 \begin_layout Itemize
@@ -1382,6 +1428,29 @@ _checked.
 
 \end_layout
 
+\begin_layout Subsubsection
+Calculation of differences in free energy of binding
+\end_layout
+
+\begin_layout Standard
+...
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+--self-mutate
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Subsection
 Phase 4: Report
 \end_layout
@@ -1412,11 +1481,11 @@ results
 xt (or the default list if a file has not been specified) and in the same
  order.
  These values are the average of the N FoldX run that have been carried
- out for each mutation, as specified by the --nruns command line option
- (see section 
+ out for each mutation, as specified by the –nruns command line option (see
+ section 
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "sub:Other-options"
+reference "subsec:Other-options"
 
 \end_inset
 
@@ -1495,8 +1564,42 @@ _averages.
 
 \end_layout
 
+\begin_layout Subsection
+Cleaning the working directories
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+--clean {partial,deep,none}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+--compress
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
-Visualizing the output of MutateX
+alizing the output of MutateX
 \end_layout
 
 \begin_layout Standard
@@ -1642,6 +1745,11 @@ width "100col%"
 special "none"
 height "1in"
 height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
 status open
 
 \begin_layout Plain Layout
@@ -1672,6 +1780,11 @@ width "100col%"
 special "none"
 height "1in"
 height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
 status open
 
 \begin_layout Plain Layout
@@ -1788,6 +1901,11 @@ width "100col%"
 special "none"
 height "1in"
 height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
 status open
 
 \begin_layout Plain Layout
@@ -1818,6 +1936,11 @@ width "100col%"
 special "none"
 height "1in"
 height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
 status open
 
 \begin_layout Plain Layout
