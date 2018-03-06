@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#    ddg2distributionplots: plot DDG MutateX results as distribution plots: boxplot, violinplot or scatterplot.
+#    ddg2distribution: plot DDG MutateX results as distribution plots: boxplot, violinplot or scatterplot.
 #    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com, Tycho Canter Cremers <tycho.c.c@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -100,14 +100,12 @@ def plot_box(mat, xlabels, vmin, vmax, title=None, fontsize=8):
     if title is None:
         title = ""
 
-    plt.title("Box plot - " + title)
+    plt.title(title)
     box = plt.boxplot(mat)
     
-    #Set greyscale
-    if options.greyscale:
-        cm = plt.cm.get_cmap('Greys_r')
-        for i, key in enumerate(list(box.keys())):
-            plt.setp(box[key], color=cm(float(i)/10))
+    cm = plt.cm.get_cmap('Greys_r')
+    for i, key in enumerate(list(box.keys())):
+        plt.setp(box[key], color=cm(float(i)/10))
 
     plt.ylim(vmin, vmax)
     plt.xlabel("Residue id")
@@ -121,7 +119,7 @@ def plot_violin(mat, xlabels, vmin, vmax, title=None, fontsize=8):
     if title is None:
         title = ""
 
-    plt.title("Violoin plot - " + title)
+    plt.title(title)
      
     violin = plt.violinplot(mat, 
                             xticks, 
@@ -131,10 +129,10 @@ def plot_violin(mat, xlabels, vmin, vmax, title=None, fontsize=8):
                             points = 100,
                             widths = 0.7, 
                             bw_method='scott')
-    if options.greyscale:
-        cm = plt.cm.get_cmap('Greys_r')
-        for i, key in enumerate(list(violin.keys())):
-            plt.setp(violin[key], color=cm(float(i)/10))
+    
+    cm = plt.cm.get_cmap('Greys_r')
+    for i, key in enumerate(list(violin.keys())):
+        plt.setp(violin[key], color=cm(float(i)/10))
 
     plt.ylim(vmin, vmax)
     
@@ -156,15 +154,11 @@ def plot_scatter(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
         mat[mat > options.limit] = options.limit
         vmax = options.limit * 1.2
 
-    plt.title("Scatter plot - " + title)
+    plt.title(title)
     
     #Plot graph
-    if options.greyscale:
-        for i in range(len(res_order)):
-            plt.scatter(xticks, mat[i], color="black")
-    else:
-        for i in range(len(res_order)):
-            plt.scatter(xticks, mat[i])
+    for i in range(len(res_order)):
+        plt.scatter(xticks, mat[i], color="black")
     plt.ylim(vmin, vmax)
     
     #Calculate non-overlapping label coordinates    
@@ -210,17 +204,13 @@ def plot_stemplot(mat, xlabels, vmin, vmax, title=None, fontsize=8):
     xticks = np.arange(1,mat.shape[1]+1)
     if title is None:
         title = ""
-    if options.greyscale:
-        cm = plt.cm.get_cmap('Greys')
-    else:
-        cm = plt.cm.get_cmap("jet")
+    cm = plt.cm.get_cmap('Greys')
     
-    values = None
     mean_means = [np.average(i) for i in mat.T]
-    ste = [float(np.std(i)/np.sqrt(len(i))) for i in mat.T]
+    ste = [np.std(i) for i in mat.T]
     
     fig = plt.figure()
-    plt.title("Stem plot - " + title)
+    plt.title(title)
     ax = plt.subplot(111)
     sc = ax.scatter(xticks, mean_means, s=100, c=mean_means, marker='o', edgecolors='grey', cmap=cm, alpha=1)
     ax.errorbar(xticks, mean_means, yerr=ste, ls='None', color='grey')
@@ -249,32 +239,11 @@ def splice_data(data, labels, sv):
         out.append([
                 data[:,i*sv:(i+1)*sv],
                 labels[i*sv:(i+1)*sv]
-            ])
+                ])
 
     return out
 
 
-
-three2one = {'ALA':'A',
-             'CYS':'C',
-             'ASP':'D',
-             'GLU':'E',
-             'PHE':'F',
-             'GLY':'G',
-             'HIS':'H',
-             'ILE':'I',
-             'LYS':'K',
-             'LEU':'L',
-             'MET':'M',
-             'ASN':'N',
-             'PRO':'P',
-             'GLN':'Q',
-             'ARG':'R',
-             'SER':'S',
-             'THR':'T',
-             'VAL':'V',
-             'TRP':'W',
-             'TYR':'Y'}
 
 LOGFMT = "%(levelname)s: %(message)s"
 
@@ -283,7 +252,7 @@ if not __name__ == "__main__":
 
 
 parser = argparse.ArgumentParser( 
-    description='ddg2distributionplots: plot DDG MutateX results as distribution plots: boxplot, violinplot or scatterplot.',)
+    description='ddg2distribution: plot DDG MutateX results as distribution plots: boxplot, violinplot or scatterplot.',)
 
 parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
 parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
@@ -298,7 +267,6 @@ parser.add_argument("-s","--splice",dest='sv',action='store', type=int, default=
 parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Axis label font size")
 parser.add_argument("-a","--multimers", dest="multimers", default=True, action='store_false')
 parser.add_argument("-t","--limit", dest="limit", action='store', default = None, type=int, help="Limit scatter plot ddg values to a maximum")
-parser.add_argument("-g","--greyscale", dest="greyscale", action="store_false", default=True, help="Togle greyscale, default = true")
 parser.add_argument("-B","--boxplot", dest="box", default=False, action='store_true', help = "Create box plots from the data.")
 parser.add_argument("-V","--biolinplot", dest="violin", default=False, action='store_true', help = "Create violin plots from the data.")
 parser.add_argument("-S","--scatterplot", dest="scatter", default=False, action='store_true', help = "Create scatter plots from the data.")
@@ -310,7 +278,8 @@ import numpy as np
 import logging as log
 from Bio import PDB
 from matplotlib import pyplot as plt
-import math
+
+
 
 if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)
@@ -361,9 +330,9 @@ data = np.vstack(tuple(data)).T
 
 
 if not options.vmax:
-    options.vmax = math.ceil(np.max(data) + abs(0 - np.max(data))*0.2)
+    options.vmax = np.ceil(np.max(data) + abs(0 - np.max(data))*0.2)
 if not options.vmin:
-    options.vmin = math.floor(np.min(data) - abs(0 - np.min(data))*0.2)
+    options.vmin = np.floor(np.min(data) - abs(0 - np.min(data))*0.2)
 
 
 spliced_data = splice_data(data, res_id_labels, options.sv)
