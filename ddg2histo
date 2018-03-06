@@ -112,7 +112,7 @@ def parse_residues(residues, fnames):
                 if "_" in idx:
                     log.error("Selection: '%s' in range '%s' invalid residue format. Select a range using non-multimers. If a multimer falls within that range, it will be added. Exiting..." %(idx, residue))
                     exit(1) 
-                elif not re.match(r'[A-Z]{2}\d+', idx):
+                elif not re.match(r'[A-Z]{2}\d+$', idx):
                     log.error("Selection: '%s' in range '%s' invalid residue format. Exiting..." %(idx, residue))
                     exit(1)
                     
@@ -123,8 +123,9 @@ def parse_residues(residues, fnames):
             chain_ids.sort()
             
             residue_range = "|".join(str(i) + "($|_)" for i in reversed(range(residue_number[0],residue_number[-1]+1)))
-            r = r'[A-Z]{1}[' + chain_ids[0] + '-' + chain_ids[-1]+']{1}(' + residue_range  + ')'
-            reg = re.compile(r)
+            pattern = r'[A-Z]{1}[' + chain_ids[0] + '-' + chain_ids[-1]+']{1}(' + residue_range  + ')'
+            
+            reg = re.compile(pattern)
             matches = filter(reg.findall, fnames) 
             selections += matches
             
@@ -133,14 +134,18 @@ def parse_residues(residues, fnames):
             else:
                 log.warn("Selection: '%s' no match was found; it will be skipped" % (residue))
         else:
-            if not options.multimers and "_" in residue:
-                log.error("Selection: '%s' invalid residue format. Multimers are disabled. Exiting..." %(idx, residue))
+            if "_" in residue:
+                log.error("Selection: '%s' invalid residue format. Select a residue using non-multimers. If a multimer matches, it will be added. Exiting..." %(residue))
+                exit(1) 
+            elif not re.match(r'[A-Z]{2}\d+$', residue):
+                log.error("Selection: '%s' invalid residue format. Exiting..." %(residue))
                 exit(1)
-            if not re.match(r'[A-Z]{2}\d+', residue):
-                log.error("Selection: '%s' invalid residue format. Exiting..." %(idx, residue))
-                exit(1)
-            if(residue in fnames):
-                selections.append(residue)
+                
+            reg = re.compile(residue + "($|_)")
+            match = filter(reg.findall, fnames)
+            if(len(match) == 1):
+                selections += match
+                log.info("Pdb file matched single residue %s" % (residue))
             else:
                 log.warn("Selection: '%s' no match was found; it will be skipped" % (residue))
     selections = list(set(selections))
@@ -170,7 +175,7 @@ if not __name__ == "__main__":
 
 
 parser = argparse.ArgumentParser( 
-    description='ddg2distributionplots: plot DDG MutateX results as distribution plots: boxplot, violinplot or scatterplot.',)
+    description='ddg2histo: plot DDG MutateX results as a bar plot of the distribution of values.',)
 
 parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
 parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
