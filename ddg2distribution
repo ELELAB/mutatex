@@ -173,35 +173,33 @@ def plot_scatter(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
     overlap = True
     while overlap:
         overlap = False
-        for residue in range(len(y_coords)):
-            for i in range(len(y_coords[residue])):
-                for j in range(len(y_coords[residue])):
+        for residue in range(y_coords.shape[0]):
+            for i in range(y_coords.shape[1]):
+                for j in range(y_coords.shape[1]):
                     diff = abs(y_coords[residue][i] - y_coords[residue][j])
                     offset = label_size - diff
                     if(diff < label_size and i is not j and offset > 0.001): #Check for overlap
                         overlap = True                        
-                        if(mat[residue][i] > mat[residue][j]): #Devide offset between points (Add to highest, subtract from lowest value
+                        if(mat[residue][i] > mat[residue][j]): #Devide offset between points (Add to highest, subtract from lowest ddg value)
                             y_coords[residue][i] += offset/2
                             y_coords[residue][j] -= offset/2
                         else:
                             y_coords[residue][i] -= offset/2
                             y_coords[residue][j] += offset/2
-                            
-    y_coords = y_coords.T
-    mat = mat.T
-    
+
+
     #Add labels
     x_offset = float(len(xticks)) / 270
     for i in range(len(res_order)):
         res = res_order[i]        
         for j in xticks:
-            plt.annotate(res, (j + x_offset, y_coords[i][j-1]), fontsize = 12)
+            plt.annotate(res, (j + x_offset, y_coords[j-1][i]), fontsize = 12)
     
     plt.xlabel("Residue id")
     plt.ylabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
     rotation_xt=90
     plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
-    plt.xlim(0,mat.shape[1]+1)
+    plt.xlim(0,mat.shape[0]+1)
 
 
 
@@ -273,10 +271,7 @@ parser.add_argument("-s","--splice",dest='sv',action='store', type=int, default=
 parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Axis label font size")
 parser.add_argument("-a","--multimers", dest="multimers", default=True, action='store_false')
 parser.add_argument("-t","--limit", dest="limit", action='store', default = None, type=int, help="Limit scatter plot ddg values to a maximum")
-parser.add_argument("-B","--boxplot", dest="box", default=False, action='store_true', help = "Create box plots from the data.")
-parser.add_argument("-V","--biolinplot", dest="violin", default=False, action='store_true', help = "Create violin plots from the data.")
-parser.add_argument("-S","--scatterplot", dest="scatter", default=False, action='store_true', help = "Create scatter plots from the data.")
-parser.add_argument("-T","--stemplot", dest="stem", default=False, action='store_true', help = "Create stemplots from the data.")
+parser.add_argument("-T","--type", dest="type", nargs = '+', required = True, choices = ["stem", "box", "violin", "scatter"], help = "Choose type(s) of plot(s) to generate: stem, box, violin or scatter. Duplicates will be ignored.")
 
 options = parser.parse_args()
 
@@ -291,7 +286,6 @@ if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)
 else:
     log.basicConfig(level=log.WARNING, format=LOGFMT)
-
 
 res_order = parse_list_file(options.order)
 
@@ -344,9 +338,10 @@ if not options.vmin:
 spliced_data = splice_data(data, res_id_labels, options.sv)
 log.info("Ylims: %d, %d" %(options.vmin, options.vmax))
 
+
 #Plot the plots
 for i in range(len(spliced_data)):
-    if(options.violin):
+    if("violin" in options.type):
         plot_violin(spliced_data[i][0], 
                     spliced_data[i][1], 
                     options.vmin,
@@ -356,7 +351,7 @@ for i in range(len(spliced_data)):
         plt.savefig("violin_%d_%s" %(i, options.outfile))
         plt.clf()
     
-    if(options.box):
+    if("box" in options.type):
         plot_box(spliced_data[i][0],
                 spliced_data[i][1], 
                 options.vmin,
@@ -366,7 +361,7 @@ for i in range(len(spliced_data)):
         plt.savefig("box_%d_%s" %(i, options.outfile))
         plt.clf()
     
-    if(options.scatter):
+    if("scatter" in options.type):
         plot_scatter(spliced_data[i][0], 
                      spliced_data[i][1], 
                      res_order, 
@@ -377,7 +372,7 @@ for i in range(len(spliced_data)):
         plt.savefig("scatter_%d_%s" %(i, options.outfile))
         plt.clf()
         
-    if(options.stem):
+    if("stem" in options.type):
         plot_stemplot(spliced_data[i][0],
             spliced_data[i][1], 
             options.vmin,
