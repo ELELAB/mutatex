@@ -1772,7 +1772,10 @@ ddg2distribution -d results/final_averages
 \end_layout
 
 \begin_layout Standard
-You also use the parameters to pick which types of plots you want to generate.
+Another mandatory parameter is the -T (--type) parameter.
+ You use the -T (--type) parameter to pick which types of plots you want
+ to generate.
+ You have to select at least one type.
 \end_layout
 
 \begin_layout Standard
@@ -1782,22 +1785,7 @@ status open
 
 \begin_layout Plain Layout
 
--T : stemplot
-\end_layout
-
-\begin_layout Plain Layout
-
--B : boxplot
-\end_layout
-
-\begin_layout Plain Layout
-
--v : violinplot
-\end_layout
-
-\begin_layout Plain Layout
-
--S : scatterplot
+-T stem box violin scatter
 \end_layout
 
 \end_inset
@@ -1919,7 +1907,7 @@ ddg2distribution -p
 
 \begin_layout Plain Layout
 
--T -B -V -S 
+-T stem box violin scatter
 \end_layout
 
 \end_inset
@@ -2368,7 +2356,7 @@ status open
 
 
 \backslash
-vspace*{-4cm}
+vspace*{-3.5cm}
 \end_layout
 
 \end_inset
