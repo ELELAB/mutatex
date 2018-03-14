@@ -152,7 +152,7 @@ def plot_scatter(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
     
     if options.limit:
         mat[mat > options.limit] = options.limit
-        vmax = options.limit * 1.2
+        vmax = options.limit + abs(0 - options.limit * 0.2)
 
     plt.title(title)
     
@@ -171,22 +171,27 @@ def plot_scatter(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
     
     mat = mat.T
     overlap = True
+    iteration = 0
     while overlap:
+        iteration += 1
         overlap = False
         for residue in range(y_coords.shape[0]):        
             for i in range(y_coords.shape[1]):
                 for j in range(y_coords.shape[1]):
                     diff = abs(y_coords[residue][i] - y_coords[residue][j])
                     offset = label_size - diff
-                    if(diff < label_size and i is not j and offset > 0.001): #Check for overlap
+                    if(diff < label_size and i is not j and offset > 0.01): #Check for overlap
                         overlap = True
                         if(mat[residue][i] > mat[residue][j]): #Devide offset between points (Add to highest, subtract from lowest ddg value)
-                            y_coords[residue][i] += offset/2
-                            y_coords[residue][j] -= offset/2
+                            if(y_coords[residue][j] + offset/2 < vmax):
+                                y_coords[residue][i] += offset/2
+                            if(y_coords[residue][j] - offset/2 > vmin):
+                                y_coords[residue][j] -= offset/2
                         else:
-                            y_coords[residue][i] -= offset/2
-                            y_coords[residue][j] += offset/2
-                            
+                            if(y_coords[residue][i] - offset/2 > vmin):
+                                y_coords[residue][i] -= offset/2
+                            if(y_coords[residue][i] + offset/2 < vmax):            
+                                y_coords[residue][j] += offset/2
     #Add labels
     x_offset = float(len(xticks)) / 270
     for i in range(len(res_order)):
@@ -334,7 +339,6 @@ if not options.vmin:
 
 
 spliced_data = splice_data(data, res_id_labels, options.sv)
-log.info("Ylims: %d, %d" %(options.vmin, options.vmax))
 
 
 #Plot the plots
