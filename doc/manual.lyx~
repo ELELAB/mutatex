@@ -1,7 +1,9 @@
-#LyX 2.1 created this file. For more info see http://www.lyx.org/
-\lyxformat 474
+#LyX 2.2 created this file. For more info see http://www.lyx.org/
+\lyxformat 508
 \begin_document
 \begin_header
+\save_transient_properties true
+\origin unavailable
 \textclass article
 \begin_preamble
 \usepackage{color}
@@ -14,16 +16,16 @@
 \language_package default
 \inputencoding auto
 \fontencoding global
-\font_roman default
-\font_sans default
-\font_typewriter default
-\font_math auto
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
 \font_default_family default
 \use_non_tex_fonts false
 \font_sc false
 \font_osf false
-\font_sf_scale 100
-\font_tt_scale 100
+\font_sf_scale 100 100
+\font_tt_scale 100 100
 \graphics default
 \default_output_format default
 \output_sync 1
@@ -291,7 +293,7 @@ Running calculations with MutateX
 The MutateX protocol
 \begin_inset CommandInset label
 LatexCommand label
-name "sub:The-MutateX-protocol"
+name "subsec:The-MutateX-protocol"
 
 \end_inset
 
@@ -368,7 +370,7 @@ Report.
 Required files
 \begin_inset CommandInset label
 LatexCommand label
-name "sub:Required-files"
+name "subsec:Required-files"
 
 \end_inset
 
@@ -391,7 +393,7 @@ reference "sec:Installation"
 
  for details).
  If any of those variables is empty, the position of the respective file
- can be supplied through the --foldx-binary or --rotabase command line options,
+ can be supplied through the –foldx-binary or –rotabase command line options,
  respectively.
  If the command line options are supplied the content of the system variables
  is ignored.
@@ -402,6 +404,10 @@ reference "sec:Installation"
 One (or more) PDB file, containing one (or more) models of the protein to
  be mutated.
  The PDB files need to adhere to the following guidelines:
+\begin_inset Separator latexpar
+\end_inset
+
+
 \end_layout
 
 \begin_deeper
@@ -454,7 +460,7 @@ ile_template.txt.
  MutateX looks for these files in the working directory (i.e.
  where it is run).
  Nonetheless, it is also possible to specify custom filenames or locations
- using the --repair-runfile-template and --mutate-runfile-template options.
+ using the –repair-runfile-template and –mutate-runfile-template options.
  Two examples of these template files are available within the MutateX package.
  These are normal FoldX RunFiles that perform a <PDBRepair> and <BuildModel>
  respectively, except for two details.
@@ -493,7 +499,7 @@ Optionally, one mutations list file (usually named mutations_list.txt).
  (see section 
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "sub:The-MutateX-protocol"
+reference "subsec:The-MutateX-protocol"
 
 \end_inset
 
@@ -620,7 +626,7 @@ G (Gly)
 
 \end_inset
 
-The mutation list file is provided by the user using the --mutlist command
+The mutation list file is provided by the user using the –mutlist command
  line option.
  If this option is not specified, the default mutation list will be used,
  which is:
@@ -756,7 +762,7 @@ reference "sec:Installation"
  and 
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "sub:Required-files"
+reference "subsec:Required-files"
 
 \end_inset
 
@@ -823,8 +829,8 @@ mutatex single_model1.pdb multiple_models.pdb --multiple-models
 \begin_layout Standard
 If you have a multi-core machine (as you most probably have) you can greatly
  shorten the calculation times by allowing MutateX to run more than one
- instance of FoldX at the same time, using option --np, which specifies
- the number of cores to be used at the same time:
+ instance of FoldX at the same time, using option –np, which specifies the
+ number of cores to be used at the same time:
 \end_layout
 
 \begin_layout Standard
@@ -872,7 +878,7 @@ That's about it.
 Other options
 \begin_inset CommandInset label
 LatexCommand label
-name "sub:Other-options"
+name "subsec:Other-options"
 
 \end_inset
 
@@ -957,7 +963,7 @@ Normally it should be set to 1.
 .
  As to keep the FoldX run as informative as possible, we have decided to
  set this value to 5 by default.
- The user can however use the --nruns option to change this behavior.
+ The user can however use the –nruns option to change this behavior.
 \end_layout
 
 \begin_layout Standard
@@ -1074,7 +1080,7 @@ MutateX automatically prepares the FoldX runs necessary for the completion
  By default, the four FoldX phases (as described in section 
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "sub:The-MutateX-protocol"
+reference "subsec:The-MutateX-protocol"
 
 \end_inset
 
@@ -1124,7 +1130,7 @@ current working directory
 Phase 1: Preliminary operations and model check
 \begin_inset CommandInset label
 LatexCommand label
-name "sub:Phase-0:-Preliminary"
+name "subsec:Phase-0:-Preliminary"
 
 \end_inset
 
@@ -1133,8 +1139,8 @@ name "sub:Phase-0:-Preliminary"
 
 \begin_layout Standard
 MutateX first reads the PDB file(s) it will work on.
- If --skip-check is not used, a check and preliminary fix of the models
- will be performed, namely:
+ If –skip-check is not used, a check and preliminary fix of the models will
+ be performed, namely:
 \end_layout
 
 \begin_layout Itemize
@@ -1412,11 +1418,11 @@ results
 xt (or the default list if a file has not been specified) and in the same
  order.
  These values are the average of the N FoldX run that have been carried
- out for each mutation, as specified by the --nruns command line option
- (see section 
+ out for each mutation, as specified by the –nruns command line option (see
+ section 
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "sub:Other-options"
+reference "subsec:Other-options"
 
 \end_inset
 
@@ -1502,7 +1508,8 @@ Visualizing the output of MutateX
 \begin_layout Standard
 Visualization of MutateX output can be performed using a set of supplied
  tools for graphical representation.
- These include scripts for generating: heatmaps, stemplots, cross correlation
+ These include scripts for generating: heatmaps, stemplots, distribution-scatter
+plots, boxplots, violinplots, mutation-specific histograms, cross correlation
  matrixes and excel sheets of results for further analysis.
 \end_layout
 
@@ -1642,11 +1649,16 @@ width "100col%"
 special "none"
 height "1in"
 height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
 status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
-	filename /Users/KB/Desktop/for_manual/0_heatmap-1.png
+	filename 0_heatmap-1.png
 	lyxscale 30
 	scale 23
 
@@ -1672,11 +1684,16 @@ width "100col%"
 special "none"
 height "1in"
 height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
 status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
-	filename /Users/KB/Desktop/for_manual/1_heatmap-1.png
+	filename 1_heatmap-1.png
 	lyxscale 30
 	scale 23
 
@@ -1705,25 +1722,32 @@ Heatmaps generated from ddg2matrix run using 2KLZ.
 \end_layout
 
 \begin_layout Subsection
-Stemplot.
+Distribution plots.
 \end_layout
 
 \begin_layout Standard
-The ddg2stemplot tool can be used to generate stemplots of the mean protein
- ∆∆G for any mutated wildtype amino acid.
+The ddg2distributionplots tool can be used to generate a number of different
+ tpyes of plots each visualizing the distribution of the mean protein ∆∆G
+ for any mutated wildtype amino acid.
+ It can plot a stempplot, a boxlot, a violinplot and a scatter plot.
  The stemplot depict the significance of a given wildtype amino acid for
  protein stability irrespectively of what it is mutated to.
  Errorbars (stems) represent the standard error of mean.
- Ddg2stemplot may be run using the same users-specified parameters as for
- ddg2matrix (see section 6.1 above).
- The path to the “results” directory (either final_averages or a specific
- protein model of interest), original model.pdb file and list of mutations
- are mandatory parameters.
- 
+ The boxplot shows the general distribution and outliers of the mean ∆∆G
+ values for every mutation in a residue.
+ The violinplot is similar to the boxplot but also shows a continuues vertical
+ probability density plot of the data on each side of every figure.
+ The scatterplot shows the exact values of the mean ∆∆G values for every
+ mutation with labeled points on vertical axis.
 \end_layout
 
 \begin_layout Standard
-For full list of user specified options see the ddg2stemplot help option.
+Ddg2distributionplots may be run using the same users-specified parameters
+ as for ddg2matrix (see section 6.1 above).
+ The path to the “results” directory (either final_averages or a specific
+ protein model of interest), original model.pdb file and list of mutations
+ are mandatory parameters.
+ You also use the parameters to pick wich types of plots you want to generate.
 \end_layout
 
 \begin_layout Standard
@@ -1733,7 +1757,22 @@ status open
 
 \begin_layout Plain Layout
 
-ddg2stemplot -h 
+-T : stemplot
+\end_layout
+
+\begin_layout Plain Layout
+
+-B : boxplot
+\end_layout
+
+\begin_layout Plain Layout
+
+-v : violinplot
+\end_layout
+
+\begin_layout Plain Layout
+
+-S : scatterplot
 \end_layout
 
 \end_inset
@@ -1742,12 +1781,8 @@ ddg2stemplot -h
 \end_layout
 
 \begin_layout Standard
-The example below shows the command for running ddg2stemplot using 2KLZ,
- the tandem UIM domain of Ataxin-3.
- The mutation_list.txt is the default including all 20 natural occurring
- amino acids.
- Resulting stemplots may be seen in figure 2, page 12.
- 
+For a full list of user specified options see the ddg2distributionplots
+ help option.
 \end_layout
 
 \begin_layout Standard
@@ -1757,12 +1792,65 @@ status open
 
 \begin_layout Plain Layout
 
-ddg2stemplot -d results/final_averages -p 2KLZ.pdb
+ddg2distributionplots -h 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The example below shows the command for running ddg2distributionplots using
+ 2KLZ, the tandem UIM domain of Ataxin-3.
+ The mutation_list.txt is the default including all 20 natural occurring
+ amino acids.
+ Resulting plots may be seen in figure 2, page 12.
+ 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+see figure~
+\backslash
+ref{figure-2} on page~
+\backslash
+pageref{figure-2}
+\end_layout
+
+\end_inset
+
+ See figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "figure-2"
+
+\end_inset
+
+ on page 
+\begin_inset CommandInset ref
+LatexCommand pageref
+reference "figure-2"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2distributionplots -d results/final_averages -p 2KLZ.pdb
 \end_layout
 
 \begin_layout Plain Layout
 
--l mutation_list.txt -o stemplots -i my_stemplot -s 25
+-l mutation_list.txt -o distributionplots -s 25 -T -B -V -S
 \end_layout
 
 \end_inset
@@ -1788,11 +1876,16 @@ width "100col%"
 special "none"
 height "1in"
 height_special "totalheight"
-status open
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status collapsed
 
 \begin_layout Plain Layout
 \begin_inset Graphics
-	filename /Users/KB/Desktop/for_manual/stemplot_0-1.png
+	filename stemplot_0-1.png
 	lyxscale 30
 	scale 23
 
@@ -1818,11 +1911,16 @@ width "100col%"
 special "none"
 height "1in"
 height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
 status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
-	filename /Users/KB/Desktop/for_manual/stemplot_1-1.png
+	filename stemplot_1-1.png
 	lyxscale 30
 	scale 23
 
@@ -1837,6 +1935,12 @@ status open
 \begin_inset Caption Standard
 
 \begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "figure-2"
+
+\end_inset
+
 Stemplots generated from ddg2stemplot run using 2KLZ.
 \end_layout
 
