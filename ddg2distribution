@@ -93,7 +93,6 @@ def parse_list_file(fname):
             restypes.append(line.strip()[0])
     return restypes
 
-############Plot functions########################
 def plot_box(mat, xlabels, vmin, vmax, title=None, fontsize=8):
     xt = xlabels
     xticks = np.arange(1,mat.shape[1]+1)
@@ -112,6 +111,7 @@ def plot_box(mat, xlabels, vmin, vmax, title=None, fontsize=8):
     plt.ylabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
     rotation_xt=90
     plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
+    plt.tight_layout()
     
 def plot_violin(mat, xlabels, vmin, vmax, title=None, fontsize=8):
     xt = xlabels
@@ -141,7 +141,7 @@ def plot_violin(mat, xlabels, vmin, vmax, title=None, fontsize=8):
     rotation_xt=90
     plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
     plt.xlim(0,mat.shape[1]+1)
-    
+    plt.tight_layout()
     
     
 def plot_scatter(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
@@ -171,9 +171,7 @@ def plot_scatter(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
     
     mat = mat.T
     overlap = True
-    iteration = 0
     while overlap:
-        iteration += 1
         overlap = False
         for residue in range(y_coords.shape[0]):        
             for i in range(y_coords.shape[1]):
@@ -183,7 +181,7 @@ def plot_scatter(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
                     if(diff < label_size and i is not j and offset > 0.01): #Check for overlap
                         overlap = True
                         if(mat[residue][i] > mat[residue][j]): #Devide offset between points (Add to highest, subtract from lowest ddg value)
-                            if(y_coords[residue][j] + offset/2 < vmax):
+                            if(y_coords[residue][j] + offset/2 < vmax): #Check if changed label coordinates don't fall outside y-range
                                 y_coords[residue][i] += offset/2
                             if(y_coords[residue][j] - offset/2 > vmin):
                                 y_coords[residue][j] -= offset/2
@@ -204,7 +202,7 @@ def plot_scatter(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
     rotation_xt=90
     plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
     plt.xlim(0,mat.shape[0]+1)
-
+    plt.tight_layout()
 
 
 def plot_stemplot(mat, xlabels, vmin, vmax, title=None, fontsize=8):
@@ -226,8 +224,7 @@ def plot_stemplot(mat, xlabels, vmin, vmax, title=None, fontsize=8):
     ax.set_ylabel(r'Mean FoldX $\Delta\Delta{}G (kcal/mol)$')
     plt.xticks(xticks, xt, rotation='vertical', size=fontsize)
     plt.colorbar(sc)
-    
-################################################
+    plt.tight_layout()
 
 
 def splice_data(data, labels, sv):
