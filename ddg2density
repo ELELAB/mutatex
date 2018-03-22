@@ -97,14 +97,14 @@ def get_residue_list(structure, multimers=True):
             try:
                 res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
             except:
-                log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
+                log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, options.pdb))
                 continue
             if not multimers:
                 residue_list.append(("%s%s%d") % (res_code, chain.get_id(), residue.get_id()[1]))
             else:
                 sequences[chain_name] += res_code
 
-    if args.multimers:
+    if options.multimers:
         collated_chains = []
         seq_ids, seqs = zip(*list(sequences.iteritems()))
         seq_ids = np.array(seq_ids)
@@ -120,23 +120,35 @@ def get_residue_list(structure, multimers=True):
                     try:
                         res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
                     except:
-                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
+                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, options.pdb))
                         continue
                     residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
     return residue_list
 
 def pdbmodel(residue_list, d):
 
-    res_ids = []
-    res_ids_str = []
+#     res_ids = []
+#     res_ids_str = []
     data = []
     remove =  []
 
-    res_ids.append((chain.get_id(), res.get_id()[1], this_type))
-    res_ids_str = ["_".join(r) for r in residue_list]
+#     res_ids.append((chain.get_id(), res.get_id()[1], this_type))
+    if options.multimers:
+        res_ids_str = ["_".join(r) for r in residue_list]
+    else:
+        res_ids_str = residue_list
+        
     res_restypes = [r[0][0] for r in residue_list]
-    remove = [d[r] for r in res_restypes]
 
+    #Make remove array
+#     remove = [d[r] for r in res_restypes]
+    for r in res_restypes:
+        if r in d:
+            remove.append(1)
+        else:
+            remove.append(0)
+
+    
     for fname in res_ids_str:
         this_data = parse_file("%s/%s" % (options.input_path, fname))
         data.append(np.array(this_data))
@@ -211,12 +223,14 @@ muts = []
 for line in fh:
     mut = line.rstrip()
     muts.append(mut)
-
+print muts
 d = {}
 for value in muts:
     d[value] = muts.index(value)
 
-residue_list = get_residue_list(user_structure, multimers=args.multimers)
+
+residue_list = get_residue_list(user_structure, multimers=options.multimers)
+
 user_data = pdbmodel(residue_list, d)
 
 ddgvalues = np.asarray(user_data)

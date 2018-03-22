@@ -44,7 +44,7 @@ def get_residue_list(structure, multimers=True):
             try:
                 res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
             except:
-                log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
+                log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, options.pdb))
                 continue
             if not multimers:
                 residue_list.append(("%s%s%d") % (res_code, chain.get_id(), residue.get_id()[1]))
@@ -67,7 +67,7 @@ def get_residue_list(structure, multimers=True):
                     try:
                         res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
                     except:
-                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
+                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, options.pdb))
                         continue
                     residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
     return residue_list
@@ -85,7 +85,7 @@ def parse_ddg_file(fname, reslist):
             ddgs.append(float(line.split()[0]))
 
     if len(ddgs) != len(reslist):
-        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), values))
+        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), options.values))
         exit(1)
     return ddgs
 
@@ -255,13 +255,16 @@ except:
     log.error("Couldn't open or parse input pdb file. Exiting...")
     exit(1)
 
-res_ids = []
 res_ids_str = []
 data = []
 
 res_ids_str = get_residue_list(structure, multimers=options.multimers)
-fnames = ["_".join(r) for r in res_ids_str]
-res_id_labels = [", ".join(r) for r in res_ids_str]
+if options.multimers:
+    fnames = ["_".join(r) for r in res_ids_str]
+    res_id_labels = [", ".join(r) for r in res_ids_str]
+else:
+    fnames = res_ids_str
+    res_id_labels = res_ids_str
 
 for fname in fnames:
     this_data = parse_ddg_file("%s/%s" % (options.dir, fname), reslist=res_order)
@@ -274,7 +277,6 @@ for fname in fnames:
         this_data[:] = np.NAN
         data.append(this_data)
     else:
-        res_ids.pop()
         res_ids_str.pop()
 
 data = np.vstack(tuple(data)).T
@@ -287,7 +289,7 @@ if not options.vmin:
 spliced_data = splice_data(data, res_id_labels, options.sv)
 
 if options.raw:
-    save_matrix(data, res_order, res_ids_labels, options.raw, options.transpose)
+    save_matrix(data, res_order, res_id_labels, options.raw, options.transpose)
 
 for i in range(len(spliced_data)):
     plot_matrix(spliced_data[i][0],
