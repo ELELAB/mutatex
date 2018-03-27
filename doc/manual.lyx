@@ -878,8 +878,58 @@ That's about it.
 Automatic detection of multimers
 \end_layout
 
+\begin_layout Standard
+MutateX automatically analyses the content of the PDB file and determines
+ if chains with the same exact sequence are present.
+ This is because usually, when mutating a structure for instance of a omodimer,
+ it makes sense to apply the same mutations to both chains at the same time.
+ Therefore, in this case, instead of a single run per residue of each chain,
+ the software will only perform one run per residue of both chains.
+ The output filename will change accordingly.
+ The automatic detection can be overridden with the option
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+–no-multimers
+\end_layout
+
+\end_inset
+
+If this is specified all protein chains will be considered independently.
+\end_layout
+
 \begin_layout Subsubsection
 Mutation to self
+\end_layout
+
+\begin_layout Standard
+If option
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+--self-mutate
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+is provided, MutateX will perform one additional run respect to those that
+ have been requested by the user - that is, each residue will be mutated
+ to itself and the corresponding differences in free energy gathered.
+ This is done as an additional quality control, as mutations to self should
+ most of the times result in very small changes in free energy.
 \end_layout
 
 \begin_layout Subsubsection
@@ -976,7 +1026,7 @@ status open
 
 \begin_layout Plain Layout
 
---foldx-version {3b6}
+--foldx-version {suite4}
 \end_layout
 
 \end_inset
@@ -1027,43 +1077,6 @@ status open
 
 \end_inset
 
-Make links instead of copying files around to save on disk space.
- Use this option only if you really have to; FoldX has been reported to
- crash when using links instead of files, especially for the rotabase.txt
- file.
-\end_layout
-
-\begin_layout Standard
-\begin_inset listings
-inline false
-status open
-
-\begin_layout Plain Layout
-
---self-mutate
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset listings
-inline false
-status open
-
-\begin_layout Plain Layout
-
---multimers
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
 Make links instead of copying files around to save on disk space.
  Use this option only if you really have to; FoldX has been reported to
  crash when using links instead of files, especially for the rotabase.txt
@@ -1434,21 +1447,6 @@ Calculation of differences in free energy of binding
 
 \begin_layout Standard
 ...
-\end_layout
-
-\begin_layout Standard
-\begin_inset listings
-inline false
-status open
-
-\begin_layout Plain Layout
-
---self-mutate
-\end_layout
-
-\end_inset
-
-
 \end_layout
 
 \begin_layout Subsection
