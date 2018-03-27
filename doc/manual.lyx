@@ -1605,8 +1605,9 @@ alizing the output of MutateX
 \begin_layout Standard
 Visualization of MutateX output can be performed using a set of supplied
  tools for graphical representation.
- These include scripts for generating: heatmaps, stemplots, cross correlation
- matrixes and excel sheets of results for further analysis.
+ These include scripts for generating: heatmaps, stemplots, distribution-scatter
+plots, boxplots, violinplots, mutation-specific histograms, matrices and
+ Excel sheets of results for further analysis.
 \end_layout
 
 \begin_layout Subsection
@@ -1614,9 +1615,10 @@ Heatmap.
 \end_layout
 
 \begin_layout Standard
-The ddg2matrix tool may be used to generate heatmaps of protein ∆∆G.
- Ddg2matrix is run by specifying the path to the “results” directory under
- CWD.
+The ddg2matrix tool may be used to generate heatmaps of the calculated mutation
+ ∆∆Gs.
+ ddg2matrix is run by specifying the path to one of the “results” directory
+ under CWD.
  The final_averages can be used or, if a specific protein model is of interest,
  the name of the model-file (see section 5.4).
  In addition to the results directory, the original model.pdb file and list
@@ -1667,7 +1669,7 @@ status open
 
 \begin_layout Plain Layout
 
--c : Color of heatmap.
+-c : Colormap of heatmap.
 \end_layout
 
 \begin_layout Plain Layout
@@ -1681,7 +1683,7 @@ status open
 \end_layout
 
 \begin_layout Standard
-For full list of user specified options see the ddg2matrix help option.
+For a full list of user specified options see the ddg2matrix help option.
 \end_layout
 
 \begin_layout Standard
@@ -1818,25 +1820,32 @@ Heatmaps generated from ddg2matrix run using 2KLZ.
 \end_layout
 
 \begin_layout Subsection
-Stemplot.
+Distribution plots.
 \end_layout
 
 \begin_layout Standard
-The ddg2stemplot tool can be used to generate stemplots of the mean protein
- ∆∆G for any mutated wildtype amino acid.
+The ddg2distribution tool can be used to generate a number of different
+ tpyes of plots each visualizing the distribution of the mean protein ∆∆G
+ for any mutated wildtype amino acid.
+ It can generate a stempplot, a boxlot, a violinplot and a scatter plot.
  The stemplot depict the significance of a given wildtype amino acid for
  protein stability irrespectively of what it is mutated to.
- Errorbars (stems) represent the standard error of mean.
- Ddg2stemplot may be run using the same users-specified parameters as for
- ddg2matrix (see section 6.1 above).
- The path to the “results” directory (either final_averages or a specific
- protein model of interest), original model.pdb file and list of mutations
- are mandatory parameters.
- 
+ Errorbars (stems) represent the standard deviation of the mean.
+ The boxplot shows the general distribution and outliers of the mean ∆∆G
+ values for every mutation.
+ The violinplot is similar to the boxplot but also shows a continuues vertical
+ probability density plot of the data on each side of the figures.
+ The scatterplot shows the exact values of the mean ∆∆G values for every
+ mutation with labeled points on a vertical axis.
 \end_layout
 
 \begin_layout Standard
-For full list of user specified options see the ddg2stemplot help option.
+Ddg2distribution may be run using the same users-specified parameters as
+ for ddg2matrix (see section 6.1 above).
+ The path to the “results” directory (either final_averages or a specific
+ protein model of interest), original model.pdb file and a list of mutations
+ are mandatory parameters.
+ 
 \end_layout
 
 \begin_layout Standard
@@ -1846,7 +1855,12 @@ status open
 
 \begin_layout Plain Layout
 
-ddg2stemplot -h 
+ddg2distribution -d results/final_averages 
+\end_layout
+
+\begin_layout Plain Layout
+
+-p singel_model.pdb -l mutation_list.txt
 \end_layout
 
 \end_inset
@@ -1855,11 +1869,111 @@ ddg2stemplot -h
 \end_layout
 
 \begin_layout Standard
-The example below shows the command for running ddg2stemplot using 2KLZ,
- the tandem UIM domain of Ataxin-3.
+Another mandatory parameter is the -T (--type) parameter.
+ You use the -T (--type) parameter to pick which types of plots you want
+ to generate.
+ You have to select at least one type.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+-T stem box violin scatter
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+For a full list of user specified options see the ddg2distribution help
+ option.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2distribution -h 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The example below shows the command for running ddg2distribution for all
+ types of plots using 3I3C.
+ The y-axis is being limited to +50 and -10 to give a better view of the
+ resulting plots.
  The mutation_list.txt is the default including all 20 natural occurring
  amino acids.
- Resulting stemplots may be seen in figure 2, page 12.
+ The resulting plots can be seen in figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:stemplot"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:boxplot"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:violinplot"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:scatterplot"
+
+\end_inset
+
+ on pages 
+\begin_inset CommandInset ref
+LatexCommand pageref
+reference "fig:stemplot"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand pageref
+reference "fig:boxplot"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand pageref
+reference "fig:violinplot"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand pageref
+reference "fig:scatterplot"
+
+\end_inset
+
+ respectively.
  
 \end_layout
 
@@ -1870,12 +1984,27 @@ status open
 
 \begin_layout Plain Layout
 
-ddg2stemplot -d results/final_averages -p 2KLZ.pdb
+ddg2distribution -p 
 \end_layout
 
 \begin_layout Plain Layout
 
--l mutation_list.txt -o stemplots -i my_stemplot -s 25
+3i3c_edit_model0_checked_Repair.pdb -d 
+\end_layout
+
+\begin_layout Plain Layout
+
+/results/final_averages/ -l mutation_list.txt 
+\end_layout
+
+\begin_layout Plain Layout
+
+-o distribution.png -s 25 -x 50 -n -10 
+\end_layout
+
+\begin_layout Plain Layout
+
+-T stem box violin scatter
 \end_layout
 
 \end_inset
@@ -1885,6 +2014,7 @@ ddg2stemplot -d results/final_averages -p 2KLZ.pdb
 
 \begin_layout Standard
 \begin_inset Float figure
+placement H
 wide false
 sideways false
 status open
@@ -1910,9 +2040,448 @@ status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
-	filename stemplot_0-1.png
-	lyxscale 30
-	scale 23
+	filename stem_4_distribution.png
+	lyxscale 60
+	scale 55
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:stemplot"
+
+\end_inset
+
+Stemplot generated from ddg2stemplot run using 3I3C.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename box_4_distribution.png
+	lyxscale 60
+	scale 55
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:boxplot"
+
+\end_inset
+
+Boxplot generated from ddg2stemplot run using 3I3C.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename violin_4_distribution.png
+	lyxscale 60
+	scale 55
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:violinplot"
+
+\end_inset
+
+Violinplot generated from ddg2distribution run using 3I3C.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename scatter_4_distribution.png
+	lyxscale 60
+	scale 55
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:scatterplot"
+
+\end_inset
+
+Scatterplot generated from ddg2stemplot run using 3I3C.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Histogram plots
+\end_layout
+
+\begin_layout Standard
+The ddg2hist tool can be used to generate bar plots showing the distribution
+ of mutatex ∆∆G values for every mutation in a specific wildtype amino acid.
+ The user may define any number of wildtype amino acids to plot, as long
+ as they are available in the predefined data set.
+ Running the ddg2hist tool requires the same mandatory parameters as ddg2distrib
+ution and ddg2matrix: the path to the “results” directory (either final_averages
+ or a specific protein model of interest), original model.pdb file and a
+ list of mutations.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2hist -d results/final_averages 
+\end_layout
+
+\begin_layout Plain Layout
+
+-p singel_model.pdb -l mutation_list.txt
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+To specify for which residues you want to generate a plot you use the -r
+ parameter and a comma-separeted list of residues and residue ranges.
+ A residue range can be defined by specifying two residues separated by
+ a '-'.
+ The example below shows some valid residue selections.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+-r AA14
+\end_layout
+
+\begin_layout Plain Layout
+
+-r AA14,AB23,AD56
+\end_layout
+
+\begin_layout Plain Layout
+
+-r AA14-AA60
+\end_layout
+
+\begin_layout Plain Layout
+
+-r AA60-AA14
+\end_layout
+
+\begin_layout Plain Layout
+
+-r AB23-WC45
+\end_layout
+
+\begin_layout Plain Layout
+
+-r AA14,AD34,AB23-AC45,AA60
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Ranges do not consider at the amino acid type so it does not matter what
+ the first letter is, as long as it is a valid amino acid.
+ If any residue in the data matches the range, it will be plotted.
+ Residues have to be selected by simple single residue names.
+ If a multimer contains atleast one of the selected residues, it will also
+ be added.
+ 
+\end_layout
+
+\begin_layout Standard
+For a full list of user specified options see the ddg2hist help option.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2hist -h 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The example below shows the command for running ddg2hist on a small selection
+ of residues using 3I3C.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2hist -p 
+\end_layout
+
+\begin_layout Plain Layout
+
+3i3c_edit_model0_checked_Repair.pdb -d 
+\end_layout
+
+\begin_layout Plain Layout
+
+/results/final_averages/ -l mutation_list.txt 
+\end_layout
+
+\begin_layout Plain Layout
+
+-r AA16-AA30,AD16
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This resulted in a total of 16 plots.
+ You can see 3 of the plots in figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:histogram"
+
+\end_inset
+
+ on page 
+\begin_inset CommandInset ref
+LatexCommand pageref
+reference "fig:histogram"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace*{-3.5cm}
+\end_layout
+
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename AB16_AD16_histogram.png
+	lyxscale 55
+	scale 50
 
 \end_inset
 
@@ -1945,9 +2514,9 @@ status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
-	filename stemplot_1-1.png
-	lyxscale 30
-	scale 23
+	filename GA18_histogram.png
+	lyxscale 55
+	scale 50
 
 \end_inset
 
@@ -1957,10 +2526,55 @@ status open
 \end_inset
 
 
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename IA28_histogram.png
+	lyxscale 55
+	scale 50
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
 \begin_inset Caption Standard
 
 \begin_layout Plain Layout
-Stemplots generated from ddg2stemplot run using 2KLZ.
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:histogram"
+
+\end_inset
+
+Barplot of AB16_AD16, GA18 and IA28 ∆∆G values generated from ddg2hist using
+ 3I3C.
 \end_layout
 
 \end_inset
@@ -1974,13 +2588,14 @@ Stemplots generated from ddg2stemplot run using 2KLZ.
 \end_layout
 
 \begin_layout Subsection
-Cross Correlation Matrix.
+PDB file and matrix file.
  
 \end_layout
 
 \begin_layout Standard
-The ddg2pdb tool can be used to analyse cross correlations between residues
- as measured from molecular dynamics simulations.
+The ddg2pdb tool can be used to analyse ∆∆G differences by plotting them
+ as b-factors in PDB files, as well as writing input files compatible with
+ the xPyder PyMOL plugin.
  Running ddg2pdb requires the path to the “results” directory (either final_aver
 ages or a specific protein model of interest), original model.pdb file and
  list of mutations.
@@ -2050,35 +2665,30 @@ ddg2pdb -d results/final_averages -i 2KLZ.pdb -a 3.0
 
 \begin_layout Standard
 The output generated by ddg2pdb is a pdb structure file and a corresponding
- cross correlation matrix, which may be visualised with pymol.
- Visualisation requires the xpyder plugin for pymol which can be aquired
- from: 
+ .dat matrix, which may be visualised with the xPyder plugin for PyMOL, available
+ at 
+\begin_inset Flex URL
+status open
+
+\begin_layout Plain Layout
+
+https://github.com/ELELAB/xpyder
 \end_layout
 
-\begin_layout Standard
-http://sourceforge.net/projects/xpyder.
- 
-\end_layout
+\end_inset
 
-\begin_layout Standard
-Documentation for xpyder may be seen at: 
-\end_layout
-
-\begin_layout Standard
-ftp://ftp.heanet.ie/mirrors/sourceforge/x/xp/xpyder/documentation
-\end_layout
-
-\begin_layout Standard
-/xPyder_user_manual.pdf.
+.
 \end_layout
 
 \begin_layout Subsection
-Excel Sheet.
+Excel Sheet
 \end_layout
 
 \begin_layout Standard
-Ddg2xlsx is a tool for writing out results in an excel sheet.
- 
+ddg2xlsx is a tool for writing out results in an excel sheet as a table.
+ The table has the same basic strucutre as for the ddg2matrix tool, however
+ the values are written in a Excel file to be further modified.
+ A typical command line for this tool is: 
 \end_layout
 
 \begin_layout Standard
@@ -2106,38 +2716,13 @@ FAQ
 \end_layout
 
 \begin_layout Subsubsection*
-Q: Wait, isn't this the same as the <PositionScan> option in FoldX?
-\end_layout
-
-\begin_layout Standard
-A: The philosohpy behind it is of course similar.
- We have developed MutateX in order to make that type of calculation easy
- for non-expert uers, who don't like fiddling all the time with input files
- and expect output Additionally, we gather the results and plot them in
- user-friendly, publication-ready tables and figures.
- We also support running several FoldX jobs in parallels, thus taking advantage
- of multi-core machines.
-\end_layout
-
-\begin_layout Subsubsection*
 Q: Would it be possible to include non-standard (for instance, phosphorilated)
  residues in the mutation list?
 \end_layout
 
 \begin_layout Standard
-A: At the moment, we found no way of selecting post-transcriptionally modified
- residues alone in FoldX, as they are only available through option 
-\begin_inset Quotes eld
-\end_inset
-
-d
-\begin_inset Quotes erd
-\end_inset
-
-, which specifies the 20 canonical aminoacids + phosphorylated Tyr, Ser
- and Thr and hydroxylproline (see page 29 of the FoldX manual).
- We haven't added support for this option at the moment, but we might consider
- it for the future.
+A: This is not possible at the moment, but we might consider it for the
+ future.
 \end_layout
 
 \begin_layout Subsubsection*

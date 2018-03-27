@@ -53,7 +53,7 @@ def get_foldx_sequence(model, multimers=True):
             try:
                 res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
             except:
-                log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
+                log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, options.pdb))
                 continue
             if not multimers:
                 residue_list.append(("%s%s%d") % (res_code, chain.get_id(), residue.get_id()[1]))
@@ -76,15 +76,17 @@ def get_foldx_sequence(model, multimers=True):
                     try:
                         res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
                     except:
-                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
+                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, options.pdb))
                         continue
                     residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
 
     return tuple(residue_list)
     
 def seq_to_res(seq):
-    return "_".join(seq)
-
+    if options.multimers:
+        return "_".join(seq)
+    else:
+        return seq
 
 three2one = {'ALA':'A',
              'CYS':'C',
@@ -175,6 +177,7 @@ for res in foldx_sequence:
     out_fname = "%s/%s" % (options.outdir, resname)
     this_data = parse_ddg_file("%s/%s" % (options.dir, resname))
     this_data = options.dg + this_data*options.m + options.b
+    print this_data
     try:
         np.savetxt(out_fname, this_data, fmt="%.5f", header=header)
     except:

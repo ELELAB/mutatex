@@ -41,9 +41,10 @@ def get_residue_list(structure, multimers=True):
             try:
                 res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
             except:
-                log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
+                log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, options.pdb))
                 continue
             if not multimers:
+                residue_ids.append([(res_code, chain.get_id(), residue.get_id()[1])])
                 residue_list.append(("%s%s%d") % (res_code, chain.get_id(), residue.get_id()[1]))
             else:
                 sequences[chain_name] += res_code
@@ -64,7 +65,7 @@ def get_residue_list(structure, multimers=True):
                     try:
                         res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
                     except:
-                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
+                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, options.pdb))
                         continue
                     residue_ids.append([(res_code, c, resid) for c in cg])
                     residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
@@ -78,7 +79,7 @@ def parse_ddg_file(fname, reslist):
             ddgs.append(float(line.split()[0]))
 
     if len(ddgs) != len(reslist):
-        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), values))
+        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), options.values))
         exit(1)
     return ddgs
 
@@ -173,13 +174,20 @@ if len(models) < 1:
 model = models[0]
 
 res_ids, res_ids_str = get_residue_list(structure, multimers=options.multimers)
-res_ids_labels = [", ".join(r) for r in res_ids_str]
+
+
 max_len_res_ids = np.max([len(r) for r in res_ids])
-fnames = ["_".join(r) for r in res_ids_str]
-res_id_labels = [", ".join(r) for r in res_ids_str]
+if options.multimers:
+    fnames = ["_".join(r) for r in res_ids_str]
+    res_id_labels = [", ".join(r) for r in res_ids_str]
+else:
+    fnames = res_ids_str
+    res_id_labels = res_ids_str
+    
+
 data = []
 
-log.info("The following files will be considered: %s" % ", ".join(res_ids_labels))
+log.info("The following files will be considered: %s" % ", ".join(res_id_labels))
 
 for i,f in enumerate(fnames):
     data.append(np.array(parse_ddg_file("%s/%s" % (options.dir, f), reslist=res_order, )))
