@@ -100,9 +100,10 @@ def parse_list_file(fname):
 
 
 
-def parse_residues(residues, fnames):
+def parse_residues(residues, fnames, single_res_ids):
     residues = residues.split(",")
     selections = []
+    log.info("List of residues:  " + " ".join(fnames))
     for residue in residues:
         if "-" in residue:  #Check if the selections is a range of residues
             if len(residue.split("-")) > 2:
@@ -115,39 +116,32 @@ def parse_residues(residues, fnames):
                 elif not re.match(r'[A-Z]{2}\d+$', idx):
                     log.error("Selection: '%s' in range '%s' invalid residue format. Exiting..." %(idx, residue))
                     exit(1)
-                    
-            residue_number = [int(s) for s in re.findall(r'\d+', residue)]
-            residue_number.sort()
-            residue_ids = re.findall(r'[a-zA-Z]+', residue)
-            chain_ids = [i[1] for i in residue_ids]
-            chain_ids.sort()
-            
-            residue_range = "|".join(str(i) + "($|_)" for i in reversed(range(residue_number[0],residue_number[-1]+1)))
-            pattern = r'[A-Z]{1}[' + chain_ids[0] + '-' + chain_ids[-1]+']{1}(' + residue_range  + ')'
-            
-            reg = re.compile(pattern)
-            matches = filter(reg.findall, fnames) 
-            selections += matches
-            
-            if len(matches)> 0:
-                log.info("Pdb file matched %d residues in range '%s': %s" % (len(matches), residue, ", ".join(matches)))
-            else:
-                log.warn("Selection: '%s' no match was found; it will be skipped" % (residue))
-        else:
+            try:    #Try to get indices of the range.
+                range_idxs = [single_res_ids.index(residue.split("-")[0]), single_res_ids.index(residue.split("-")[-1])]
+                range_idxs.sort()
+            except ValueError as e:
+                log.error("Invalid range: " + str(e) + ". Make sure you use exisiting residues. Exiting...")
+                exit(1)
+                
+            range = single_res_ids[range_idxs[0]:range_idxs[1] + 1]            
+            for single_res in range:   #Get selection from fnames
+                selections += [s for s in fnames if single_res in s]
+            log.info("Pdb file matched %d residues in range '%s'" % (len(range), residue))
+        else:   #If the selection is not a range.
             if "_" in residue:
                 log.error("Selection: '%s' invalid residue format. Select a residue using non-multimers. If a multimer matches, it will be added. Exiting..." %(residue))
                 exit(1) 
             elif not re.match(r'[A-Z]{2}\d+$', residue):
                 log.error("Selection: '%s' invalid residue format. Exiting..." %(residue))
                 exit(1)
-                
-            reg = re.compile(residue + "($|_)")
-            match = filter(reg.findall, fnames)
+
+            match = [s for s in fnames if residue in s]
             if(len(match) == 1):
                 selections += match
                 log.info("Pdb file matched single residue %s" % (residue))
             else:
                 log.warn("Selection: '%s' no match was found; it will be skipped" % (residue))
+                
     selections = list(set(selections))
     log.info("Pdb file matched %d residues in total without duplicates" %(len(selections)))
     return selections
@@ -225,7 +219,7 @@ data = []
 stds = []
 
 res_ids_str = get_residue_list(structure, multimers=options.multimers)
-
+single_res_ids = get_residue_list(structure, multimers=False)
 
 if options.multimers:
     fnames = ["_".join(r) for r in res_ids_str]
@@ -234,13 +228,12 @@ else:
     fnames = res_ids_str
     res_id_labels = res_ids_str
 
-
 #Parse residue selection
 try:
     if options.residues == "all":
         residues = fnames
     else:
-        residues = parse_residues(options.residues, fnames)
+        residues = parse_residues(options.residues, fnames, single_res_ids)
 except AttributeError:
     log.error("No residue selection. Please select residues with atribute '-r'. Try 'ddg2hist --help' for more info.  Exiting...")
     exit(1)
