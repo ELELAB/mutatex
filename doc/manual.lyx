@@ -1511,6 +1511,124 @@ Visualization of MutateX output can be performed using a set of supplied
  These include scripts for generating: heatmaps, stemplots, distribution-scatter
 plots, boxplots, violinplots, mutation-specific histograms, matrices and
  Excel sheets of results for further analysis.
+ Supporting these tools is a script that generates a .csv file that allows
+ you to add custom labels to the residues used to generate plots.
+ 
+\end_layout
+
+\begin_layout Subsection
+Labels
+\end_layout
+
+\begin_layout Standard
+The ddg2labels tool may be used to generate a .csv file of the input ∆∆Gs
+ folder.
+ This .csv file is used in all other plotting tools to add optional custum
+ labels to the input residues.
+ ddg2labels is run by secifying the path to one of the 
+\begin_inset Quotes eld
+\end_inset
+
+results
+\begin_inset Quotes erd
+\end_inset
+
+ directory under CWD.
+ The final_averages can be used or, if a specific protein model is of interest,
+ the name of the model-file (see section 5.4).
+ In addition to the results directory, the original model.pdb and the name
+ for the output file must be supplied.
+ 
+\end_layout
+
+\begin_layout Standard
+The example below shows the command for running ddg2labels using 3I3C.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2labels -p 3i3c_edit_model0_checked_Repair.pdb 
+\end_layout
+
+\begin_layout Plain Layout
+
+-d /results/final_averages/ -o 3i3c_labels
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+For the full list of user specified options see the ddg2labels help option.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2labels -h
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+ddg2labels will generate a comma seperated .csv file containing 2 columns:
+ 
+\begin_inset Quotes eld
+\end_inset
+
+Residue name
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+label
+\begin_inset Quotes erd
+\end_inset
+
+.
+ You can open the .csv file with Microsoft Excel or similar programs to add
+ the labels in the second column on the same row as the corrrsponding residue.
+ When the changes are saved the file can be included in all other command
+ line plotting tools with the -b (--label) parameter and the file path to
+ the .csv file.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+-b 3i3c_labels.csv
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Labels are optional.
+ When the second column is left empty for any residue the plotting tools
+ will simply use the residue name.
 \end_layout
 
 \begin_layout Subsection
@@ -1563,6 +1681,11 @@ status open
 \begin_layout Plain Layout
 
 -o : Name of output image file.
+\end_layout
+
+\begin_layout Plain Layout
+
+-b : Custom residue label file.
 \end_layout
 
 \begin_layout Plain Layout
@@ -2215,6 +2338,7 @@ To specify for which residues you want to generate a plot you use the -r
  parameter and a comma-separeted list of residues and residue ranges.
  A residue range can be defined by specifying two residues separated by
  a '-'.
+ The residues that specify the range have to be present in the dataset.
  The example below shows some valid residue selections.
 \end_layout
 
@@ -2225,32 +2349,32 @@ status open
 
 \begin_layout Plain Layout
 
--r AA14
+-r AA16
 \end_layout
 
 \begin_layout Plain Layout
 
--r AA14,AB23,AD56
+-r AA16,AB31,AD55
 \end_layout
 
 \begin_layout Plain Layout
 
--r AA14-AA60
+-r AA16-AA68
 \end_layout
 
 \begin_layout Plain Layout
 
--r AA60-AA14
+-r AA68-AA16
 \end_layout
 
 \begin_layout Plain Layout
 
--r AB23-WC45
+-r AB31-WC44
 \end_layout
 
 \begin_layout Plain Layout
 
--r AA14,AD34,AB23-AC45,AA60
+-r AA16,AD31,AB16-AC50,AA68
 \end_layout
 
 \end_inset
@@ -2259,10 +2383,13 @@ status open
 \end_layout
 
 \begin_layout Standard
-Ranges do not consider at the amino acid type so it does not matter what
- the first letter is, as long as it is a valid amino acid.
- If any residue in the data matches the range, it will be plotted.
- Residues have to be selected by simple single residue names.
+The residues are ordered alphabetically, ignoring the first letter of the
+ residue name (the amino acid).
+ eg: DA14, IA15, AA16, EA24, IB15, EB24, KC61...
+\end_layout
+
+\begin_layout Standard
+Residues have to be selected by simple single residue names.
  If a multimer contains atleast one of the selected residues, it will also
  be added.
  
