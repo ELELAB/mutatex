@@ -19,6 +19,7 @@
 import argparse
 import matplotlib
 import re
+import csv
 matplotlib.use('PDF')
 
 def get_residue_list(structure, multimers=True):
@@ -175,6 +176,7 @@ parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
 parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
 parser.add_argument("-m","--include-invalid-files",dest='includeblank',action='store_true', default=False, help="Include empty columns in output instead of ignoring missing files")
 parser.add_argument("-l","--order-list", dest="order",  help="default order list")
+parser.add_argument("-b","--label-list", dest="labels", required = True, help="residue label list")
 parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
 parser.add_argument("-o","--output", dest="outfile", action='store', default='energies.pdf')
 parser.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="Minimum value to be plotted")
@@ -269,6 +271,22 @@ if not options.vmax:
 if not options.vmin:
     options.vmin = np.floor(np.min(data) - data_range*0.2)
 
+
+#Assign custom residue labels
+label_dict = {}
+labels = residues[:]
+
+with open(options.labels, 'rb') as csvfile:
+    spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
+    for row in spamreader:
+        if row[1] != '':
+            label_dict[row[0]] = row[1]
+ 
+for i in range(len(residues)):
+    if residues[i] in label_dict:
+        labels[i] = label_dict[residues[i]]
+
+
 #Make plots
 log.info("Plotting " + str(len(data)) + " figures.")
 log.info("Ylims: " + str(options.vmax) + " , " + str(options.vmin))
@@ -278,7 +296,7 @@ for i in range(len(residues)):
               res_order,
               options.vmin, 
               options.vmax,
-              residues[i],
+              labels[i],
               color = options.color, 
               title = options.title, 
               fontsize = options.fontsize)
