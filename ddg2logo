@@ -181,6 +181,7 @@ import argparse
 import base64
 import matplotlib
 import StringIO
+import csv
 matplotlib.use('PDF')
 from matplotlib.image import imread
 
@@ -418,6 +419,7 @@ parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
 parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
 parser.add_argument("-m","--include-invalid-files",dest='includeblank',action='store_true', default=False, help="Include empty columns in output instead of ignoring missing files")
 parser.add_argument("-l","--order-list", dest="order",  help="default order list")
+parser.add_argument("-b","--label-list", dest="labels", required = True, help="residue label list")
 parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
 parser.add_argument("-o","--output", dest="outfile", action='store', default='energies')
 parser.add_argument("-t","--threshold", dest="threshold", action='store', type=float, default=0.5, help="Do not consider mutations with absolute DDG lower than this value")
@@ -484,8 +486,20 @@ else:
     fnames = res_ids_str
     res_id_labels = res_ids_str
 
-data = []
+#Assign custom residue labels
+label_dict = {}
+with open(options.labels, 'rb') as csvfile:
+    spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
+    for row in spamreader:
+        if row[1] != '':
+            label_dict[row[0]] = row[1]
 
+for i in range(len(fnames)):
+    if fnames[i] in label_dict:
+        res_id_labels[i] = label_dict[fnames[i]]
+
+
+data = []
 for fname in fnames:
     this_data = parse_ddg_file("%s/%s" % (options.dir, fname), reslist=res_order)
 
@@ -501,8 +515,7 @@ for fname in fnames:
 
 data = np.vstack(tuple(data))
 
-res_ids_labels = [", ".join(r) for r in res_ids_str]
-spliced_data = splice_data(data, res_ids_labels, options.sv)
+spliced_data = splice_data(data, res_id_labels, options.sv)
 
 for i in range(len(spliced_data)):
     fig = plot_matrix(spliced_data[i][0],

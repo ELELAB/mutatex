@@ -1,0 +1,148 @@
+#!/usr/bin/env python
+#    ddg2labels: Generate a custom .csv file used to add labels to residues in most other plotting tools.
+#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com, Tycho Canter Cremers <tycho.c.c@gmail.com>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import argparse
+import matplotlib
+import csv
+matplotlib.use('PDF')
+
+def get_residue_list(structure, multimers=True):
+
+    models = structure.get_list()
+
+    if len(models) > 1:
+        log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
+    if len(models) < 1:
+        log.error("The input PDB file does not contain any model. Exiting ...")
+        exit(1)
+
+    model = models[0]
+    
+    residue_list = []
+    sequences = {}
+
+    for chain in model:
+        chain_name = chain.get_id()
+        sequences[chain_name] = ''
+        for residue in chain:
+            try:
+                res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+            except:
+                log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, options.pdb))
+                continue
+            if not multimers:
+                residue_list.append(("%s%s%d") % (res_code, chain.get_id(), residue.get_id()[1]))
+            else:
+                sequences[chain_name] += res_code
+
+    if options.multimers:
+        collated_chains = []
+        seq_ids, seqs = zip(*list(sequences.iteritems()))
+        seq_ids = np.array(seq_ids)
+        unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
+        for i in np.unique(unique_idxs):
+            collated_chains.append(seq_ids[unique_idxs == i])
+
+        for cg in collated_chains:
+            for model in structure:
+                for residue in model[cg[0]]:
+                    resid = residue.get_id()[1]
+                    try:
+                        res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                    except:
+                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, options.pdb))
+                        continue
+                    residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
+    return residue_list
+
+def parse_ddg_file(fname, reslist):
+    try:
+        fh = open(fname, 'r')
+    except:
+        log.warning("file %s cannot be opened." % fname)
+        return None
+
+    ddgs = []
+    for line in fh:
+        if line and not line.startswith("#"):
+            ddgs.append(float(line.split()[0]))
+
+    if len(ddgs) != len(reslist):
+        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), options.values))
+        exit(1)
+    return ddgs
+
+def ddg2labels(fnames):
+    with open(options.outfile + '.csv', 'wb') as csvfile:
+        spamwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        spamwriter.writerow(['Residue_name', 'Label'])
+        for fname in fnames:
+            spamwriter.writerow([fname])
+    
+LOGFMT = "%(levelname)s: %(message)s"
+
+if not __name__ == "__main__":
+    exit()
+
+
+parser = argparse.ArgumentParser( 
+    description='ddg2distribution: plot DDG MutateX results as distribution plots: boxplot, violinplot or scatterplot.',)
+
+parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
+parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
+parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
+parser.add_argument("-o","--output", dest="outfile", action='store', default='energies.pdf')
+parser.add_argument("-a","--multimers", dest="multimers", default=True, action='store_false')
+
+options = parser.parse_args()
+
+import numpy as np
+import logging as log
+from Bio import PDB
+
+
+if options.verbose:
+    log.basicConfig(level=log.INFO,    format=LOGFMT)
+else:
+    log.basicConfig(level=log.WARNING, format=LOGFMT)
+
+
+pdb_parser = PDB.PDBParser()
+
+try:
+    structure = pdb_parser.get_structure('s', options.in_pdb)
+except:
+    log.error("Couldn't open or parse input pdb file. Exiting...")
+    exit(1)
+
+res_ids_str = []
+data = []
+
+res_ids_str = get_residue_list(structure, multimers=options.multimers)
+
+if options.multimers:
+    fnames = ["_".join(r) for r in res_ids_str]
+    res_id_labels = [", ".join(r) for r in res_ids_str]
+else:
+    fnames = res_ids_str
+    res_id_labels = res_ids_str
+
+ddg2labels(fnames)
+
+
+
+
