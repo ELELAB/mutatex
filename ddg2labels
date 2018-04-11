@@ -16,9 +16,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import argparse
-import matplotlib
 import csv
-matplotlib.use('PDF')
 
 def get_residue_list(structure, multimers=True):
 
@@ -88,10 +86,10 @@ def parse_ddg_file(fname, reslist):
 
 def ddg2labels(fnames):
     with open(options.outfile + '.csv', 'wb') as csvfile:
-        spamwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        spamwriter.writerow(['Residue_name', 'Label'])
+        csv_writer = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        csv_writer.writerow(['Residue_name', 'Label'])
         for fname in fnames:
-            spamwriter.writerow([fname])
+            csv_writer.writerow([fname])
     
 LOGFMT = "%(levelname)s: %(message)s"
 
@@ -100,12 +98,12 @@ if not __name__ == "__main__":
 
 
 parser = argparse.ArgumentParser( 
-    description='ddg2distribution: plot DDG MutateX results as distribution plots: boxplot, violinplot or scatterplot.',)
+    description='ddg2labels: Generate a comma separeted .csv file to add custom labels to specific residues.',)
 
 parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
 parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
 parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
-parser.add_argument("-o","--output", dest="outfile", action='store', default='energies.pdf')
+parser.add_argument("-o","--output", dest="outfile", action='store', default='labels.pdf')
 parser.add_argument("-a","--multimers", dest="multimers", default=True, action='store_false')
 
 options = parser.parse_args()
@@ -130,7 +128,6 @@ except:
     exit(1)
 
 res_ids_str = []
-data = []
 
 res_ids_str = get_residue_list(structure, multimers=options.multimers)
 
