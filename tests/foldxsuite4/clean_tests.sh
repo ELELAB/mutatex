@@ -1,3 +1,5 @@
+#!/bin/bash
+
 source run_tests.sh;
 
 delenda=()
