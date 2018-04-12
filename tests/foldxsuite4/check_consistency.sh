@@ -17,6 +17,10 @@ function check_nres {
 		explen=${expected_lengths[$pdbid]}
 	fi
 
+	if [ ! -d $1/mutations ]; then
+		echo "false"
+		exit 0
+	fi
 	for d in $(ls $1/mutations); do
 		nfiles=$(ls $1/mutations/$d/ | wc -l)
 		#echo $pdbid
