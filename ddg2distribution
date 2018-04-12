@@ -17,6 +17,7 @@
 
 import argparse
 import matplotlib
+import csv
 matplotlib.use('PDF')
 
 def get_residue_list(structure, multimers=True):
@@ -263,6 +264,7 @@ parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
 parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
 parser.add_argument("-m","--include-invalid-files",dest='includeblank',action='store_true', default=False, help="Include empty columns in output instead of ignoring missing files")
 parser.add_argument("-l","--order-list", dest="order",  help="default order list")
+parser.add_argument("-b","--label-list", dest="labels", help="residue label list")
 parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
 parser.add_argument("-o","--output", dest="outfile", action='store', default='energies.pdf')
 parser.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="Minimum value to be plotted")
@@ -312,6 +314,20 @@ if options.multimers:
 else:
     fnames = res_ids_str
     res_id_labels = res_ids_str
+
+
+#Assign custom residue labels
+if options.labels:
+    label_dict = {}
+    with open(options.labels, 'rb') as csvfile:
+        csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        for row in csv_reader:
+            if row[1] != '':
+                label_dict[row[0]] = row[1]
+    for i in range(len(fnames)):
+        if fnames[i] in label_dict:
+            res_id_labels[i] = label_dict[fnames[i]]
+
 
 
 for fname in fnames:

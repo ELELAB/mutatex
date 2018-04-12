@@ -21,6 +21,7 @@ import argparse
 import matplotlib
 matplotlib.use('PDF')
 from matplotlib import cm
+import csv
 
 def get_residue_list(structure, multimers=True):
 
@@ -130,7 +131,8 @@ def plot_matrix(mat, xlabels, ylabels, cmap, title=None, vmin=None, vmax=None, t
 
     plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
     plt.yticks(yticks,yt,rotation=0,size=fontsize)
-
+    plt.tight_layout()
+    
 def save_matrix(mat, horizontal_header, vertical_header, fname, transpose=False):
 
     this_mat = np.array(mat, copy=True)
@@ -147,11 +149,6 @@ def save_matrix(mat, horizontal_header, vertical_header, fname, transpose=False)
     out[1:,0] = np.array(vertical_header)
 
     justified_out = np.core.defchararray.rjust(out, 7)
-
-    if transpose:
-        np.savetxt(fname, justified_out.T, fmt="%s")
-    else:
-        np.savetxt(fname, justified_out, fmt="%s")
 
 
 def splice_data(data, labels, sv):
@@ -212,6 +209,7 @@ parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
 parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
 parser.add_argument("-m","--include-invalid-files",dest='includeblank',action='store_true', default=False, help="Include empty columns in output instead of ignoring missing files")
 parser.add_argument("-l","--order-list", dest="order",  help="default order list")
+parser.add_argument("-b","--label-list", dest="labels", help="residue label list")
 parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
 parser.add_argument("-o","--output", dest="outfile", action='store', default='energies.pdf')
 parser.add_argument("-r","--output-raw-data", dest="raw", action='store', default=None, help="Save raw data file")
@@ -259,6 +257,7 @@ res_ids_str = []
 data = []
 
 res_ids_str = get_residue_list(structure, multimers=options.multimers)
+
 if options.multimers:
     fnames = ["_".join(r) for r in res_ids_str]
     res_id_labels = [", ".join(r) for r in res_ids_str]
@@ -266,9 +265,22 @@ else:
     fnames = res_ids_str
     res_id_labels = res_ids_str
 
+
+#Assign custom residue labels
+if options.labels:
+    label_dict = {}
+    with open(options.labels, 'rb') as csvfile:
+        csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        for row in csv_reader:
+            if row[1] != '':
+                label_dict[row[0]] = row[1]
+    for i in range(len(fnames)):
+        if fnames[i] in label_dict:
+            res_id_labels[i] = label_dict[fnames[i]]
+
+#load ddg data
 for fname in fnames:
     this_data = parse_ddg_file("%s/%s" % (options.dir, fname), reslist=res_order)
-
     if this_data:
         data.append(np.array(this_data))
         continue
@@ -278,14 +290,15 @@ for fname in fnames:
         data.append(this_data)
     else:
         res_ids_str.pop()
-
 data = np.vstack(tuple(data)).T
 
+#get min and max
 if not options.vmax:
     options.vmax = np.max(data)
 if not options.vmin:
     options.vmin = np.min(data)
 
+#splice data into blocks for plotting
 spliced_data = splice_data(data, res_id_labels, options.sv)
 
 if options.raw:
