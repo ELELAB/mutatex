@@ -52,29 +52,6 @@ def parse_file(fname):
     return(values)
 
 
-
-
-three2one = {'ALA':'A',
-             'CYS':'C',
-             'ASP':'D',
-             'GLU':'E',
-             'PHE':'F',
-             'GLY':'G',
-             'HIS':'H',
-             'ILE':'I',
-             'LYS':'K',
-             'LEU':'L',
-             'MET':'M',
-             'ASN':'N',
-             'PRO':'P',
-             'GLN':'Q',
-             'ARG':'R',
-             'SER':'S',
-             'THR':'T',
-             'VAL':'V',
-             'TRP':'W',
-             'TYR':'Y'}
-
 def get_residue_list(structure, multimers=True):
 
     models = structure.get_list()
