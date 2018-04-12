@@ -1,0 +1,304 @@
+#!/usr/bin/env python
+
+#    ddg2matrix: plot DDG MutateX results as histograms, one per residue.
+#    Copyright (C) 2018,  Isabelle da Piedade <isap@cancer.dk>, Matteo Tiberti <matteo.tiberti@gmail.com>, Tycho Canter Cremers <tycho.c.c@gmail.com>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import argparse
+import matplotlib
+import re
+import csv
+matplotlib.use('PDF')
+
+def get_residue_list(structure, multimers=True):
+
+    models = structure.get_list()
+
+    if len(models) > 1:
+        log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
+    if len(models) < 1:
+        log.error("The input PDB file does not contain any model. Exiting ...")
+        exit(1)
+
+    model = models[0]
+
+    residue_list = []
+    sequences = {}
+
+    for chain in model:
+        chain_name = chain.get_id()
+        sequences[chain_name] = ''
+        for residue in chain:
+            try:
+                res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+            except:
+                log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, options.pdb))
+                continue
+            if not multimers:
+                residue_list.append(("%s%s%d") % (res_code, chain.get_id(), residue.get_id()[1]))
+            else:
+                sequences[chain_name] += res_code
+
+    if options.multimers:
+        collated_chains = []
+        seq_ids, seqs = zip(*list(sequences.iteritems()))
+        seq_ids = np.array(seq_ids)
+        unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
+
+        for i in np.unique(unique_idxs):
+            collated_chains.append(seq_ids[unique_idxs == i])
+
+        for cg in collated_chains:
+            for model in structure:
+                for residue in model[cg[0]]:
+                    resid = residue.get_id()[1]
+                    try:
+                        res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                    except:
+                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, options.pdb))
+                        continue
+                    residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
+    return residue_list
+
+def parse_ddg_file(fname, reslist):
+    try:
+        fh = open(fname, 'r')
+    except:
+        log.warning("file %s cannot be opened; it will be skipped" % fname)
+        return None, None
+    ddgs = []
+    ddg_sd = []
+    for line in fh:
+        if line and not line.startswith("#"):
+            ddgs.append(float(line.split()[0]))
+            ddg_sd.append(float(line.split()[1]))
+
+    if len(ddgs) != len(reslist):
+        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), options.values))
+        exit(1)
+    
+    return ddgs, ddg_sd
+
+def parse_list_file(fname):
+    fh = open(fname, 'r')
+    restypes = []
+    for line in fh:
+        if line and not line.startswith("#"):
+            restypes.append(line.strip()[0])
+    return restypes
+
+
+
+def parse_residues(residues, fnames, single_res_ids):
+    residues = residues.split(",")
+    selections = []
+    log.info("List of residues:  " + " ".join(fnames))
+    for residue in residues:
+        if "-" in residue:  #Check if the selections is a range of residues
+            if len(residue.split("-")) > 2:
+                log.error("Selection: '%s' invalid range. A range can only be between 2 residues. Exiting..." %(residue))
+                exit(1)
+            for idx in residue.split("-"):
+                if "_" in idx:
+                    log.error("Selection: '%s' in range '%s' invalid residue format. Select a range using non-multimers. If a multimer falls within that range, it will be added. Exiting..." %(idx, residue))
+                    exit(1) 
+                elif not re.match(r'[A-Z]{2}\d+$', idx):
+                    log.error("Selection: '%s' in range '%s' invalid residue format. Exiting..." %(idx, residue))
+                    exit(1)
+            try:    #Try to get indices of the range.
+                range_idxs = [single_res_ids.index(residue.split("-")[0]), single_res_ids.index(residue.split("-")[-1])]
+                range_idxs.sort()
+            except ValueError as e:
+                log.error("Invalid range: " + str(e) + ". Make sure you use exisiting residues. Exiting...")
+                exit(1)
+                
+            range = single_res_ids[range_idxs[0]:range_idxs[1] + 1]            
+            for single_res in range:   #Get selection from fnames
+                selections += [s for s in fnames if single_res in s]
+            log.info("Pdb file matched %d residues in range '%s'" % (len(range), residue))
+        else:   #If the selection is not a range.
+            if "_" in residue:
+                log.error("Selection: '%s' invalid residue format. Select a residue using non-multimers. If a multimer matches, it will be added. Exiting..." %(residue))
+                exit(1) 
+            elif not re.match(r'[A-Z]{2}\d+$', residue):
+                log.error("Selection: '%s' invalid residue format. Exiting..." %(residue))
+                exit(1)
+
+            match = [s for s in fnames if residue in s]
+            if(len(match) == 1):
+                selections += match
+                log.info("Pdb file matched single residue %s" % (residue))
+            else:
+                log.warn("Selection: '%s' no match was found; it will be skipped" % (residue))
+                
+    selections = list(set(selections))
+    log.info("Pdb file matched %d residues in total without duplicates" %(len(selections)))
+    return selections
+        
+        
+def plot_hist(data, stds, res_order, vmin, vmax, residue, color = "white", title=None, fontsize=12):
+    if title is None:
+        title = ""
+    if color not in matplotlib.colors.cnames:
+        log.error("%s is not a valid color. For all valid color names check matplotlib.colors.cnames. Exiting..." % (color))
+        exit(1)
+        
+    plt.title(residue +" - " + title)
+    plt.bar(range(len(res_order)), data, 1/1.6, color = color, align="center", yerr = stds)
+    plt.xticks(range(len(res_order)), res_order, rotation='vertical', size = fontsize)
+    plt.xlim(-0.5, 20)
+    plt.ylim(vmin,vmax)
+    plt.ylabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
+    plt.xlabel('Mutations')
+
+LOGFMT = "%(levelname)s: %(message)s"
+
+if not __name__ == "__main__":
+    exit()
+
+
+parser = argparse.ArgumentParser( 
+    description='ddg2histo: plot DDG MutateX results as a bar plot of the distribution of values.',)
+
+parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
+parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
+parser.add_argument("-m","--include-invalid-files",dest='includeblank',action='store_true', default=False, help="Include empty columns in output instead of ignoring missing files")
+parser.add_argument("-l","--order-list", dest="order",  help="default order list")
+parser.add_argument("-b","--label-list", dest="labels", help="residue label list")
+parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
+parser.add_argument("-o","--output", dest="outfile", action='store', default='histogram.pdf')
+parser.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="Minimum value to be plotted")
+parser.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="Maximum value to be plotted")
+parser.add_argument("-i","--title", dest='title', action='store', default=None, type=str, help="Title for the output image file")
+parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=12, help="Axis label font size")
+parser.add_argument("-a","--multimers", dest="multimers", default=True, action='store_false')
+parser.add_argument("-r","--residues", dest="residues", type= str, help="Define a comma separated list with residues to plot. Include a range of residues seperated by '-' or use 'all' for all residues in the input fodler")
+parser.add_argument("-c","--color", dest="color", default="white", type= str, help="Name a color for the bar plot")
+
+
+options = parser.parse_args()
+
+import numpy as np
+import logging as log
+from Bio import PDB
+from matplotlib import pyplot as plt
+
+if options.verbose:
+    log.basicConfig(level=log.INFO,    format=LOGFMT)
+else:
+    log.basicConfig(level=log.WARNING, format=LOGFMT)
+
+
+res_order = parse_list_file(options.order)
+
+log.info("Residues list is:")
+for i,r in enumerate(res_order):
+    log.info("%d\t%s" % (i,r))
+
+pdb_parser = PDB.PDBParser()
+
+try:
+    structure = pdb_parser.get_structure('s', options.in_pdb)
+except:
+    log.error("Couldn't open or parse input pdb file. Exiting...")
+    exit(1)
+
+res_ids = []
+res_ids_str = []
+data = []
+stds = []
+
+res_ids_str = get_residue_list(structure, multimers=options.multimers)
+single_res_ids = get_residue_list(structure, multimers=False)
+
+if options.multimers:
+    fnames = ["_".join(r) for r in res_ids_str]
+    res_id_labels = [", ".join(r) for r in res_ids_str]
+else:
+    fnames = res_ids_str
+    res_id_labels = res_ids_str
+
+#Parse residue selection
+try:
+    if options.residues == "all":
+        residues = fnames
+    else:
+        residues = parse_residues(options.residues, fnames, single_res_ids)
+except AttributeError:
+    log.error("No residue selection. Please select residues with atribute '-r'. Try 'ddg2hist --help' for more info.  Exiting...")
+    exit(1)
+
+
+for residue in residues[:]:
+    this_data, this_std = parse_ddg_file("%s/%s" % (options.dir, residue), reslist=res_order)
+    if this_data:
+        data.append(np.array(this_data))
+        stds.append(np.array(this_std))
+        continue
+    elif options.includeblank:
+        this_data = np.empty((len(res_order)))
+        this_std = np.empty((len(res_order)))
+        this_data[:] = np.NAN
+        data.append(this_data)
+        stds.append(this_data)
+    else:
+        residues.remove(residue)
+try:
+    data = np.vstack(tuple(data))
+    stds = np.vstack(tuple(stds))
+except:
+    log.error("No mutation data could be loaded. Exiting...")
+    exit(1)
+
+#Find min and max in selected data
+data_range = abs(np.max(data) - np.min(data))
+
+
+if not options.vmax:
+    options.vmax = np.ceil(np.max(data) + data_range*0.2)
+if not options.vmin:
+    options.vmin = np.floor(np.min(data) - data_range*0.2)
+
+
+#Assign custom residue labels
+label_dict = {}
+labels = residues[:]
+
+if options.labels:
+    with open(options.labels, 'rb') as csvfile:
+        spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        for row in spamreader:
+            if row[1] != '':
+                label_dict[row[0]] = row[1]
+    for i in range(len(residues)):
+        if residues[i] in label_dict:
+            labels[i] = label_dict[residues[i]]
+
+
+#Make plots
+log.info("Plotting " + str(len(data)) + " figures.")
+log.info("Ylims: " + str(options.vmax) + " , " + str(options.vmin))
+for i in range(len(residues)):
+    plot_hist(data[i],
+              stds[i], 
+              res_order,
+              options.vmin, 
+              options.vmax,
+              labels[i],
+              color = options.color, 
+              title = options.title, 
+              fontsize = options.fontsize)
+    plt.savefig("%s_%s" %(residues[i], options.outfile))
+    plt.clf()
