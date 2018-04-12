@@ -89,7 +89,7 @@ def ddg2labels(fnames):
         csv_writer = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         csv_writer.writerow(['Residue_name', 'Label'])
         for fname in fnames:
-            csv_writer.writerow([fname])
+            csv_writer.writerow([fname, ""])
     
 LOGFMT = "%(levelname)s: %(message)s"
 
@@ -101,7 +101,6 @@ parser = argparse.ArgumentParser(
     description='ddg2labels: Generate a comma separeted .csv file to add custom labels to specific residues.',)
 
 parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
-parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
 parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
 parser.add_argument("-o","--output", dest="outfile", action='store', default='labels.pdf')
 parser.add_argument("-a","--multimers", dest="multimers", default=True, action='store_false')
