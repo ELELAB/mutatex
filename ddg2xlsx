@@ -18,6 +18,30 @@
 
 import argparse
 
+
+def expand_three_to_one():
+    ptm_residues = {"y": "PTR",
+                    "p": "TPO",
+                    "s": "SEP",
+                    "h": "HYP",
+                    "z": "TYS",
+                    "k": "MLZ",
+                    "m": "MLY",
+                    "l": "M3L",
+                    "o": "H1S",
+                    "e": "H2S",
+                    "f": "H3S"}
+
+    len_three2one = len(PDB.Polypeptide.d1_to_index)
+    idx=len_three2one
+    for k,v in ptm_residues.iteritems():
+        PDB.Polypeptide.d1_to_index[k] = idx
+        PDB.Polypeptide.dindex_to_1[idx] = k
+        
+        PDB.Polypeptide.d3_to_index[v] = idx
+        PDB.Polypeptide.dindex_to_3[idx] = v
+        idx += 1
+
 def get_residue_list(structure, multimers=True):
 
     models = structure.get_list()
@@ -79,7 +103,7 @@ def parse_ddg_file(fname, reslist):
             ddgs.append(float(line.split()[0]))
 
     if len(ddgs) != len(reslist):
-        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), options.values))
+        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), len(reslist)))
         exit(1)
     return ddgs
 
@@ -122,7 +146,8 @@ if options.verbose:
 else:
     log.basicConfig(level=log.WARNING, format=LOGFMT)
 
-# parse PDB
+#Add extra special residues to PDB.Polypeptide three to one module 
+expand_three_to_one()
 
 res_order = parse_list_file(options.order)
 
@@ -130,6 +155,8 @@ log.info("Residues list is:")
 for i,r in enumerate(res_order):
     log.info("%d\t%s" % (i,r))
 
+
+# parse PDB
 pdb_parser = PDB.PDBParser()
 
 #if True:
