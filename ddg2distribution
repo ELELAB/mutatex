@@ -20,6 +20,19 @@ import matplotlib
 import csv
 matplotlib.use('PDF')
 
+
+def expand_three_to_one():
+    new_one_letter = "ypshzkmloef"
+    new_three_letter = ["PTR","TPO","SEP","HYP","TYS","MLZ","MLY","M3L","H1S","H2S","H3S"]
+    len_three2one = len(PDB.Polypeptide.d1_to_index)
+    for i in range(len(new_one_letter)):
+        PDB.Polypeptide.d1_to_index[new_one_letter[i]] = i+len_three2one
+        PDB.Polypeptide.d3_to_index[new_three_letter[i]] = i+len_three2one
+           
+        PDB.Polypeptide.dindex_to_1[i+len_three2one] = new_one_letter[i]
+        PDB.Polypeptide.dindex_to_3[i+len_three2one] = new_three_letter[i]
+
+
 def get_residue_list(structure, multimers=True):
 
     models = structure.get_list()
@@ -80,9 +93,9 @@ def parse_ddg_file(fname, reslist):
     for line in fh:
         if line and not line.startswith("#"):
             ddgs.append(float(line.split()[0]))
-
+            
     if len(ddgs) != len(reslist):
-        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), options.values))
+        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), len(reslist)))
         exit(1)
     return ddgs
 
@@ -288,6 +301,9 @@ if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)
 else:
     log.basicConfig(level=log.WARNING, format=LOGFMT)
+
+#Add extra special residues to PDB.Polypeptide three to one module 
+expand_three_to_one()
 
 res_order = parse_list_file(options.order)
 
