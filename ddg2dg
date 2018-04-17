@@ -21,9 +21,32 @@ import argparse
 import matplotlib
 matplotlib.use('PDF')
 from matplotlib import cm
+from Bio import PDB
+
+#Add extra ptm residues to PDB.Polypeptide three to one module 
+ptm_residues = {"y": "PTR",
+                "p": "TPO",
+                "s": "SEP",
+                "h": "HYP",
+                "z": "TYS",
+                "k": "MLZ",
+                "m": "MLY",
+                "l": "M3L",
+                "o": "H1S",
+                "e": "H2S",
+                "f": "H3S"}
+len_three2one = len(PDB.Polypeptide.d1_to_index)
+idx=len_three2one
+for k,v in ptm_residues.iteritems():
+    PDB.Polypeptide.d1_to_index[k] = idx
+    PDB.Polypeptide.dindex_to_1[idx] = k
+    
+    PDB.Polypeptide.d3_to_index[v] = idx
+    PDB.Polypeptide.dindex_to_3[idx] = v
+    idx += 1
+
 
 def parse_ddg_file(fname):
-    
     try:
         ddgs = np.loadtxt(fname)[:,0]
     except:
@@ -88,27 +111,6 @@ def seq_to_res(seq):
     else:
         return seq
 
-three2one = {'ALA':'A',
-             'CYS':'C',
-             'ASP':'D',
-             'GLU':'E',
-             'PHE':'F',
-             'GLY':'G',
-             'HIS':'H',
-             'ILE':'I',
-             'LYS':'K',
-             'LEU':'L',
-             'MET':'M',
-             'ASN':'N',
-             'PRO':'P',
-             'GLN':'Q',
-             'ARG':'R',
-             'SER':'S',
-             'THR':'T',
-             'VAL':'V',
-             'TRP':'W',
-             'TYR':'Y'}
-
 LOGFMT = "%(levelname)s: %(message)s"
 
 if not __name__ == "__main__":
@@ -132,10 +134,13 @@ options = parser.parse_args()
 import numpy as np
 import logging as log
 import os
-from Bio import PDB
 from matplotlib import pyplot as plt
 
+
+
 log.basicConfig(level=log.WARNING, format=LOGFMT)
+
+
 
 pdb_parser = PDB.PDBParser()
 

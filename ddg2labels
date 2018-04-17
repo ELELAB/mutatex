@@ -80,7 +80,7 @@ def parse_ddg_file(fname, reslist):
             ddgs.append(float(line.split()[0]))
 
     if len(ddgs) != len(reslist):
-        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), options.values))
+        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), len(reslist)))
         exit(1)
     return ddgs
 
@@ -109,13 +109,13 @@ options = parser.parse_args()
 
 import numpy as np
 import logging as log
-from Bio import PDB
 
 
 if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)
 else:
     log.basicConfig(level=log.WARNING, format=LOGFMT)
+
 
 
 pdb_parser = PDB.PDBParser()
