@@ -1,0 +1,284 @@
+#!/usr/bin/env python
+
+#    ddg2matrix: plot DDG MutateX results as heat maps.
+#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com> (and Thilde Bagger Terkelsen <ThildeBT@gmail.com>)
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+
+
+
+
+# Imports
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from matplotlib import cm
+import matplotlib.gridspec as gridspec
+import matplotlib.ticker as ticker
+import argparse
+import logging as log
+from Bio import PDB
+
+
+
+
+
+parser = argparse.ArgumentParser(
+description='FoldX Stemplot',)
+
+cmaps_list = [m for m in cm.datad if not m.endswith("_r")]
+
+parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
+parser.add_argument("-d","--data-directory", dest="input_path", type=str, help="input data directory")
+parser.add_argument("-l","--mutation_list", dest="mutations",  help="mutation_list")
+parser.add_argument("-o","--output", dest="outfile", type=str, default='top_muts')
+parser.add_argument("-i","--title", dest='title', type=str, default='', help="Title for the output image file")
+parser.add_argument("-c1","--color-map1",dest='cmap1', type=unicode, default="gray", help="Color map used to plot the DDG values (choose from: %s)" % ", ".join(cmaps_list))
+parser.add_argument("-c2","--color-map2",dest='cmap2', type=unicode, default="jet", help="Color map used to plot the DDG values (choose from: %s)" % ", ".join(cmaps_list))
+parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=6, help="Font size")
+parser.add_argument("-w","--width",dest='width',action='store', type=int, default=10, help="plot width")
+parser.add_argument("-y","--height",dest='height',action='store', type=int, default=5, help="plot height")
+parser.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="Minimum value to be plotted")
+parser.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="Maximum value to be plotted")
+parser.add_argument("-k","--topmuts", dest='topmuts',action='store',default=10,type=int,help="top mutations")
+
+
+
+
+options = parser.parse_args()
+
+
+
+
+three2one = {'ALA':'A',
+             'CYS':'C',
+             'ASP':'D',
+             'GLU':'E',
+             'PHE':'F',
+             'GLY':'G',
+             'HIS':'H',
+             'ILE':'I',
+             'LYS':'K',
+             'LEU':'L',
+             'MET':'M',
+             'ASN':'N',
+             'PRO':'P',
+             'GLN':'Q',
+             'ARG':'R',
+             'SER':'S',
+             'THR':'T',
+             'VAL':'V',
+             'TRP':'W',
+             'TYR':'Y'}
+
+
+if options.cmap1 not in cmaps_list:
+    log.error("Specified color map is not available. Choose one between: %s." % ", ".join(cmaps_list) )
+    exit(1)
+
+if options.cmap2 not in cmaps_list:
+    log.error("Specified color map is not available. Choose one between: %s." % ", ".join(cmaps_list) )
+    exit(1)
+
+
+
+pdb_parser = PDB.PDBParser()
+
+try:
+    user_structure = pdb_parser.get_structure('s', options.in_pdb)
+except:
+    log.error("Couldn't open or parse input pdb file. Exiting...")
+    exit(1)
+
+
+
+
+try:
+    fh = open(options.mutations, 'r')
+except:
+    log.warning("mutationlist cannot be opened.")
+muts = []
+for line in fh:
+    mut = line.rstrip()
+    muts.append(mut)
+
+
+
+
+
+
+
+def parse_file(fname, index_as_float):
+
+    try:
+        fh = open(fname, 'r')
+        next(fh)
+    except:
+        log.warning("file %s cannot be opened." % fname)
+        return None
+
+    values =[]
+
+    alist = [float(line.split()[0]) for line in fh]
+    values.append(alist)
+
+    if len(values[0]) != len(muts):
+        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(values[0]), len(muts)))
+        exit(1)
+
+
+    res_IDs = fname.rsplit('/', 1)[-1]
+
+    mean_val = float(np.average(values))
+
+    ste = float(np.std(values)/np.sqrt(len(values[0])))
+
+    return [index_as_float, mean_val, ste, res_IDs]
+
+
+
+
+
+
+
+
+def pdbmodel(structure):
+
+    res_ids = []
+    res_ids_str = []
+    data = []
+
+    models = structure.get_list()
+
+    if len(models) > 1:
+        log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
+    if len(models) < 1:
+        log.error("The input PDB file does not contain any model. Exiting ...")
+        exit(1)
+
+    model = models[0]
+
+    for chain in model:
+        for res in chain:
+            try:
+                this_type = three2one[res.get_resname()]
+            except:
+                log.warning("residue %s, %s, %d not recognized. It will be skipped." % (res.get_resname(), chain.get_id(), res.get_id()[1]))
+                continue
+
+            res_ids.append((chain.get_id(), res.get_id()[1], this_type))
+            res_ids_str.append("%s%s%d" % (res_ids[-1][2],res_ids[-1][0],res_ids[-1][1]))
+
+    for i, j in enumerate(res_ids_str):
+        iflo = float(i)
+        this_data = parse_file("%s/%s" % (options.input_path, res_ids_str[i]), iflo)
+        data.append(this_data)
+
+    data = np.array(data, dtype=object)
+    data = np.transpose(data)
+
+    return data
+
+
+user_data = pdbmodel(user_structure)
+
+
+maxval = max(user_data[1])+user_data[2][np.argmax(user_data[1])]+0.3
+minval = min(user_data[1])-user_data[2][np.argmin(user_data[1])]+0.1
+
+
+myvmax = 2.74
+myvmin = -0.5
+
+
+
+if not options.vmax:
+    options.vmax = max(user_data[1])+0.5
+if not options.vmin:
+    options.vmin = min(user_data[1])-0.5
+
+
+
+def stemplot(data, outfile, title, cmap1, cmap2, fontsize, myvmax, myvmin, topmuts):
+
+    
+    plt.figure(figsize=(12,8))    
+    color_by = data[1]
+    color_by = color_by.tolist()
+
+    gs = gridspec.GridSpec(10,10, hspace=0.17)
+
+    ax3 = plt.subplot(gs[:,9])
+    ax1 = plt.subplot(gs[0:2,0:9])
+    ax2 = plt.subplot(gs[2:,0:9])
+
+    upperdata = np.array(data[1])
+    upperdata[upperdata < myvmax] = np.nan
+
+    lowerdata = np.array(data[1])
+    lowerdata[lowerdata >= myvmax] = np.nan
+
+
+    sc1 = ax1.scatter(data[0], upperdata, s=50, c=color_by, marker='o', edgecolors='grey', cmap=cm.get_cmap(cmap1), alpha=1, clip_on=False, vmax=myvmax, vmin=myvmin)
+    sc2 = ax2.scatter(data[0], lowerdata, s=50, c=color_by, marker='o', edgecolors='grey', cmap=cm.get_cmap(cmap2), alpha=1, clip_on=False, vmax=myvmax, vmin=myvmin)
+
+    ax1.set_ylim(myvmax, maxval)
+    ax2.set_ylim(myvmin, myvmax)
+
+    ax1.spines['bottom'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
+
+    ax1.set_xlim([min(data[0])-3, max(data[0])+7])
+    ax2.set_xlim([min(data[0])-3, max(data[0])+7])
+
+
+    new_names = []
+    
+	
+    top_index = np.argsort(lowerdata)[-topmuts:]
+    print top_index
+    print data[1][top_index]
+    for i, n1 in enumerate(data[3]):
+        if i in top_index:
+            new_names.append(n1)
+        else:
+            new_names.append("")
+    print new_names	 
+	
+    for j, txt in enumerate(new_names):
+        ax2.annotate(txt, (data[0][j], data[1][j]), fontsize=10)
+
+    ax1.set_title(title)
+    ax2.set_xlabel('Wild-type Amino Acids')
+    ax2.set_ylabel(r'Mean FoldX $\Delta\Delta{}G (kcal/mol)$')
+
+    ax1.tick_params(top="off", bottom="off", labelbottom='off')
+    ax2.tick_params(top="off", bottom="off", labelbottom='on')
+    
+    ax1.locator_params(nbins = 3, axis="y")
+    ax1.yaxis.set_major_formatter(ticker.FormatStrFormatter("%0.1f"))
+    ax2.yaxis.set_major_formatter(ticker.FormatStrFormatter("%0.1f"))
+
+    plt.setp(ax1.get_yticklabels()[0], visible=False)
+
+    plt.colorbar(sc2, cax=ax3)
+    plt.savefig(outfile+'.pdf', bbox_inches='tight')
+    plt.clf()
+
+
+stemplot(user_data, options.outfile, options.title, options.cmap1, options.cmap2, options.fontsize, options.vmax, options.vmin, options.topmuts)
+
