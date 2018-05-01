@@ -16,7 +16,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-letters = [
+letters = (
 	'iVBORw0KGgoAAAANSUhEUgAAEsAAAACWCAMAAABJTwrVAAAACXBIWXMAAAsTAAALEwEAmpwYAAA7c2lU',
 	'WHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhp',
 	'SHpyZVN6TlRjemtjOWQiPz4KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0',
@@ -657,7 +657,7 @@ letters = [
 	'2dW/Xu/3Oyorpcph+PoXyMLzkyiLn2CgJFrumUJ4FrcFnyPqtZaQrtdcFsYgbnecosD6D8XCn8Fv5ny6',
 	'DcD6AbIQsq/YAKsrwJISrBvVwPq9k3/8XPc5HcFc9O2PzvGDuSpY+L9z+HvMKnsWCrD+NwAtLnHWzLfU',
 	'TAAAAABJRU5ErkJggg==',
-	]
+	)
 
 import argparse
 import base64
