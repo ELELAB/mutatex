@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #    ddg2distribution: plot DDG MutateX results as distribution plots: boxplot, violinplot or scatterplot.
-#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com, Tycho Canter Cremers <tycho.c.c@gmail.com>
+#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com, Tycho Canter Cremers <tycho.c.c@gmail.com>, 
+#    Thilde Bagger Terkelsen <thildebt@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -20,7 +21,7 @@ import matplotlib
 import csv
 matplotlib.use('PDF')
 from Bio import PDB
-
+    
 #Add extra ptm residues to PDB.Polypeptide three to one module 
 ptm_residues = {"y": "PTR",
                 "p": "TPO",
@@ -168,7 +169,7 @@ def plot_violin(mat, xlabels, vmin, vmax, title=None, fontsize=8):
     plt.tight_layout()
     
     
-def plot_scatter(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
+def plot_single(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
     xt = xlabels
     xticks = np.arange(1,mat.shape[1]+1)
     if title is None:
@@ -182,7 +183,7 @@ def plot_scatter(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
     
     #Plot graph
     for i in range(len(res_order)):
-        plt.scatter(xticks, mat[i], color="black")
+        plt.scatter(xticks, mat[i], color="black", s=1.5)
     plt.ylim(vmin, vmax)
     
     #Calculate non-overlapping label coordinates    
@@ -219,7 +220,7 @@ def plot_scatter(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
     for i in range(len(res_order)):
         res = res_order[i]        
         for j in xticks:
-            plt.annotate(res, (j + x_offset, y_coords[j-1][i]), fontsize = 12)
+            plt.annotate(res, (j + x_offset, y_coords[j-1][i]), fontsize = fontsize)
     
     plt.xlabel("Residue id")
     plt.ylabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
@@ -249,6 +250,41 @@ def plot_stemplot(mat, xlabels, vmin, vmax, title=None, fontsize=8):
     plt.xticks(xticks, xt, rotation='vertical', size=fontsize)
     plt.colorbar(sc)
     plt.tight_layout()
+
+def plot_scatter(mat, xlabels, vmin, vmax, title=None, fontsize=8, topmuts=0):
+    lv_offset=0.05
+    lh_offset=0.3
+    xtick_interval = mat.shape[1] / 10
+    xticks = np.arange(1, mat.shape[1]+1, xtick_interval)
+    xs = np.arange(1, mat.shape[1]+1)
+    xt = [str(t) for t in xticks]
+    if title is None:
+        title = ""
+    cm = plt.cm.get_cmap('Greys')
+    
+    mean_means = np.array([np.average(i) for i in mat.T])
+    mean_means_color = mean_means.copy()
+    mean_means_color[mean_means_color >= vmax] = vmax
+    mean_means_color[mean_means_color <= vmin] = vmin
+
+    mean_means_labels = np.argsort(mean_means)[::-1][:topmuts]
+
+    fig = plt.figure()
+    plt.title(title)
+    ax = plt.subplot(111)
+    print xticks
+    print mean_means
+    sc = ax.scatter(xs, mean_means, s=100, c=mean_means_color, marker='o', edgecolors='grey', cmap=cm, alpha=1)
+    ax.set_xlabel('Wild-type Amino Acids')
+    ax.set_ylabel(r'Mean FoldX $\Delta\Delta{}G (kcal/mol)$')
+    plt.xticks(xticks, xt)
+
+    for l in mean_means_labels:
+        plt.text(l+1+lh_offset, mean_means[l]+lv_offset, xlabels[l], ha='left', va='bottom', size=fontsize)
+
+    #plt.colorbar(sc)
+    plt.tight_layout()
+
 
 
 def splice_data(data, labels, sv):
@@ -297,7 +333,9 @@ parser.add_argument("-s","--splice",dest='sv',action='store', type=int, default=
 parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Axis label font size")
 parser.add_argument("-a","--multimers", dest="multimers", default=True, action='store_false')
 parser.add_argument("-t","--limit", dest="limit", action='store', default = None, type=int, help="Limit scatter plot ddg values to a maximum")
-parser.add_argument("-T","--type", dest="type", nargs = '+', required = True, choices = ["stem", "box", "violin", "scatter"], help = "Choose type(s) of plot(s) to generate: stem, box, violin or scatter. Duplicates will be ignored.")
+parser.add_argument("-T","--type", dest="type", nargs = '+', required = True, choices = ["stem", "box", "violin", "single", "scatter"], help = "Choose type(s) of plot(s) to generate: stem, box, violin or scatter. Duplicates will be ignored.")
+parser.add_argument("-u","--topmuts", dest="topmuts", type=int, default=0, help="Number of extreme residues to be labeled (scatter plot only)")
+
 
 options = parser.parse_args()
 
@@ -398,17 +436,29 @@ for i in range(len(spliced_data)):
         plt.savefig("box_%d_%s" %(i, options.outfile))
         plt.clf()
     
-    if("scatter" in options.type):
-        plot_scatter(spliced_data[i][0], 
+    if("single" in options.type):
+        plot_single(spliced_data[i][0], 
                      spliced_data[i][1], 
                      res_order, 
                      options.vmin,
                      options.vmax, 
                      title=options.title, 
                      fontsize=options.fontsize)
+        plt.savefig("single_%d_%s" %(i, options.outfile))
+        plt.clf()
+#def plot_scatter(mat, xlabels, vmin, vmax, title=None, fontsize=8, topmuts=0):
+
+    if("scatter" in options.type):
+        plot_scatter(spliced_data[i][0], 
+                     spliced_data[i][1], 
+                     options.vmin,
+                     options.vmax, 
+                     title=options.title, 
+                     fontsize=options.fontsize,
+                     topmuts=options.topmuts)
         plt.savefig("scatter_%d_%s" %(i, options.outfile))
         plt.clf()
-        
+
     if("stem" in options.type):
         plot_stemplot(spliced_data[i][0],
             spliced_data[i][1], 
