@@ -21,7 +21,7 @@ import matplotlib
 import csv
 matplotlib.use('PDF')
 from Bio import PDB
-    
+
 #Add extra ptm residues to PDB.Polypeptide three to one module 
 ptm_residues = {"y": "PTR",
                 "p": "TPO",
@@ -43,7 +43,6 @@ for k,v in ptm_residues.iteritems():
     PDB.Polypeptide.d3_to_index[v] = idx
     PDB.Polypeptide.dindex_to_3[idx] = v
     idx += 1
-
 
 def get_residue_list(structure, multimers=True):
     models = structure.get_list()
@@ -118,7 +117,7 @@ def parse_list_file(fname):
             restypes.append(line.strip()[0])
     return restypes
 
-def plot_box(mat, xlabels, vmin, vmax, title=None, fontsize=8):
+def plot_box(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys_r'):
     xt = xlabels
     xticks = np.arange(1,mat.shape[1]+1)
     if title is None:
@@ -127,7 +126,7 @@ def plot_box(mat, xlabels, vmin, vmax, title=None, fontsize=8):
     plt.title(title)
     box = plt.boxplot(mat)
     
-    cm = plt.cm.get_cmap('Greys_r')
+    cm = plt.cm.get_cmap(cmap)
     for i, key in enumerate(list(box.keys())):
         plt.setp(box[key], color=cm(float(i)/10))
 
@@ -138,7 +137,7 @@ def plot_box(mat, xlabels, vmin, vmax, title=None, fontsize=8):
     plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
     plt.tight_layout()
     
-def plot_violin(mat, xlabels, vmin, vmax, title=None, fontsize=8):
+def plot_violin(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys_r'):
     xt = xlabels
     xticks = np.arange(1,mat.shape[1]+1)
     if title is None:
@@ -155,7 +154,7 @@ def plot_violin(mat, xlabels, vmin, vmax, title=None, fontsize=8):
                             widths = 0.7, 
                             bw_method='scott')
     
-    cm = plt.cm.get_cmap('Greys_r')
+    cm = plt.cm.get_cmap(cmap)
     for i, key in enumerate(list(violin.keys())):
         plt.setp(violin[key], color=cm(float(i)/10))
 
@@ -167,7 +166,6 @@ def plot_violin(mat, xlabels, vmin, vmax, title=None, fontsize=8):
     plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
     plt.xlim(0,mat.shape[1]+1)
     plt.tight_layout()
-    
     
 def plot_single(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
     xt = xlabels
@@ -229,13 +227,12 @@ def plot_single(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
     plt.xlim(0,mat.shape[0]+1)
     plt.tight_layout()
 
-
-def plot_stemplot(mat, xlabels, vmin, vmax, title=None, fontsize=8):
+def plot_stemplot(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys'):  
     xt = xlabels
     xticks = np.arange(1,mat.shape[1]+1)
     if title is None:
         title = ""
-    cm = plt.cm.get_cmap('Greys')
+    cm = plt.cm.get_cmap(cmap)
     
     mean_means = [np.average(i) for i in mat.T]
     ste = [np.std(i) for i in mat.T]
@@ -251,16 +248,26 @@ def plot_stemplot(mat, xlabels, vmin, vmax, title=None, fontsize=8):
     plt.colorbar(sc)
     plt.tight_layout()
 
-def plot_scatter(mat, xlabels, vmin, vmax, title=None, fontsize=8, topmuts=0):
+
+def plot_scatter(mat, xlabels, vmin, vmax, title=None, fontsize=8, topmuts=0, cmap='Greys'):
+    plt.tick_params(
+    axis='x',
+    which='both',
+    bottom=False,
+    top=False,
+    labelbottom=True)
+    print mat
     lv_offset=0.05
     lh_offset=0.3
-    xtick_interval = mat.shape[1] / 10
-    xticks = np.arange(1, mat.shape[1]+1, xtick_interval)
+    #xtick_interval = mat.shape[1] / 10
+    #if xtick_interval == 0:
+    #    xtick_interval = 1
+    xticks = np.arange(1, mat.shape[1]+1)
     xs = np.arange(1, mat.shape[1]+1)
-    xt = [str(t) for t in xticks]
+    xt = ["" for t in xticks]
     if title is None:
         title = ""
-    cm = plt.cm.get_cmap('Greys')
+    cm = plt.cm.get_cmap(cmap)
     
     mean_means = np.array([np.average(i) for i in mat.T])
     mean_means_color = mean_means.copy()
@@ -272,20 +279,17 @@ def plot_scatter(mat, xlabels, vmin, vmax, title=None, fontsize=8, topmuts=0):
     fig = plt.figure()
     plt.title(title)
     ax = plt.subplot(111)
-    print xticks
-    print mean_means
-    sc = ax.scatter(xs, mean_means, s=100, c=mean_means_color, marker='o', edgecolors='grey', cmap=cm, alpha=1)
+    sc = ax.scatter(xs, mean_means, s=100, marker='o', c=mean_means_color, edgecolors='grey', cmap=cm, alpha=1)
     ax.set_xlabel('Wild-type Amino Acids')
     ax.set_ylabel(r'Mean FoldX $\Delta\Delta{}G (kcal/mol)$')
     plt.xticks(xticks, xt)
+    plt.xlim((0,len(xticks)+1))
 
     for l in mean_means_labels:
         plt.text(l+1+lh_offset, mean_means[l]+lv_offset, xlabels[l], ha='left', va='bottom', size=fontsize)
 
     #plt.colorbar(sc)
     plt.tight_layout()
-
-
 
 def splice_data(data, labels, sv):
 
@@ -308,13 +312,10 @@ def splice_data(data, labels, sv):
 
     return out
 
-
-
 LOGFMT = "%(levelname)s: %(message)s"
 
 if not __name__ == "__main__":
     exit()
-
 
 parser = argparse.ArgumentParser( 
     description='ddg2distribution: plot DDG MutateX results as distribution plots: boxplot, violinplot or scatterplot.',)
@@ -335,13 +336,25 @@ parser.add_argument("-a","--multimers", dest="multimers", default=True, action='
 parser.add_argument("-t","--limit", dest="limit", action='store', default = None, type=int, help="Limit scatter plot ddg values to a maximum")
 parser.add_argument("-T","--type", dest="type", nargs = '+', required = True, choices = ["stem", "box", "violin", "single", "scatter"], help = "Choose type(s) of plot(s) to generate: stem, box, violin or scatter. Duplicates will be ignored.")
 parser.add_argument("-u","--topmuts", dest="topmuts", type=int, default=0, help="Number of extreme residues to be labeled (scatter plot only)")
-
+parser.add_argument("-c","--colormap", dest="colormap", type=str, default=None, help="Color map to be used for the plot")
 
 options = parser.parse_args()
 
 import numpy as np
 import logging as log
 from matplotlib import pyplot as plt
+
+colormaps = {'box':    'Greys_r',
+             'violin': 'Greys_r',
+             'stemplot':'Greys',
+             'scatter':'Greys'}
+
+if options.colormap is not None:
+    if not options.colormap in plt.colormaps():
+        log.error("The supplied colormap is not supported. Exiting...")
+        exit(1)
+    for k,v in colormaps.iteritems():
+        colormaps[k] = options.colormap
 
 
 if options.verbose:
@@ -422,7 +435,8 @@ for i in range(len(spliced_data)):
                     options.vmin,
                     options.vmax, 
                     title=options.title,
-                    fontsize=options.fontsize)
+                    fontsize=options.fontsize,
+                    cmap=colormaps['violin'])
         plt.savefig("violin_%d_%s" %(i, options.outfile))
         plt.clf()
     
@@ -432,7 +446,8 @@ for i in range(len(spliced_data)):
                 options.vmin,
                 options.vmax, 
                 title=options.title,
-                fontsize=options.fontsize)
+                fontsize=options.fontsize,
+                cmap=colormaps['box'])
         plt.savefig("box_%d_%s" %(i, options.outfile))
         plt.clf()
     
@@ -455,7 +470,8 @@ for i in range(len(spliced_data)):
                      options.vmax, 
                      title=options.title, 
                      fontsize=options.fontsize,
-                     topmuts=options.topmuts)
+                     topmuts=options.topmuts,
+                     cmap=colormaps['scatter'])
         plt.savefig("scatter_%d_%s" %(i, options.outfile))
         plt.clf()
 
@@ -465,7 +481,8 @@ for i in range(len(spliced_data)):
             options.vmin,
             options.vmax, 
             title=options.title,
-            fontsize=options.fontsize)
+            fontsize=options.fontsize,
+            cmap=colormaps['stemplot'])
         plt.savefig("stem_%d_%s" %(i, options.outfile))
         plt.clf()
 
