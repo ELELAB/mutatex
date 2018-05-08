@@ -713,7 +713,7 @@ def get_residue_list(structure, multimers=True):
             try:
                 res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
             except:
-                log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, options.pdb))
+                log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, options.in_pdb))
                 continue
             if not multimers:
                 residue_list.append(("%s%s%d") % (res_code, chain.get_id(), residue.get_id()[1]))
@@ -736,7 +736,7 @@ def get_residue_list(structure, multimers=True):
                     try:
                         res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
                     except:
-                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, options.pdb))
+                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, options.in_pdb))
                         continue
                     residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
     return residue_list
