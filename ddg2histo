@@ -190,21 +190,21 @@ if not __name__ == "__main__":
 
 
 parser = argparse.ArgumentParser( 
-    description='ddg2histo: plot DDG MutateX results as a bar plot of the distribution of values.',)
+    description='ddg2histo: plot a histogram of the DDGs calculated for all the mutations of a single residue.',)
 
 parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
 parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
-parser.add_argument("-m","--include-invalid-files",dest='includeblank',action='store_true', default=False, help="Include empty columns in output instead of ignoring missing files")
 parser.add_argument("-l","--order-list", dest="order",  help="default order list")
+parser.add_argument("-m","--include-invalid-files",dest='includeblank',action='store_true', default=False, help="Include empty columns in output instead of ignoring missing files")
 parser.add_argument("-b","--label-list", dest="labels", help="residue label list")
 parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
-parser.add_argument("-o","--output", dest="outfile", action='store', default='histogram.pdf')
+parser.add_argument("-o","--output", dest="outfile", action='store', default='histogram.pdf', help="Output filename")
 parser.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="Minimum value to be plotted")
 parser.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="Maximum value to be plotted")
-parser.add_argument("-i","--title", dest='title', action='store', default=None, type=str, help="Title for the output image file")
+parser.add_argument("-t","--title", dest='title', action='store', default=None, type=str, help="Title for the output image file")
 parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=12, help="Axis label font size")
-parser.add_argument("-a","--multimers", dest="multimers", default=True, action='store_false')
-parser.add_argument("-r","--residues", dest="residues", type= str, help="Define a comma separated list with residues to plot. Include a range of residues seperated by '-' or use 'all' for all residues in the input fodler")
+parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false', help="Disable multimers mode")
+parser.add_argument("-r","--residues", dest="residues", type= str, help="Define a list of residues to plot (see below)")
 parser.add_argument("-c","--color", dest="color", default="white", type= str, help="Name a color for the bar plot")
 
 
