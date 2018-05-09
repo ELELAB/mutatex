@@ -175,7 +175,7 @@ def densityplot(data, outfile, title, mycolor):
     spaces = 150
     x = linspace(xmin,xmax,spaces)
     KDV = [KDE(i)[0] for i in linspace(xmin, xmax, spaces)]
-    np.savetxt(options.kdvfile+'.txt', zip(x,KDV), fmt='%.3f', newline='\n', header='xaxis, kdv', footer='', comments='# ')
+    np.savetxt(options.kdvfile, zip(x,KDV), fmt='%.3f', newline='\n', header='xaxis, kdv', footer='', comments='# ')
     plot(x,KDE(x),'r', c=mycolor)
     hist(data, int(len(data)/10) , normed=1,alpha=.3, facecolor=mycolor)
     plt.xlabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
@@ -185,7 +185,7 @@ def densityplot(data, outfile, title, mycolor):
     plt.savefig(outfile+'.pdf', bbox_inches='tight')
     plt.clf()
 
-parser = argparse.ArgumentParser(description='FoldX densityplot',)
+parser = argparse.ArgumentParser(description='Generate probability density via kernel density estimation of the calculated DDG',)
 
 parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
 parser.add_argument("-d","--data-directory", dest="input_path", type=str, help="input data directory")
@@ -193,10 +193,9 @@ parser.add_argument("-l","--mutation_list", dest="mutations",  help="mutation_li
 parser.add_argument("-o","--output", dest="outfile", type=str, default="densityplot")
 parser.add_argument("-i","--title", dest='title', type=str, default=None, help="Title for the output image file")
 parser.add_argument("-c","--color", dest='mycolor', type=unicode, default="blue", help="Color used to plot the DDG values")
-parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Font size")
-parser.add_argument("-u","--ddgfile", dest="ddgfile", type=str, default="ddgvalues")
-parser.add_argument("-k","--kdvfile", dest="kdvfile", type=str, default="kdvvalues")
-parser.add_argument("-m","--multimers", dest="multimers", default=True, action='store_false')
+parser.add_argument("-u","--ddgfile", dest="ddgfile", type=str, default="ddgvalues.dat", help="File containing all the used DDG values")
+parser.add_argument("-k","--kdvfile", dest="kdvfile", type=str, default="kdvvalues.dat", help="File containing calculated density values")
+parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false')
 
 options = parser.parse_args()
 
@@ -234,7 +233,5 @@ user_data = pdbmodel(residue_list, d)
 
 ddgvalues = np.asarray(user_data)
 np.savetxt(options.ddgfile, ddgvalues, fmt='%.3f', newline='\n', header='DDG', footer='', comments='# ')
-
-
 
 densityplot(user_data, options.outfile, options.title, options.mycolor)
