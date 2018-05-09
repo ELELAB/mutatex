@@ -125,7 +125,7 @@ parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
 parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
 parser.add_argument("-o","--output", dest="outdir", type=str, action='store', default='dgf')
 parser.add_argument("-m", "--slope", dest="m", type=float, action='store', default=1.0, help="slope value for the correction of DDG values")
-parser.add_argument("-b", "--y-intercept", dest="b", type=float, action='store', default=0.0, help="Y-intercept value for the correction of DDG values")
+parser.add_argument("-y", "--y-intercept", dest="b", type=float, action='store', default=0.0, help="Y-intercept value for the correction of DDG values")
 parser.add_argument("-x", "--experimental-dg", dest="dg", type=float, default=0, action='store', help="Experimental energy of folding")
 parser.add_argument("-M", "--multimers", dest="multimers", default=True, action='store_false', help="Do not consider the same chains as multimers")
 
