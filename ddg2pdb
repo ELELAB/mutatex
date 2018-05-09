@@ -145,12 +145,12 @@ validity intervals: -a 0.5 = ]-inf,0.5] U [99999.0,+inf[ ;
 
 parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
 parser.add_argument("-p","--input-pdb", dest="in_pdb", help="Input pdb file")
+parser.add_argument("-l","--order-list", dest="order",  help="default order list")
 parser.add_argument("-m","--matrix", dest="dat", default="ala_scanning.mat", help="output xPyder-compatible matrix")
 parser.add_argument("-o","--output-pdb", dest="out_pdb", default="ala_scanning.pdb", help="Output pdb file")
 parser.add_argument("-a","--lower-free-energy-threshold", dest="low_thres",  default=-99999.0, type=float, help="lower threhsold; default value: -99999.0")
 parser.add_argument("-b","--upper-free-energy-threshold", dest="high_thres", default= 99999.0, type=float, help="upper threhsold; default value: 99999.0")
-parser.add_argument("-t","--threshold-mode", dest='thres_mode', choices=['between','outside'], default='outside', action='store', help="threshold mode: between=between upper and lower value, outside: <lower OR >upper")
-parser.add_argument("-l","--order-list", dest="order",  help="default order list")
+parser.add_argument("-T","--threshold-mode", dest='thres_mode', choices=['between','outside'], default='outside', action='store', help="threshold mode: between=between upper and lower value, outside: <lower OR >upper")
 parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
 parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false')
 
