@@ -127,8 +127,8 @@ parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input d
 parser.add_argument("-l","--order-list", dest="order",  help="default order list")
 parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
 parser.add_argument("-o","--output", dest="outfile", action='store', default='energies.xlsx')
-parser.add_argument("-t","--transpose",dest='transpose',action="store_true",default=False,help="Swap rows and columns")
-parser.add_argument("-a","--multimers", dest="multimers", default=True, action='store_false')
+parser.add_argument("-T","--transpose",dest='transpose',action="store_true",default=False,help="Swap rows and columns")
+parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false')
 
 
 # parse ddg files
