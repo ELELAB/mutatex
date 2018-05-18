@@ -664,7 +664,8 @@ import base64
 import matplotlib
 import StringIO
 import csv
-matplotlib.use('PDF')
+matplotlib.use('Agg')
+matplotlib.rcParams['savefig.format'] = u'pdf'
 from matplotlib.image import imread
 from Bio import PDB
 
@@ -906,7 +907,7 @@ parser.add_argument("-l","--order-list", dest="order",  help="default order list
 parser.add_argument("-m","--include-invalid-files",dest='includeblank',action='store_true', default=False, help="Include empty columns in output instead of ignoring missing files")
 parser.add_argument("-b","--label-list", dest="labels", help="residue label list")
 parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
-parser.add_argument("-o","--output", dest="outfile", action='store', default='energies', help="output file names")
+parser.add_argument("-o","--output", dest="outfile", action='store', default='logo.pdf', help="output file names")
 parser.add_argument("-T","--threshold", dest="threshold", action='store', type=float, default=0.5, help="Do not consider mutations with absolute DDG lower than this value")
 parser.add_argument("-t","--title", dest='title', action='store', default=None, type=str, help="Title for the output image file")
 parser.add_argument("-i","--png-letter-map",dest='pngfile',action='store', default=letters, help="png file to be used for letters")
@@ -1035,4 +1036,4 @@ for i in range(len(spliced_data)):
                 fontsize=options.fontsize,
                 threshold=options.threshold)
     plt.show()
-    fig.savefig("%d_%s.pdf" %(i, options.outfile), dpi=options.dpi)
+    fig.savefig("%d_%s" %(i, options.outfile), dpi=options.dpi)
