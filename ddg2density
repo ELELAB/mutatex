@@ -20,6 +20,7 @@
 # Imports
 import matplotlib
 matplotlib.use('Agg')
+matplotlib.rcParams['savefig.format'] = u'pdf'
 import argparse
 from scipy.stats.kde import gaussian_kde
 from numpy import linspace
@@ -182,7 +183,7 @@ def densityplot(data, outfile, title, mycolor):
     plt.ylabel('Density')
     if title is not None:
         plt.title(title)
-    plt.savefig(outfile+'.pdf', bbox_inches='tight')
+    plt.savefig(outfile, bbox_inches='tight')
     plt.clf()
 
 parser = argparse.ArgumentParser(description='Generate probability density via kernel density estimation of the calculated DDG',)
@@ -190,7 +191,7 @@ parser = argparse.ArgumentParser(description='Generate probability density via k
 parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
 parser.add_argument("-d","--data-directory", dest="input_path", type=str, help="input data directory")
 parser.add_argument("-l","--mutation_list", dest="mutations",  help="mutation_list")
-parser.add_argument("-o","--output", dest="outfile", type=str, default="densityplot")
+parser.add_argument("-o","--output", dest="outfile", type=str, default="densityplot.pdf")
 parser.add_argument("-i","--title", dest='title', type=str, default=None, help="Title for the output image file")
 parser.add_argument("-c","--color", dest='mycolor', type=unicode, default="blue", help="Color used to plot the DDG values")
 parser.add_argument("-u","--ddgfile", dest="ddgfile", type=str, default="ddgvalues.dat", help="File containing all the used DDG values")

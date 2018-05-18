@@ -18,7 +18,8 @@
 
 import argparse
 import matplotlib
-matplotlib.use('PDF')
+matplotlib.use('Agg')
+matplotlib.rcParams['savefig.format'] = u'pdf'
 from matplotlib import cm
 import csv
 from Bio import PDB
@@ -215,7 +216,7 @@ parser.add_argument("-m","--include-invalid-files",dest='includeblank',action='s
 parser.add_argument("-l","--order-list", dest="order",  help="default order list")
 parser.add_argument("-b","--label-list", dest="labels", help="residue label list")
 parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
-parser.add_argument("-o","--output", dest="outfile", action='store', default='energies.pdf')
+parser.add_argument("-o","--output", dest="outfile", action='store', default='heatmap.pdf')
 parser.add_argument("-r","--output-raw-data", dest="raw", action='store', default=None, help="Save raw data file")
 parser.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="Minimum value to be plotted")
 parser.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="Maximum value to be plotted")
