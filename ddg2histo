@@ -20,7 +20,8 @@ import argparse
 import matplotlib
 import re
 import csv
-matplotlib.use('PDF')
+matplotlib.use('Agg')
+matplotlib.rcParams['savefig.format'] = u'pdf'
 from Bio import PDB
 
 # Add extra ptm residues to PDB.Polypeptide three to one module 
