@@ -246,6 +246,7 @@ def plot_stemplot(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys'
     ax.set_ylabel(r'Mean FoldX $\Delta\Delta{}G (kcal/mol)$')
     plt.xticks(xticks, xt, rotation='vertical', size=fontsize)
     plt.colorbar(sc)
+    plt.ylim(vmin, vmax)
     plt.tight_layout()
 
 
@@ -289,6 +290,7 @@ def plot_scatter(mat, xlabels, vmin, vmax, title=None, fontsize=8, topmuts=0, cm
         plt.text(l+1+lh_offset, mean_means[l]+lv_offset, xlabels[l], ha='left', va='bottom', size=fontsize)
 
     #plt.colorbar(sc)
+    plt.ylim(vmin, vmax)
     plt.tight_layout()
 
 def splice_data(data, labels, sv):
