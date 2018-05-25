@@ -1,5 +1,5 @@
-#LyX 2.2 created this file. For more info see http://www.lyx.org/
-\lyxformat 508
+#LyX 2.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 544
 \begin_document
 \begin_header
 \save_transient_properties true
@@ -26,6 +26,8 @@
 \font_osf false
 \font_sf_scale 100 100
 \font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures false
 \graphics default
 \default_output_format default
 \output_sync 1
@@ -55,6 +57,7 @@
 \suppress_date false
 \justification true
 \use_refstyle 1
+\use_minted 0
 \index Index
 \shortcut idx
 \color #008000
@@ -63,7 +66,10 @@
 \tocdepth 3
 \paragraph_separation skip
 \defskip smallskip
-\quotes_language english
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
 \papercolumns 1
 \papersides 1
 \paperpagestyle default
@@ -235,9 +241,15 @@ This step is optional, but strongly advised.
  file in order to work.
  MutateX first looks for the location of this files by looking at the content
  of the FOLDX_BINARY and FOLDX_ROTABASE system variables.
- Therefore, it is advisable to set these system variables in the .profile
- or .bashrc file in the user home, so that they the set everytime a terminal
- is opened.
+ Therefore, it is advisable to set these system variables in the 
+\series bold
+.profile
+\series default
+ or 
+\series bold
+.bashrc
+\series default
+ file in the user home, so that they the set everytime a terminal is opened.
  This is carried out by adding the following lines to the .profile or .bashrc
  file in their home directory, for instance:
 \family typewriter
@@ -248,12 +260,17 @@ status open
 
 \begin_layout Plain Layout
 
-$ export FOLDX_BINARY=/usr/local/foldx/foldx3b6
+$ export FOLDX_BINARY=/usr/local/foldx_2017/foldx
 \end_layout
 
 \begin_layout Plain Layout
 
-$ export FOLDX_ROTABASE=/usr/local/foldx/rotabase.txt
+$ export FOLDX_ROTABASE=/usr/local/foldx_2017/
+\end_layout
+
+\begin_layout Plain Layout
+
+rotabase.txt
 \end_layout
 
 \end_inset
@@ -827,10 +844,10 @@ mutatex single_model1.pdb multiple_models.pdb --multiple-models
 \end_layout
 
 \begin_layout Standard
-If you have a multi-core machine (as you most probably have) you can greatly
- shorten the calculation times by allowing MutateX to run more than one
- instance of FoldX at the same time, using option –np, which specifies the
- number of cores to be used at the same time:
+If you have a multi-core machine (which you most probably have) you can
+ somewhat shorten the calculation times by allowing MutateX to run more
+ than one instance of FoldX at the same time, using option –np, which specifies
+ the number of cores to be used at the same time:
 \end_layout
 
 \begin_layout Standard
@@ -918,10 +935,10 @@ status open
 
 \end_inset
 
-This group of options allows to skip entirely one phase of the calculation.
+This group of options allows to entirely skip one phase of the calculation.
  This is useful for instance if you want to manually modify something in
  the results between one stage and the other (e.g.
- if you want to complete a MutateX run that was already done elsewhere,
+ if you want to complete a MutateX run which was already done elsewhere,
  or if you want to replace the input PDBs for the mutate phase).
  Please notice that MutateX will expect to find the files it would have
  generated in the sections that have been skipped, with correct filenames
@@ -942,28 +959,29 @@ status open
 
 This is the number of mutation runs to be performed by MutateX per position
  and residue type of mutation.
- As stated in the FoldX manual (page 27), 
+ As stated in the FoldX manual (page 27), the default value of this parameter
+ is usually 1.
+ However, sometimes it can be set to a higher number (typically 5) to see
+ if the algorithm has achieved convergence, that is, is the offered solution
+ optimal or it is a trapped solution.
+ When - - nruns is larger than 1 then the algorithm will do the same mutations
+ but change the rotamer set used and the order of the 
 \begin_inset Quotes eld
 \end_inset
 
-Normally it should be set to 1.
- However, sometimes it can be set to higher numbers (typically 5) to see
- if the algorithm has achieved convergence, or in other words if the solution
- offered is the optimal or a trapped solution.
- When it is larger than 1 the algorithm will do the same mutations but changing
- the rotamer set used and the order of the moves.
- In this way other alternative solutions could be explored.
- For most of the mutations this will not result in significant differences
- from one run to the other.
- However, in some cases, like mutations involving Arg neighbours with a
- large degree of freedom, significant differences could be found.
+moves
 \begin_inset Quotes erd
 \end_inset
 
 .
- As to keep the FoldX run as informative as possible, we have decided to
- set this value to 5 by default.
- The user can however use the –nruns option to change this behavior.
+ In this way other alternative solutions could be explored.
+ For most of the mutations this will not result in significant differences
+ from one run to the other but in some cases, like mutations involving Arg
+ neighbours with a large degree of freedom, important differences could
+ be found.
+ To keep the FoldX run as informative as possible, we have decided to set
+ this value to 5 by default.
+ The user can, however, use the - - nruns option to change this behavior.
 \end_layout
 
 \begin_layout Standard
@@ -1037,8 +1055,8 @@ Interrupting and restarting a MutateX run
 \begin_layout Standard
 In order to interrupt a MutateX run just kill the MutateX script right away.
  If you do this, it is possible that some of the remaining FoldX processes
- will continue running; if this is the case just kill them manually or wait
- for them to finish.
+ will continue running; if this is the case kill them manually or wait for
+ them to finish.
  It is advisable to wait for all the FoldX processes involved in the present
  calculation to end before rerunning it, otherwise two FoldX processes might
  be tempted to read/write in the same directory with unpredictable results.
@@ -1050,23 +1068,21 @@ If you kill a MutateX run, you don't have to repeat it from scratch.
 \emph on
 the very same
 \emph default
- MutateX command line (therefore, it is advisable to save it in a bash script
+ MutateX command line (as such it is advisable to save it in a bash script
  that will be used to run the program).
  MutateX will automatically understand what has been already done and what's
- missing, and will restart from where he had left.
- Be careful though; you shouldn't modify any of the input our outpur file
+ missing, and will restart from where it left of.
+ Be careful though; you shouldn't modify any of the input or output files
  of FoldX for the restart to work as expected.
  FoldX is able to recognize certain inconsistencies between the available
  input and the available finished FoldX runs, but mostly expects that the
- same command with same input has been issued.
+ same command with the same input has been issued.
 \end_layout
 
 \begin_layout Standard
 The fact that MutateX supports smart restarting means that you should 
 \emph on
-never run two different MutateX calculations in the same working directory
-\emph default
-.
+never run two different MutateX calculations in the same working directory!
 \end_layout
 
 \begin_layout Section
@@ -1076,7 +1092,7 @@ MutateX Output
 \begin_layout Standard
 MutateX automatically prepares the FoldX runs necessary for the completion
  of the complete mutation scan, meaning that it writes a number of directories
- and files on disk.
+ and files on the disk.
  By default, the four FoldX phases (as described in section 
 \begin_inset CommandInset ref
 LatexCommand ref
@@ -1084,8 +1100,8 @@ reference "subsec:The-MutateX-protocol"
 
 \end_inset
 
-) are run one after the other, as each of the requires the output of the
- previous phase (expect for the first one - which is completely optional).
+) are run one after the other, as each of them requires the output of the
+ previous phase (expect for the first one - which is optional).
 \end_layout
 
 \begin_layout Standard
@@ -1117,13 +1133,13 @@ In the following description, we will often refer to the
 \begin_inset Quotes eld
 \end_inset
 
-current working directory
+working directory
 \begin_inset Quotes erd
 \end_inset
 
 : this is the directory in which the input files are present and from which
  MutateX has been launched.
- It will be also referred as CWD for convenience.
+ It will be also referred as WD for convenience.
 \end_layout
 
 \begin_layout Subsection
@@ -1226,7 +1242,7 @@ repair_structure_model0_checked
 \end_layout
 
 \begin_layout Standard
-For instance, the following directory structure has to expected in our example:
+The following directory structure is expected in our example:
 \end_layout
 
 \begin_layout Standard
@@ -1242,7 +1258,7 @@ dirtree{%
 
 \begin_layout Plain Layout
 
- .1 CWD.
+ .1 WD.
 \end_layout
 
 \begin_layout Plain Layout
@@ -1287,7 +1303,7 @@ mutations
 \begin_inset Quotes erd
 \end_inset
 
- directory is first created, under the CWD.
+ directory is first created, under the WD.
  Inside of it, a directory is created for every repair run which was succesfully
  completed in the previous phase.
  The directory name will derive from the output files written by FoldX in
@@ -1302,11 +1318,10 @@ RepairPDB_structure_model0_checked
 .
  Finally, inside of these directories, several directories will be present,
  each corresponding to a protein residue and each containing a complete
- mutation runs.
- The naming of these directory will follow this convention: [Single-letter
+ mutation run.
+ The naming of these directories will follow this convention: [Single-letter
  residue type of the wild-type residue][chain name][residue number].
- For instance, the following directory structure has to expected in our
- example:
+ For instance, the following directory structure is expected in our example:
 \end_layout
 
 \begin_layout Standard
@@ -1322,7 +1337,7 @@ dirtree{%
 
 \begin_layout Plain Layout
 
- .1 CWD.
+ .1 WD.
 \end_layout
 
 \begin_layout Plain Layout
@@ -1393,31 +1408,31 @@ Phase 4: Report
 \end_layout
 
 \begin_layout Standard
-After running all the mutations runs as detailed in Phase 3, the values
- of 
+After running all the mutation runs as decribed in phase 3, the values of
+ 
 \begin_inset Formula $\Delta\Delta G$
 \end_inset
 
- gathered from the mutation runs are written in text files.
+ gathered from the mutation runs are written to text files.
  This happens in the 
 \begin_inset Quotes eld
 \end_inset
 
-results
+results/mutation_ddgs/
 \begin_inset Quotes erd
 \end_inset
 
- directory under CWD.
- Inside this, one directory per model used is found, and each of them contains
- several text files, named as mutation directories in the Mutate phase.
- Each of them contains a list of 
+ directory in the WD.
+ Inside the mutation_ddgs, you will find one directory per model, each of
+ them containing several text files, named the same as the mutation directories
+ in the Mutate phase.
+ Each file contains a list of 
 \begin_inset Formula $\Delta\Delta G$
 \end_inset
 
  values (in kcal/mol), one for each residue type specified in the mutation_list.t
-xt (or the default list if a file has not been specified) and in the same
- order.
- These values are the average of the N FoldX run that have been carried
+xt (or the default list if a file has not been specified).
+ These values are the average of the N FoldX run which have been carried
  out for each mutation, as specified by the –nruns command line option (see
  section 
 \begin_inset CommandInset ref
@@ -1462,7 +1477,7 @@ dirtree{%
 
 \begin_layout Plain Layout
 
- .1 CWD.
+ .1 WD.
 \end_layout
 
 \begin_layout Plain Layout
@@ -1473,22 +1488,30 @@ dirtree{%
 
 \begin_layout Plain Layout
 
- .3 RepairPDB
+ .3 mutations
 \backslash
-_structure
-\backslash
-_model0
-\backslash
-_checked.
+_ddgs.
  
 \end_layout
 
 \begin_layout Plain Layout
 
- .3 final
+ .4 structure
+\backslash
+_onemodel
+\backslash
+_model0
+\backslash
+_checked
+\backslash
+_Repair.
+\end_layout
+
+\begin_layout Plain Layout
+
+ .4 final
 \backslash
 _averages.
- 
 \end_layout
 
 \begin_layout Plain Layout
@@ -1511,7 +1534,7 @@ Visualization of MutateX output can be performed using a set of supplied
  These include scripts for generating: heatmaps, stemplots, distribution-scatter
 plots, boxplots, violinplots, mutation-specific histograms, matrices and
  Excel sheets of results for further analysis.
- Supporting these tools is a script that generates a .csv file that allows
+ Supporting these tools is a script that generates a .csv file which allows
  you to add custom labels to the residues used to generate plots.
  
 \end_layout
@@ -1521,28 +1544,22 @@ Labels
 \end_layout
 
 \begin_layout Standard
-The ddg2labels tool may be used to generate a .csv file of the input ∆∆Gs
- folder.
- This .csv file is used in all other plotting tools to add optional custum
- labels to the input residues.
- ddg2labels is run by secifying the path to one of the 
-\begin_inset Quotes eld
-\end_inset
-
-results
-\begin_inset Quotes erd
-\end_inset
-
- directory under CWD.
- The final_averages can be used or, if a specific protein model is of interest,
- the name of the model-file (see section 5.4).
- In addition to the results directory, the original model.pdb and the name
- for the output file must be supplied.
+The 
+\series bold
+ddg2labels
+\series default
+ tool may be used to generate a .csv file of the input ∆∆Gs folder.
+ This .csv file is used as input for all other plotting tools to add optional
+ custum labels to the input residues.
+ ddg2labels is run by secifying the path to either the original model.pdb
+ or the checked and repaired model.pdb and in addition a name for the output
+ file must be supplied.
  
 \end_layout
 
 \begin_layout Standard
-The example below shows the command for running ddg2labels using 3I3C.
+The example below shows the command for running ddg2labels using 2KLZ, the
+ tandem UIM domain of Ataxin-3.
 \end_layout
 
 \begin_layout Standard
@@ -1552,12 +1569,12 @@ status open
 
 \begin_layout Plain Layout
 
-ddg2labels -p 3i3c_edit_model0_checked_Repair.pdb 
+ddg2labels -p repair/repair_2KLZ_onemodel_model0_checked/
 \end_layout
 
 \begin_layout Plain Layout
 
--d /results/final_averages/ -o 3i3c_labels
+2KLZ_onemodel_model0_checked_Repair.pdb -o 2KLZ_labels 
 \end_layout
 
 \end_inset
@@ -1617,7 +1634,7 @@ status open
 
 \begin_layout Plain Layout
 
--b 3i3c_labels.csv
+-b 2KLZ_labels.csv
 \end_layout
 
 \end_inset
@@ -1639,7 +1656,7 @@ Heatmap.
 The ddg2matrix tool may be used to generate heatmaps of the calculated mutation
  ∆∆Gs.
  ddg2matrix is run by specifying the path to one of the “results” directory
- under CWD.
+ under WD.
  The final_averages can be used or, if a specific protein model is of interest,
  the name of the model-file (see section 5.4).
  In addition to the results directory, the original model.pdb file and list
@@ -1653,7 +1670,7 @@ status open
 
 \begin_layout Plain Layout
 
-ddg2matrix -d results/final_averages 
+ddg2matrix -d results/mutation_ddgs/final_averages 
 \end_layout
 
 \begin_layout Plain Layout
@@ -1742,12 +1759,17 @@ status open
 
 \begin_layout Plain Layout
 
-ddg2matrix -d results/final_averages -p 2KLZ.pdb
+ddg2matrix -d results/mutation_ddgs/final_averages -p repair/
 \end_layout
 
 \begin_layout Plain Layout
 
--l mutation_list.txt -o heatmaps -i my_heatmap -s 25   
+repair_2KLZ_onemodel_model0_checked/2KLZ_onemodel_model0
+\end_layout
+
+\begin_layout Plain Layout
+
+_checked_Repair.pdb -l mutation_list.txt -s 25 -o my_heatmap 
 \end_layout
 
 \end_inset
@@ -1782,7 +1804,7 @@ status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
-	filename 0_heatmap-1.png
+	filename /Users/KB/Desktop/Thilde/mutateX/for_manual/0_heatmap-1.png
 	lyxscale 30
 	scale 23
 
@@ -1817,7 +1839,7 @@ status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
-	filename 1_heatmap-1.png
+	filename /Users/KB/Desktop/Thilde/mutateX/for_manual/1_heatmap-1.png
 	lyxscale 30
 	scale 23
 
