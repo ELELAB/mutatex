@@ -17,6 +17,7 @@
 
 import argparse
 import csv
+from Bio import PDB
 
 def get_residue_list(structure, multimers=True):
 
