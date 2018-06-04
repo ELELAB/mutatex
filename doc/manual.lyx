@@ -33,6 +33,7 @@
 \output_sync 1
 \bibtex_command default
 \index_command default
+\float_placement H
 \paperfontsize default
 \spacing single
 \use_hyperref false
@@ -84,15 +85,16 @@
 \begin_body
 
 \begin_layout Title
-MutateX
+MutateX User Manual
 \end_layout
 
-\begin_layout Date
-Matteo Tiberti
-\end_layout
+\begin_layout Standard
+\begin_inset CommandInset toc
+LatexCommand tableofcontents
 
-\begin_layout Date
-4/11/2015
+\end_inset
+
+
 \end_layout
 
 \begin_layout Section
@@ -105,7 +107,11 @@ Requirements
 
 \begin_layout Standard
 MutateX and the associated scripts are written in Python, and requires having
- a working Python 2.x (x >= 7) installation.
+ a working Python 
+\color orange
+2.x (x >= 7) 
+\color inherit
+installation.
  A number of Python packages needs also to be available.
  More in details, mutateX requires:
 \end_layout
@@ -141,12 +147,22 @@ All the mentioned packages are available for free for Linux, Windows and
  be run.
  Nonetheless, since MutateX works by running the FoldX software, the FoldX
  binary and the associated rotabase.txt file should be available.
- Please refer to the FoldX website ( http://http://foldx.crg.es ) to aquire
- a copy.
- The only currently supported version is FoldX 3.0 beta 6.1 (i.
- e.
- the latest version as for 10/06/2015), and we plan on supporting newer
- versions as soon as they are released.
+ Please refer to the FoldX website (
+\begin_inset Flex URL
+status open
+
+\begin_layout Plain Layout
+
+http://foldxsuite.crg.eu/
+\end_layout
+
+\end_inset
+
+) to aquire a copy.
+ 
+\color orange
+The only currently supported version is FoldX Suite 4.0, and we plan on supportin
+g newer versions as soon as they are released.
  The FoldX binary file should be readable and executable by the user who
  intends to run MutateX, and its location as well as that of the rotabase.txt
  file should be known.
@@ -175,15 +191,14 @@ status open
 
 \begin_layout Plain Layout
 
-http://http://foldx.crg.es
+http://http://foldx.crg.eu
 \end_layout
 
 \end_inset
 
 ) to aquire a copy of the program and for installation instructions.
  Once FoldX is installed, take note of the position of the FoldX binary
- (foldx3b6 for version 3.0 beta 6.1) and the associated rotabase file (rotabase.txt
-).
+ (Foldx Suite) and the associated rotabase file (rotabase.txt).
 \end_layout
 
 \begin_layout Enumerate
@@ -251,8 +266,11 @@ This step is optional, but strongly advised.
 \series default
  file in the user home, so that they the set everytime a terminal is opened.
  This is carried out by adding the following lines to the .profile or .bashrc
- file in their home directory, for instance:
+ file in their home directory, 
+\color orange
+for instance:
 \family typewriter
+\color inherit
 
 \begin_inset listings
 inline false
@@ -280,12 +298,12 @@ rotabase.txt
 Remember that changes to the .bashrc or .profile files only take effect in
  terminals opened after the files have been modified.
  If this step is not carried out the user will have to provide the localtion
- of the FoldX binary and the rotabase.txt file to the mutatex script each
+ of the FoldX binary and the rotabase.txt file to the Mutatex script each
  time it is run (more information about this in the next sections).
 \end_layout
 
 \begin_layout Standard
-It is done! Now you should be able to run the mutatex script from every
+It is done! Now you should be able to run the Mutatex script from every
  directory of your system.
  In order to verify your installation, you can run
 \begin_inset listings
@@ -325,9 +343,9 @@ MutateX uses FoldX to systematically calculate the difference in free energy
 
 ) between the wild-type and a number of mutated variants using the <BuildModel>
  option.
- More in details, one or more protein models provided by the user are mutated
- sequentially by indipendently changing the residue at each position of
- the protein sequence to another aminoacid.
+ One or more protein models provided by the user are mutated sequentially
+ by independently changing the residue at each position of the protein sequence
+ to another aminoacid.
  The list of residues that each position will be mutated to can be provided
  by the user, or defaults to the list of 20 canonical aminoacids found in
  proteins.
@@ -339,6 +357,8 @@ MutateX uses FoldX to systematically calculate the difference in free energy
 \end_inset
 
  value calculated for each of them.
+ MutateX may be used to perform in silico mutagenesis of both free-state
+ single chain or multi-chain proteins or on protein complexes.
  The protocol followed by MutateX can be summarized as follows:
 \end_layout
 
@@ -360,7 +380,7 @@ Repair.
 
 \begin_layout Enumerate
 Mutate.
- Each residue at every position is indipendently is mutated to a number
+ Each residue at every position is independently is mutated to a number
  of selected aminoacids as previously detailed, and 
 \begin_inset Formula $\Delta\Delta G$
 \end_inset
@@ -445,7 +465,7 @@ A
 \begin_inset Quotes erd
 \end_inset
 
- chain identifiers to all the residues wihtout it.
+ chain identifiers to all the residues without it.
  Therefore, this is especially important if the supplied models have more
  than one chain.
 \end_layout
@@ -465,7 +485,7 @@ The PDB file should contain exclusively residues recognized by FoldX.
 \begin_layout Itemize
 The number of residues or atoms should monotonically increase progressing
  along the molecule (e.g., the first four residues of a chain should follow
- the order 1-2-3-4, and 1-3-2-4 is not ammissible.
+ the order 1-2-3-4, and 1-3-2-4 is not admissible.
  See the FoldX 3b6 manual page 35 for details.
 \end_layout
 
@@ -885,6 +905,62 @@ mutatex single_model.pdb --np 4 --mutlist mutations_list.txt
 \end_layout
 
 \begin_layout Standard
+MutateX is also able to handle protein complexes and may be used to estimate
+ the effect of mutation at protein-protein interfaces.
+ To specify that you are interested in the interface ∆∆Gs the option - -binding-
+interface must be included in the command line:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+mutatex complex_model.pdb --np 4 --binding-interface 
+\end_layout
+
+\begin_layout Plain Layout
+
+--mutlist mutations_list.txt 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\color orange
+If you have a multimeric protein and you want to mutate one monomer at a
+ time, this may be done by specifying the argument --multimers.
+ If this option is not specified than MutateX will automatically mutate
+ all chains in your protein as a collective.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+mutatex complex_model.pdb --np 4 --multimers
+\end_layout
+
+\begin_layout Plain Layout
+
+--mutlist mutations_list.txt 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
 That's about it.
  We will now cover more advanced usage of MutateX in the following section;
  you can skip to section XX to understand the structure of the output files
@@ -977,8 +1053,8 @@ moves
  In this way other alternative solutions could be explored.
  For most of the mutations this will not result in significant differences
  from one run to the other but in some cases, like mutations involving Arg
- neighbours with a large degree of freedom, important differences could
- be found.
+ neighbors with a large degree of freedom, important differences could be
+ found.
  To keep the FoldX run as informative as possible, we have decided to set
  this value to 5 by default.
  The user can, however, use the - - nruns option to change this behavior.
@@ -991,13 +1067,16 @@ status open
 
 \begin_layout Plain Layout
 
---foldx-version {3b6}
+--foldx-version suite4 
 \end_layout
 
 \end_inset
 
+
+\color orange
 This option is used to tell MutateX which FoldX version it should expect.
- Right now, only version 3 beta 6 is supported.
+ Right now, the most current version is foldX Suite 4.0, however, MutateX
+ also supports older versions foldx 3.0, and foldx 4.0.
 \end_layout
 
 \begin_layout Standard
@@ -1304,8 +1383,8 @@ mutations
 \end_inset
 
  directory is first created, under the WD.
- Inside of it, a directory is created for every repair run which was succesfully
- completed in the previous phase.
+ Inside of it, a directory is created for every repair run which was successfull
+y completed in the previous phase.
  The directory name will derive from the output files written by FoldX in
  the repair runs - in our example, that would be 
 \begin_inset Quotes eld
@@ -1408,8 +1487,8 @@ Phase 4: Report
 \end_layout
 
 \begin_layout Standard
-After running all the mutation runs as decribed in phase 3, the values of
- 
+After running all the mutation runs as described in phase 3, the values
+ of 
 \begin_inset Formula $\Delta\Delta G$
 \end_inset
 
@@ -1453,7 +1532,7 @@ results
 \begin_inset Quotes erd
 \end_inset
 
- diretory, a final_averages directory will also be present.
+ directory, a final_averages directory will also be present.
  This contains a number of text file, in the same exact format as the different
  result directories each referring to a single model.
  The values written in the files, however, represent the average 
@@ -1524,6 +1603,114 @@ _averages.
 
 \end_layout
 
+\begin_layout Standard
+Reporting for a MutateX run using a protein complex (- -binding-interface
+ option is specified) will produce two subfolders under 
+\begin_inset Quotes eld
+\end_inset
+
+results
+\begin_inset Quotes erd
+\end_inset
+
+, mutations_ddgs and interface_ddgs.
+ The folder interface_ddgs will contain a subfolder named A-B which essentially
+ contains the final averaged difference in free energy of unfolding (
+\begin_inset Formula $\Delta\Delta G$
+\end_inset
+
+): 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+dirtree{% 
+\end_layout
+
+\begin_layout Plain Layout
+
+ .1 WD.
+\end_layout
+
+\begin_layout Plain Layout
+
+ .2 results.
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+ .3 mutations
+\backslash
+_ddgs.
+\end_layout
+
+\begin_layout Plain Layout
+
+ .4 structure
+\backslash
+_onemodel
+\backslash
+_model0
+\backslash
+_checked
+\backslash
+_Repair.
+\end_layout
+
+\begin_layout Plain Layout
+
+ .4 final
+\backslash
+_averages.
+\end_layout
+
+\begin_layout Plain Layout
+
+ .3 interface
+\backslash
+_ddgs.
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+ .4 structure
+\backslash
+_onemodel
+\backslash
+_model0
+\backslash
+_checked
+\backslash
+_Repair.
+\end_layout
+
+\begin_layout Plain Layout
+
+ .4 final
+\backslash
+_averages.
+\end_layout
+
+\begin_layout Plain Layout
+
+ .5 A-B.
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
 Visualizing the output of MutateX
 \end_layout
@@ -1540,7 +1727,7 @@ plots, boxplots, violinplots, mutation-specific histograms, matrices and
 \end_layout
 
 \begin_layout Subsection
-Labels
+Labels.
 \end_layout
 
 \begin_layout Standard
@@ -1558,23 +1745,13 @@ ddg2labels
 \end_layout
 
 \begin_layout Standard
-The example below shows the command for running ddg2labels using 2KLZ, the
- tandem UIM domain of Ataxin-3.
-\end_layout
-
-\begin_layout Standard
 \begin_inset listings
 inline false
 status open
 
 \begin_layout Plain Layout
 
-ddg2labels -p repair/repair_2KLZ_onemodel_model0_checked/
-\end_layout
-
-\begin_layout Plain Layout
-
-2KLZ_onemodel_model0_checked_Repair.pdb -o 2KLZ_labels 
+ddg2labels -p singel_model.pdb -o my_labels 
 \end_layout
 
 \end_inset
@@ -1634,7 +1811,7 @@ status open
 
 \begin_layout Plain Layout
 
--b 2KLZ_labels.csv
+-b my_labels.csv
 \end_layout
 
 \end_inset
@@ -1687,7 +1864,58 @@ ddg2matrix -d results/mutation_ddgs/final_averages
 By default wildtype amino acids are represented on the y-axis and mutated-to
  amino acids on the x-axis, however, using the option -t (transpose) these
  may be swapped.
- Other user-specified options include:
+ It is also possible to set an upper and lower bound for scaling of heatmap
+ colors (-n, -x).
+ These options may be useful if one or more wild-type positions exhibit
+ very extreme increases of ∆∆G upon mutation.
+ Extreme values may 
+\begin_inset Quotes eld
+\end_inset
+
+truncate
+\begin_inset Quotes erd
+\end_inset
+
+ or 
+\begin_inset Quotes eld
+\end_inset
+
+skew
+\begin_inset Quotes erd
+\end_inset
+
+ the color scale in such a way that positions with more subtile increases
+ of free energy become difficult to see.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+-t : Transpose matrix.
+\end_layout
+
+\begin_layout Plain Layout
+
+-n : Lower bound.
+\end_layout
+
+\begin_layout Plain Layout
+
+-x : Upper bound.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Other user-specified options include:
 \end_layout
 
 \begin_layout Standard
@@ -1744,155 +1972,32 @@ ddg2matrix -h
 
 \end_layout
 
-\begin_layout Standard
-The example below shows the command for running ddg2matrix using 2KLZ, the
- tandem UIM domain of Ataxin-3.
- The mutation_list.txt is the default including all 20 natural occurring
- amino acids.
- Resulting heatmaps may be seen in figure 1, page 11.
-\end_layout
-
-\begin_layout Standard
-\begin_inset listings
-inline false
-status open
-
-\begin_layout Plain Layout
-
-ddg2matrix -d results/mutation_ddgs/final_averages -p repair/
-\end_layout
-
-\begin_layout Plain Layout
-
-repair_2KLZ_onemodel_model0_checked/2KLZ_onemodel_model0
-\end_layout
-
-\begin_layout Plain Layout
-
-_checked_Repair.pdb -l mutation_list.txt -s 25 -o my_heatmap 
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Float figure
-wide false
-sideways false
-status open
-
-\begin_layout Plain Layout
-\begin_inset Box Frameless
-position "t"
-hor_pos "c"
-has_inner_box 1
-inner_pos "t"
-use_parbox 0
-use_makebox 0
-width "100col%"
-special "none"
-height "1in"
-height_special "totalheight"
-thickness "0.4pt"
-separation "3pt"
-shadowsize "4pt"
-framecolor "black"
-backgroundcolor "none"
-status open
-
-\begin_layout Plain Layout
-\begin_inset Graphics
-	filename /Users/KB/Desktop/Thilde/mutateX/for_manual/0_heatmap-1.png
-	lyxscale 30
-	scale 23
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset Box Frameless
-position "t"
-hor_pos "c"
-has_inner_box 1
-inner_pos "t"
-use_parbox 0
-use_makebox 0
-width "100col%"
-special "none"
-height "1in"
-height_special "totalheight"
-thickness "0.4pt"
-separation "3pt"
-shadowsize "4pt"
-framecolor "black"
-backgroundcolor "none"
-status open
-
-\begin_layout Plain Layout
-\begin_inset Graphics
-	filename /Users/KB/Desktop/Thilde/mutateX/for_manual/1_heatmap-1.png
-	lyxscale 30
-	scale 23
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
-
-\begin_inset Caption Standard
-
-\begin_layout Plain Layout
-Heatmaps generated from ddg2matrix run using 2KLZ.
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
 \begin_layout Subsection
-Distribution plots.
+Distribution.
 \end_layout
 
 \begin_layout Standard
-The ddg2distribution tool can be used to generate a number of different
- tpyes of plots each visualizing the distribution of the mean protein ∆∆G
- for any mutated wildtype amino acid.
- It can generate a stempplot, a boxlot, a violinplot and a scatter plot.
- The stemplot depict the significance of a given wildtype amino acid for
+The ddg2distribution tool may be used to generate a number of different
+ plots each visualizing the distribution of the mean protein ∆∆G for any
+ mutated wildtype amino acid.
+ The tool generates a stemplot, a boxplot, a violinplot and a scatterplot.
+ The stemplot depicts the significance of a given wildtype amino acid for
  protein stability irrespectively of what it is mutated to.
  Errorbars (stems) represent the standard deviation of the mean.
  The boxplot shows the general distribution and outliers of the mean ∆∆G
  values for every mutation.
- The violinplot is similar to the boxplot but also shows a continuues vertical
+ The violinplot is similar to the boxplot but also shows a continues vertical
  probability density plot of the data on each side of the figures.
- The scatterplot shows the exact values of the mean ∆∆G values for every
- mutation with labeled points on a vertical axis.
+ Lastly, the scatterplot shows the exact values of the mean ∆∆G values for
+ every mutation with labeled points on a vertical axis.
 \end_layout
 
 \begin_layout Standard
 Ddg2distribution may be run using the same users-specified parameters as
  for ddg2matrix (see section 6.1 above).
  The path to the “results” directory (either final_averages or a specific
- protein model of interest), original model.pdb file and a list of mutations
- are mandatory parameters.
+ protein model of interest), original model.pdb or checked and repaired model.pdb
+ and the list of mutations are mandatory parameters.
  
 \end_layout
 
@@ -1903,12 +2008,12 @@ status open
 
 \begin_layout Plain Layout
 
-ddg2distribution -d results/final_averages 
+ddg2distribution -d results/mutation_ddgs/final_averages 
 \end_layout
 
 \begin_layout Plain Layout
 
--p singel_model.pdb -l mutation_list.txt
+-p singel_model.pdb -l mutation_list.txt 
 \end_layout
 
 \end_inset
@@ -1917,7 +2022,11 @@ ddg2distribution -d results/final_averages
 \end_layout
 
 \begin_layout Standard
-Another mandatory parameter is the -T (--type) parameter.
+
+\series bold
+Another mandatory parameter is the -T
+\series default
+ (--type) parameter.
  You use the -T (--type) parameter to pick which types of plots you want
  to generate.
  You have to select at least one type.
@@ -1958,381 +2067,19 @@ ddg2distribution -h
 
 \end_layout
 
-\begin_layout Standard
-The example below shows the command for running ddg2distribution for all
- types of plots using 3I3C.
- The y-axis is being limited to +50 and -10 to give a better view of the
- resulting plots.
- The mutation_list.txt is the default including all 20 natural occurring
- amino acids.
- The resulting plots can be seen in figure 
-\begin_inset CommandInset ref
-LatexCommand ref
-reference "fig:stemplot"
-
-\end_inset
-
-, 
-\begin_inset CommandInset ref
-LatexCommand ref
-reference "fig:boxplot"
-
-\end_inset
-
-, 
-\begin_inset CommandInset ref
-LatexCommand ref
-reference "fig:violinplot"
-
-\end_inset
-
-, 
-\begin_inset CommandInset ref
-LatexCommand ref
-reference "fig:scatterplot"
-
-\end_inset
-
- on pages 
-\begin_inset CommandInset ref
-LatexCommand pageref
-reference "fig:stemplot"
-
-\end_inset
-
-, 
-\begin_inset CommandInset ref
-LatexCommand pageref
-reference "fig:boxplot"
-
-\end_inset
-
-, 
-\begin_inset CommandInset ref
-LatexCommand pageref
-reference "fig:violinplot"
-
-\end_inset
-
- and 
-\begin_inset CommandInset ref
-LatexCommand pageref
-reference "fig:scatterplot"
-
-\end_inset
-
- respectively.
- 
-\end_layout
-
-\begin_layout Standard
-\begin_inset listings
-inline false
-status open
-
-\begin_layout Plain Layout
-
-ddg2distribution -p 
-\end_layout
-
-\begin_layout Plain Layout
-
-3i3c_edit_model0_checked_Repair.pdb -d 
-\end_layout
-
-\begin_layout Plain Layout
-
-/results/final_averages/ -l mutation_list.txt 
-\end_layout
-
-\begin_layout Plain Layout
-
--o distribution.png -s 25 -x 50 -n -10 
-\end_layout
-
-\begin_layout Plain Layout
-
--T stem box violin scatter
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Float figure
-placement H
-wide false
-sideways false
-status open
-
-\begin_layout Plain Layout
-\begin_inset Box Frameless
-position "t"
-hor_pos "c"
-has_inner_box 1
-inner_pos "t"
-use_parbox 0
-use_makebox 0
-width "100col%"
-special "none"
-height "1in"
-height_special "totalheight"
-thickness "0.4pt"
-separation "3pt"
-shadowsize "4pt"
-framecolor "black"
-backgroundcolor "none"
-status open
-
-\begin_layout Plain Layout
-\begin_inset Graphics
-	filename stem_4_distribution.png
-	lyxscale 60
-	scale 55
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset Caption Standard
-
-\begin_layout Plain Layout
-\begin_inset CommandInset label
-LatexCommand label
-name "fig:stemplot"
-
-\end_inset
-
-Stemplot generated from ddg2stemplot run using 3I3C.
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Float figure
-placement H
-wide false
-sideways false
-status open
-
-\begin_layout Plain Layout
-\begin_inset Box Frameless
-position "t"
-hor_pos "c"
-has_inner_box 1
-inner_pos "t"
-use_parbox 0
-use_makebox 0
-width "100col%"
-special "none"
-height "1in"
-height_special "totalheight"
-thickness "0.4pt"
-separation "3pt"
-shadowsize "4pt"
-framecolor "black"
-backgroundcolor "none"
-status open
-
-\begin_layout Plain Layout
-\begin_inset Graphics
-	filename box_4_distribution.png
-	lyxscale 60
-	scale 55
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset Caption Standard
-
-\begin_layout Plain Layout
-\begin_inset CommandInset label
-LatexCommand label
-name "fig:boxplot"
-
-\end_inset
-
-Boxplot generated from ddg2stemplot run using 3I3C.
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Float figure
-placement H
-wide false
-sideways false
-status open
-
-\begin_layout Plain Layout
-\begin_inset Box Frameless
-position "t"
-hor_pos "c"
-has_inner_box 1
-inner_pos "t"
-use_parbox 0
-use_makebox 0
-width "100col%"
-special "none"
-height "1in"
-height_special "totalheight"
-thickness "0.4pt"
-separation "3pt"
-shadowsize "4pt"
-framecolor "black"
-backgroundcolor "none"
-status open
-
-\begin_layout Plain Layout
-\begin_inset Graphics
-	filename violin_4_distribution.png
-	lyxscale 60
-	scale 55
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset Caption Standard
-
-\begin_layout Plain Layout
-\begin_inset CommandInset label
-LatexCommand label
-name "fig:violinplot"
-
-\end_inset
-
-Violinplot generated from ddg2distribution run using 3I3C.
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Float figure
-placement H
-wide false
-sideways false
-status open
-
-\begin_layout Plain Layout
-\begin_inset Box Frameless
-position "t"
-hor_pos "c"
-has_inner_box 1
-inner_pos "t"
-use_parbox 0
-use_makebox 0
-width "100col%"
-special "none"
-height "1in"
-height_special "totalheight"
-thickness "0.4pt"
-separation "3pt"
-shadowsize "4pt"
-framecolor "black"
-backgroundcolor "none"
-status open
-
-\begin_layout Plain Layout
-\begin_inset Graphics
-	filename scatter_4_distribution.png
-	lyxscale 60
-	scale 55
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset Caption Standard
-
-\begin_layout Plain Layout
-\begin_inset CommandInset label
-LatexCommand label
-name "fig:scatterplot"
-
-\end_inset
-
-Scatterplot generated from ddg2stemplot run using 3I3C.
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
 \begin_layout Subsection
-Histogram plots
+Histogram.
 \end_layout
 
 \begin_layout Standard
-The ddg2hist tool can be used to generate bar plots showing the distribution
+The ddg2histo tool can be used to generate bar plots showing the distribution
  of mutatex ∆∆G values for every mutation in a specific wildtype amino acid.
  The user may define any number of wildtype amino acids to plot, as long
  as they are available in the predefined data set.
- Running the ddg2hist tool requires the same mandatory parameters as ddg2distrib
-ution and ddg2matrix: the path to the “results” directory (either final_averages
- or a specific protein model of interest), original model.pdb file and a
- list of mutations.
+ Running the ddg2histo tool requires the same mandatory parameters as ddg2distri
+bution and ddg2matrix: the path to the “results” directory (either final_average
+s or a specific protein model of interest), original model.pdb or checked
+ and repaired model.pdb and a list of mutations.
 \end_layout
 
 \begin_layout Standard
@@ -2342,12 +2089,12 @@ status open
 
 \begin_layout Plain Layout
 
-ddg2hist -d results/final_averages 
+ddg2histo -d results/mutation_ddgs/final_averages -p 
 \end_layout
 
 \begin_layout Plain Layout
 
--p singel_model.pdb -l mutation_list.txt
+singel_model.pdb -l mutation_list.txt
 \end_layout
 
 \end_inset
@@ -2418,7 +2165,7 @@ Residues have to be selected by simple single residue names.
 \end_layout
 
 \begin_layout Standard
-For a full list of user specified options see the ddg2hist help option.
+For a full list of user specified options see the ddg2histo help option.
 \end_layout
 
 \begin_layout Standard
@@ -2436,9 +2183,30 @@ ddg2hist -h
 
 \end_layout
 
+\begin_layout Subsection
+PDB file and matrix file.
+ 
+\end_layout
+
 \begin_layout Standard
-The example below shows the command for running ddg2hist on a small selection
- of residues using 3I3C.
+The ddg2pdb tool can be used to analyse ∆∆G differences by plotting them
+ as b-factors in the PDB files, as well as by writing out input files compatible
+ with the 
+\series bold
+xPyder PyMOL plugin
+\series default
+.
+ Running ddg2pdb requires the path to the “results” directory (either final_aver
+ages or a specific protein model of interest), original or checked and repaired
+ model.pdb and a list of mutations.
+ Additionally, an upper and lower cut-off of protein ∆∆G is needed, as the
+ tool will save for each residue the number of mutations which are within
+ the specified parameters.
+ Default cut-off values are: lower = -99999.0 and upper = 99999.0.
+ If the ddg2pdb option -t is set to "between" the tool will extract the
+ values between upper and lower.
+ Alternatively -t may be set to "outside" specifying that everything < then
+ the lower cut-off and/or everything  > than the upper sould be included.
 \end_layout
 
 \begin_layout Standard
@@ -2448,217 +2216,22 @@ status open
 
 \begin_layout Plain Layout
 
-ddg2hist -p 
+ddg2pdb -d results/mutation_ddgs/final_averages -p 
 \end_layout
 
 \begin_layout Plain Layout
 
-3i3c_edit_model0_checked_Repair.pdb -d 
+singel_model.pdb a -99999.0 -b 99999.0 -t between 
 \end_layout
 
 \begin_layout Plain Layout
 
-/results/final_averages/ -l mutation_list.txt 
-\end_layout
-
-\begin_layout Plain Layout
-
--r AA16-AA30,AD16
+-l mutation_list.txt -o my_scanned.pdb -m my_scanned.mat   
 \end_layout
 
 \end_inset
 
 
-\end_layout
-
-\begin_layout Standard
-This resulted in a total of 16 plots.
- You can see 3 of the plots in figure 
-\begin_inset CommandInset ref
-LatexCommand ref
-reference "fig:histogram"
-
-\end_inset
-
- on page 
-\begin_inset CommandInset ref
-LatexCommand pageref
-reference "fig:histogram"
-
-\end_inset
-
-.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Float figure
-placement H
-wide false
-sideways false
-status open
-
-\begin_layout Plain Layout
-\begin_inset ERT
-status open
-
-\begin_layout Plain Layout
-
-
-\backslash
-vspace*{-3.5cm}
-\end_layout
-
-\end_inset
-
-
-\begin_inset Box Frameless
-position "t"
-hor_pos "c"
-has_inner_box 1
-inner_pos "t"
-use_parbox 0
-use_makebox 0
-width "100col%"
-special "none"
-height "1in"
-height_special "totalheight"
-thickness "0.4pt"
-separation "3pt"
-shadowsize "4pt"
-framecolor "black"
-backgroundcolor "none"
-status open
-
-\begin_layout Plain Layout
-\begin_inset Graphics
-	filename AB16_AD16_histogram.png
-	lyxscale 55
-	scale 50
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset Box Frameless
-position "t"
-hor_pos "c"
-has_inner_box 1
-inner_pos "t"
-use_parbox 0
-use_makebox 0
-width "100col%"
-special "none"
-height "1in"
-height_special "totalheight"
-thickness "0.4pt"
-separation "3pt"
-shadowsize "4pt"
-framecolor "black"
-backgroundcolor "none"
-status open
-
-\begin_layout Plain Layout
-\begin_inset Graphics
-	filename GA18_histogram.png
-	lyxscale 55
-	scale 50
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset Box Frameless
-position "t"
-hor_pos "c"
-has_inner_box 1
-inner_pos "t"
-use_parbox 0
-use_makebox 0
-width "100col%"
-special "none"
-height "1in"
-height_special "totalheight"
-thickness "0.4pt"
-separation "3pt"
-shadowsize "4pt"
-framecolor "black"
-backgroundcolor "none"
-status open
-
-\begin_layout Plain Layout
-\begin_inset Graphics
-	filename IA28_histogram.png
-	lyxscale 55
-	scale 50
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset Caption Standard
-
-\begin_layout Plain Layout
-\begin_inset CommandInset label
-LatexCommand label
-name "fig:histogram"
-
-\end_inset
-
-Barplot of AB16_AD16, GA18 and IA28 ∆∆G values generated from ddg2hist using
- 3I3C.
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Subsection
-PDB file and matrix file.
- 
-\end_layout
-
-\begin_layout Standard
-The ddg2pdb tool can be used to analyse ∆∆G differences by plotting them
- as b-factors in PDB files, as well as writing input files compatible with
- the xPyder PyMOL plugin.
- Running ddg2pdb requires the path to the “results” directory (either final_aver
-ages or a specific protein model of interest), original model.pdb file and
- list of mutations.
- Additionally, an upper and lower cut-off of protein ∆∆G is needed, as the
- tool will save for each residue the number of mutations which are within
- the specified parameters.
- Default cut-off values are: lower = -99999.0 and upper = 99999.0.
- If the ddg2pdb option -t is set to "between" the tool will extract the
- values between upper and lower.
- Alternatively -t may be set to "outside" specifying that everything < then
- the lower cut-off and/or everything  > than the upper sould be included.
 \end_layout
 
 \begin_layout Standard
@@ -2673,41 +2246,6 @@ status open
 \begin_layout Plain Layout
 
 ddg2pdb -h 
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The example below shows the command for running ddg2pdb using 2KLZ, the
- tandem UIM domain of Ataxin-3.
- The mutation_list.txt is the default including all 20 natural occurring
- amino acids.
- Cut-offs are set to between lower = 3.0 and upper = 99999.0 in order to capture
- only the mutations which leads to a destabilising free energy of > 3.0.
-  
-\end_layout
-
-\begin_layout Standard
-\begin_inset listings
-inline false
-status open
-
-\begin_layout Plain Layout
-
-ddg2pdb -d results/final_averages -i 2KLZ.pdb -a 3.0 
-\end_layout
-
-\begin_layout Plain Layout
-
--b 99999.0 -t between -l mutation_list.txt 
-\end_layout
-
-\begin_layout Plain Layout
-
--o my_scanned.pdb -m my_scanned.mat   
 \end_layout
 
 \end_inset
@@ -2733,7 +2271,7 @@ https://github.com/ELELAB/xpyder
 \end_layout
 
 \begin_layout Subsection
-Excel Sheet
+Excel Sheet.
 \end_layout
 
 \begin_layout Standard
@@ -2750,12 +2288,1854 @@ status open
 
 \begin_layout Plain Layout
 
-ddg2xlsx -d results/final_averages -p simple_model.pdb
+ddg2xlsx -d results/mutation_ddgs/final_averages -p 
 \end_layout
 
 \begin_layout Plain Layout
 
--l mutation_list.txt -o my_excel_sheet   
+singel_model.pdb -l mutation_list.txt -o my_excel_sheet   
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Examples of analysis with MutateX
+\end_layout
+
+\begin_layout Subsection
+A free state example - Tandem UIM Domain of Ataxin-3
+\end_layout
+
+\begin_layout Standard
+In the example below we show how to use the plotting tools from section
+ 6 on a single chain protein in a free state (e.g.
+ no P-P interface).
+ The pdb structure belongs to the tandem UIM domain of Ataxin-3 seen below
+ - for more information the structure may be found at: (
+\begin_inset Flex URL
+status open
+
+\begin_layout Plain Layout
+
+https://www.rcsb.org/structure/2klz
+\end_layout
+
+\end_inset
+
+).
+ The code box shows the mutateX run (see section 4.3) with the tandem UIM
+ domain of Ataxin-3 pdb structure, 2KLZ.
+ We use foldX suite version 6 with 5 cores to make it fast and we specify
+ that we want to generate a log-file to keep track of our run.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\noindent
+\align center
+\begin_inset Graphics
+	filename plots/single.png
+	lyxscale 30
+	scale 120
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Structure of UIM tandem domain of Ataxin-3.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+mutatex 2KLZ_onemodel.pdb --mutlist mutation_list.txt 
+\end_layout
+
+\begin_layout Plain Layout
+
+--foldx -log --foldx-version suite4 --np 5
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Heatmaps.
+ 
+\end_layout
+
+\begin_layout Standard
+First we generate the heatmap of ∆∆G values.
+ The code box contains the command for running ddg2matrix using the 2KLZ
+ pdb structure - see Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:heatmap"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ The mutation_list.txt is the default including all 20 natural occurring
+ amino acids.
+ For an improved visualization we cut the heatmap into sub-plots of up to
+ 25 aminoacids per plot, by specifying the option -s.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2matrix -d results/mutation_ddgs/final_averages -p 
+\end_layout
+
+\begin_layout Plain Layout
+
+2KLZ_onemodel.pdb -l mutation_list.txt -s 25 -o 2KLZ_heatmap 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/0_my_heatmap.pdf
+	lyxscale 40
+	scale 35
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/1_my_heatmap.pdf
+	lyxscale 40
+	scale 35
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:heatmap"
+
+\end_inset
+
+Heatmaps generated from ddg2matrix run using 2KLZ.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+From the heatmaps above it appears as if the leucine at position 14 (LA14),
+ isoleucine at position 34 (IA34), methionine at position 38 (MA38) and
+ glycine at position 40 (GA40) are all important for protein stability.
+ This conclusion is based on the fact that substitution of these four residues
+ to almost any other aminoacid is associated with an increase of ∆∆G.
+ 
+\end_layout
+
+\begin_layout Standard
+Also, not suprisingly, we see that substitution of a wild-type residue with
+ proline is generally detrimental for protein stability.
+ This observation is related to the fact that prolines R-group folds back
+ on itself to form a ring structure with the amino group of the backbone
+ causing a “kink”.
+ This “kink” makes the residue ridget and prevents the proline’s amino group
+ from participating in the hydrogen-bonding of secondary structures such
+ as alpha helices.
+\end_layout
+
+\begin_layout Subsubsection
+Distribution Plots.
+ 
+\end_layout
+
+\begin_layout Standard
+The example below shows the command for running ddg2distribution for all
+ types of plots using 2KLZ.
+ For the stemplot the y-axis is limited to +5 and -2 to give a better plot
+ scale, these parameter were picked by first running the ddg2distribution
+ tool with no cut-offs, inspecting the plot output, and then re-running
+ the tool with a more appropriate y-limit.
+ 
+\end_layout
+
+\begin_layout Standard
+For the scatter plots the ddg2distribution tools has an option (-u) to label
+ the top most destabilizing mutations, the cutoff for which is user specified.
+ In the example 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:scatterplot"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ below the top 10 mutations in each plot (20 mutations in total) were labeled.
+ 
+\end_layout
+
+\begin_layout Standard
+The mutation_list.txt is the default file containing all 20 natural occurring
+ amino acids.
+ The resulting plots can be seen in figures; 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:stemplot"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:boxplot"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:violinplot"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:scatterplot"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, respectively.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2distribution -d results/mutation_ddgs/final_averages 
+\end_layout
+
+\begin_layout Plain Layout
+
+-p 2KLZ_onemodel.pdb -l mutation_list.txt -T stem box 
+\end_layout
+
+\begin_layout Plain Layout
+
+violin scatter -s 25 -n -2 -x 5 -u 10
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/stem_0_energies.pdf
+	lyxscale 40
+	scale 35
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/stem_1_energies.pdf
+	lyxscale 40
+	scale 35
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:stemplot"
+
+\end_inset
+
+Stemplots generated from ddg2distribution run using 2KLZ.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/box_0_energies.pdf
+	lyxscale 40
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/box_1_energies.pdf
+	lyxscale 40
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:boxplot"
+
+\end_inset
+
+Boxplots generated from ddg2distribution run using 2KLZ.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/violin_0_energies.pdf
+	lyxscale 40
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/violin_1_energies.pdf
+	lyxscale 40
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:violinplot"
+
+\end_inset
+
+Violinplots generated from ddg2distribution run using 2KLZ.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/scatter_0_energies.pdf
+	lyxscale 40
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/scatter_1_energies.pdf
+	lyxscale 40
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:scatterplot"
+
+\end_inset
+
+Scatterplots generated from ddg2distribution run using 2KLZ.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Histograms.
+ 
+\end_layout
+
+\begin_layout Standard
+The code box shows the command line for running ddg2histo using the four
+ residue positions which appeared to be most important for protein stability,
+ based on the heatmaps in 
+\series bold
+Figure
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:heatmap"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+
+\series default
+, page 
+\begin_inset CommandInset ref
+LatexCommand pageref
+reference "fig:histogram"
+
+\end_inset
+
+.
+ The mutation_list.txt is the default file containing all 20 natural occurring
+ amino acids, we specify the pdb structure file and the labels of the residues
+ of interest in a list format with the option -r.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2histo -p 2KLZ_onemodel.pdb -d /results/mutation_ddgs/
+\end_layout
+
+\begin_layout Plain Layout
+
+final_averages/ -l mutation_list.txt -r LA14,IA34,MA38,GA40
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The barplots in 
+\series bold
+figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:histogram"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+
+\series default
+ (page 
+\begin_inset CommandInset ref
+LatexCommand pageref
+reference "fig:histogram"
+
+\end_inset
+
+) allow us to obtain a better understanding of how tolerated a given substitutio
+n is for each of the four most important residues.
+ For example, the top left plot in 
+\series bold
+figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:histogram"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ 
+\series default
+highlights that mutation of wild-type leucine at position 14, which is a
+ hydrohopic amino acid, to another residue carrying a hydrophobic side chain
+ (I, M, F, W, Y), does not significantly increase ∆∆G.
+ 
+\end_layout
+
+\begin_layout Subsubsection
+PDB file and matrix file.
+ 
+\end_layout
+
+\begin_layout Standard
+The MutateX tool ddg2pdb allows us to generate a pdb file with b-factors
+ so we can gradient color our structure in Pymol.
+ The example below shows the command for running ddg2pdb using 2KLZ, the
+ tandem UIM domain of Ataxin-3.
+ The mutation_list.txt is the default including all 20 natural occurring
+ amino acids.
+ Cut-offs are set to between lower = 2.0 and upper = 99999.0 in order to capture
+ only the mutations which leads to a destabilising free energy of > 2.0.
+ This lower cut-off is picked from the heatmaps and scatterplots above.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2pdb -d results/mutation_ddgs/final_averages -i 
+\end_layout
+
+\begin_layout Plain Layout
+
+2KLZ_onemodel.pdb-a 2.0 -b 99999.0 -T between -l 
+\end_layout
+
+\begin_layout Plain Layout
+
+mutation_list.txt -o 2KLZ_scanned.pdb -m 2KLZ_scanned.mat   
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The output generated by ddg2pdb is a pdb structure file and a corresponding
+ .mat files, which may be visualised with the xPyder plugin for PyMOL, available
+ at 
+\begin_inset Flex URL
+status open
+
+\begin_layout Plain Layout
+
+https://github.com/ELELAB/xpyder
+\end_layout
+
+\end_inset
+
+.
+ 
+\series bold
+Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:StructureUIM"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+
+\series default
+ (page 
+\begin_inset CommandInset ref
+LatexCommand pageref
+reference "fig:StructureUIM"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+) shows the structure of the UIM domain colored by b-factor, from yellow
+ –> red (red indicating higher ∆∆Gs).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/LA14_histogram.pdf
+	lyxscale 40
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/IA34_histogram.pdf
+	lyxscale 40
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/MA38_histogram.pdf
+	lyxscale 40
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/GA40_histogram.pdf
+	lyxscale 40
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:histogram"
+
+\end_inset
+
+Barplots of LA14, IA34, MA38 and GA40 ∆∆G values generated from ddg2histo
+ using 2KLZ.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+\noindent
+\align center
+\begin_inset Graphics
+	filename plots/bfactor.png
+	lyxscale 40
+	scale 20
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:StructureUIM"
+
+\end_inset
+
+Structure of UIM tandem domain of Ataxin-3, colored by b-factor.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+A protein-protein interface example - BimL12F in complex with Bcl-xL
+\end_layout
+
+\begin_layout Standard
+In this example we will illustrate how MutateX may be used to model the
+ effects of mutation at protein-protein interfaces.
+ The protein complex below, Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:StructureBimBcl"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, is BimL12F in complex with Bcl-xL, for more information have a look at
+ 
+\begin_inset Flex URL
+status open
+
+\begin_layout Plain Layout
+
+https://www.rcsb.org/structure/3IO8
+\end_layout
+
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+\noindent
+\align center
+\begin_inset Graphics
+	filename plots/complex.png
+	lyxscale 30
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:StructureBimBcl"
+
+\end_inset
+
+ Structure of the BimL12F peptide in complex with Bcl-xL.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Essentially mutateX is run in exactly the same way for complexes as with
+ free-state proteins, but we have to add the option - -binding-interface
+ to specify that we are interested in the difference in free energy of unfolding
+ (
+\begin_inset Formula $\Delta\Delta G$
+\end_inset
+
+) at the protein-protein interface.
+ The code box shows the mutateX run (see section 4.3) with the BimL12F -
+ Bcl-xL pdb structure, 3IO8.
+ We use foldX suite version 6 with 10 cores to make it fast and we specify
+ that we are interested in a log-file to keep track of our run.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+mutatex 3IO8_onemodel.pdb --mutlist mutation_list.txt 
+\end_layout
+
+\begin_layout Plain Layout
+
+--binding-interface --foldx -log --foldx-version suite4 --np 10
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Heatmaps.
+ 
+\end_layout
+
+\begin_layout Standard
+We generate the heatmap of ∆∆G values for all wild-type residue substitutions.
+ The code box contains the command for running ddg2matrix using the 3IO8
+ pdb structure - see Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:HeatmapsComplex"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ The mutation_list.txt is the default including all 20 natural occurring
+ amino acids.
+ Seeing as we are interested in the differences of interface ∆∆G values,
+ we should remember to specify the correct path to these results.
+ The 3IO8 pdb is decently large (197 residues + 22 residues) and as such
+ the heatmap should be split into multiple plots.
+ One way to do this would be to specify the -s parameter and custom pick
+ how many residues we want in each plot.
+ If we do not specify -s, then the ddg2matrix tool will automatically decide
+ where to split the heatmap for us (default = 20 aa per plot).
+ To ensure that colors will not be 
+\begin_inset Quotes eld
+\end_inset
+
+truncated
+\begin_inset Quotes erd
+\end_inset
+
+ due to a small number of highly destabilizing WT positions, we scale the
+ heatmap using the -n (lower) and -x (upper) limit parameters.
+ We set the lower bound to -2 and the upper bound to +5, see:
+\color orange
+ REFERENCE TO ARTICLE
+\color inherit
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2matrix -d results/interface_ddgs/final_averages/A-B -p 
+\end_layout
+
+\begin_layout Plain Layout
+
+3IO8_onemodel.pdb -l mutation_list.txt -o 3IO8_interfaceHP
+\end_layout
+
+\begin_layout Plain Layout
+
+-n -2.5 -x 5
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The run above results in nine heatmaps of ~ 20 residues per plot.
+ Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:HeatmapsComplex"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ shows four of the nine heatmaps:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/0_interface.pdf
+	lyxscale 40
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/1_interface.pdf
+	lyxscale 40
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/2_interface.pdf
+	lyxscale 40
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/3_interface.pdf
+	lyxscale 40
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:HeatmapsComplex"
+
+\end_inset
+
+Four out of nine heatmaps produced by ddg2distribution using pdb 3IO8.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+As seen from figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:HeatmapsComplex"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ above, some of the heatmap sections show no changes in ∆∆Gs (all blue),
+ this is because these regions are not located at the protein-protein interface,
+ e.g.
+ they do not directly participate in the protein-peptide interaction.
+ Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:BimBclsections"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ shows the structure of the BimL12F - Bcl-xL complex, the yellow areas correspon
+d to the residue sequence of the 4 heatmap sections depicted above in figure
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:HeatmapsComplex"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ The red color indicates positions which are very important for interface
+ stability as mutations of these to almost any other residue than the wild-type
+ results in increased free energy.
+ The structure in figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:BimBclsections"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ has three arrows which indicate the path though the heatmaps in figure
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:HeatmapsComplex"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ The black arrow shows the interface between the small BimL12F peptide and
+ Bcl-xL, corresponding to the upper left heatmap + first 3 residue of the
+ upper right heatmap.
+ The pink arrow shows residues 1-89 of Bcl-xL depicted in the upper right
+ and lower left heatmaps and lastly the green arrow shows residues 90-112
+ corresponding to the lower right heatmap in figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:HeatmapsComplex"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\noindent
+\align center
+\begin_inset Graphics
+	filename plots/interfaceddgs.png
+	lyxscale 40
+	scale 18
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:BimBclsections"
+
+\end_inset
+
+ 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Other Plots.
+ 
+\end_layout
+
+\begin_layout Standard
+Visualization of interface ∆∆Gs is performed using the exact same command
+ line as for a free state protein.
+ In the example below we generated stemplots using the ddg2distribution
+ tool.
+ For this particular complex we chose to run the visualization tool twice
+ varying the parameter -x (maximum on y-axis) in order to obtain appropriate
+ limits on the plots.
+ The reason for this was that two mutations AB59 (alanine at position 59
+ in BimL12F) and GB66 (glycine at position 66 in BimL12F), see top left
+ panel of figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:HeatmapsComplex"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, were so extreme that they distorted the plot scales and therefore required
+ a separate y-limit.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2distribution -d results/mutation_ddgs/final_averages 
+\end_layout
+
+\begin_layout Plain Layout
+
+-p 3IO8_onemodel.pdb -l mutation_list.txt -T stem -n -2 -x 5
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/stemcomplex_0_energies.pdf
+	lyxscale 40
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/stemcomplex_1_energies.pdf
+	lyxscale 40
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/stemcomplex_2_energies.pdf
+	lyxscale 40
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "45col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename plots/stemcomplex_3_energies.pdf
+	lyxscale 40
+	scale 30
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:StemComplex"
+
+\end_inset
+
+Four out of nine stemplots produced by ddg2distribution using pdb 3IO8.
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \end_inset
