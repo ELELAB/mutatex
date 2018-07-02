@@ -41,9 +41,6 @@ for k,v in ptm_residues.iteritems():
     PDB.Polypeptide.dindex_to_3[idx] = v
     idx += 1
 
-print PDB.Polypeptide.three_to_one("PTR")
-
-
 def get_residue_list(structure, multimers=True):
 
     models = structure.get_list()
