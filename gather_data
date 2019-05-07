@@ -19,6 +19,7 @@
 
 import argparse
 import os
+from Bio import PDB
 
 def parse_ddg_file(fname, reslist, thisres):
     try:
@@ -56,27 +57,27 @@ def parse_mutation_list(fname):
         muts["%s%s%s"%(res[1],res[0],res[2:-1])].append(res[-1])
     return muts
 
+ptm_residues = {"y": "PTR",
+                "p": "TPO",
+                "s": "SEP",
+                "h": "HYP",
+                "z": "TYS",
+                "k": "MLZ",
+                "m": "MLY",
+                "l": "M3L",
+                "o": "H1S",
+                "e": "H2S",
+                "f": "H3S"}
 
-three2one = {'ALA':'A',
-             'CYS':'C',
-             'ASP':'D',
-             'GLU':'E',
-             'PHE':'F',
-             'GLY':'G',
-             'HIS':'H',
-             'ILE':'I',
-             'LYS':'K',
-             'LEU':'L',
-             'MET':'M',
-             'ASN':'N',
-             'PRO':'P',
-             'GLN':'Q',
-             'ARG':'R',
-             'SER':'S',
-             'THR':'T',
-             'VAL':'V',
-             'TRP':'W',
-             'TYR':'Y'}
+len_three2one = len(PDB.Polypeptide.d1_to_index)
+idx=len_three2one
+for k,v in ptm_residues.iteritems():
+    PDB.Polypeptide.d1_to_index[k] = idx
+    PDB.Polypeptide.dindex_to_1[idx] = k
+
+    PDB.Polypeptide.d3_to_index[v] = idx
+    PDB.Polypeptide.dindex_to_3[idx] = v
+    idx += 1
 
 LOGFMT = "%(levelname)s: %(message)s"
 
@@ -136,9 +137,9 @@ bad = []
 
 for chain in model:
     for res in chain:
-        try:
-            this_type = three2one[res.get_resname()]
-        except:
+        if True:
+            this_type = PDB.Polypeptide.three_to_one(res.get_resname())
+        else:
             log.warning("residue %s, %s, %d not recognized. It will be skipped." % (res.get_resname(), chain.get_id(), res.get_id()[1]))
             continue
 
@@ -146,13 +147,15 @@ for chain in model:
 
         fname = "%s%s%d" % (res_ids[-1][2],res_ids[-1][0],res_ids[-1][1])
         fpos = "%s/%s" % (options.dir, fname)
-        if not os.path.isfile(fpos):
-            log.info("File %s does not exist; skipping" % fname)
-            continue
 
         if fname not in mutation_list.keys():
             log.info("Residue %s not in list; skipping" % fname)
             continue
+
+        if not os.path.isfile(fpos):
+            log.warning("File %s does not exist; skipping" % fname)
+            continue
+
         try: 
             data.append(np.loadtxt(fpos))
         except:
