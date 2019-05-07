@@ -137,9 +137,9 @@ bad = []
 
 for chain in model:
     for res in chain:
-        if True:
+        try:
             this_type = PDB.Polypeptide.three_to_one(res.get_resname())
-        else:
+        except:
             log.warning("residue %s, %s, %d not recognized. It will be skipped." % (res.get_resname(), chain.get_id(), res.get_id()[1]))
             continue
 
