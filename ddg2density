@@ -16,8 +16,6 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-# Imports
 import matplotlib
 matplotlib.use('Agg')
 matplotlib.rcParams['savefig.format'] = u'pdf'
@@ -72,7 +70,6 @@ def parse_file(fname):
         exit(1)
 
     return(values)
-
 
 def get_residue_list(structure, multimers=True):
 
@@ -141,26 +138,25 @@ def pdbmodel(residue_list, d):
 
     #Make remove array
 #     remove = [d[r] for r in res_restypes]
-    for r in res_restypes:
-        if r in d:
-            remove.append(1)
-        else:
-            remove.append(0)
-
     
     for fname in res_ids_str:
         this_data = parse_file("%s/%s" % (options.input_path, fname))
         data.append(np.array(this_data))
 
+    positions = []
+    for i,r in enumerate(res_restypes):
+        if r in d:
+            remove.append(d[r])
+            positions.append(i)
+
     data = np.vstack(data)
 
     N, K = data.shape[0], data.shape[1]
     mask = np.ones_like(data, dtype='bool')
-    mask[np.arange(data.shape[0]), remove] = 0
+    mask[[positions, remove]] = 0
     data = data[mask].reshape(N, K-1)
     data = data.tolist()
     data = [item for sublist in data for item in sublist]
-
     return data
 
 def densityplot(data, outfile, title, mycolor):
@@ -194,15 +190,12 @@ parser.add_argument("-l","--mutation_list", dest="mutations",  help="mutation_li
 parser.add_argument("-o","--output", dest="outfile", type=str, default="densityplot.pdf")
 parser.add_argument("-i","--title", dest='title', type=str, default=None, help="Title for the output image file")
 parser.add_argument("-c","--color", dest='mycolor', type=unicode, default="blue", help="Color used to plot the DDG values")
-parser.add_argument("-u","--ddgfile", dest="ddgfile", type=str, default="ddgvalues.dat", help="File containing all the used DDG values")
-parser.add_argument("-k","--kdvfile", dest="kdvfile", type=str, default="kdvvalues.dat", help="File containing calculated density values")
+parser.add_argument("-u","--ddgfile", dest="ddgfile.dat", type=str, default="ddgvalues.dat", help="File containing all the used DDG values")
+parser.add_argument("-k","--kdvfile", dest="kdvfile.dat", type=str, default="kdvvalues.dat", help="File containing calculated density values")
 parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false')
 
 options = parser.parse_args()
 
-
-
-# Parser
 pdb_parser = PDB.PDBParser()
 
 try:
@@ -210,9 +203,6 @@ try:
 except:
     log.error("Couldn't open or parse input pdb file. Exiting...")
     exit(1)
-
-
-# Mutation list
 
 try:
     fh = open(options.mutations, 'r')
@@ -222,17 +212,16 @@ muts = []
 for line in fh:
     mut = line.rstrip()
     muts.append(mut)
-print muts
 d = {}
 for value in muts:
     d[value] = muts.index(value)
-
 
 residue_list = get_residue_list(user_structure, multimers=options.multimers)
 
 user_data = pdbmodel(residue_list, d)
 
 ddgvalues = np.asarray(user_data)
+
 np.savetxt(options.ddgfile, ddgvalues, fmt='%.3f', newline='\n', header='DDG', footer='', comments='# ')
 
 densityplot(user_data, options.outfile, options.title, options.mycolor)
