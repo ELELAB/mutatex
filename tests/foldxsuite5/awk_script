@@ -1,0 +1,12 @@
+{	
+	for (i=1;i<=NF/2;i++) { 
+		print $i" "$(i+NF/2)" "$i-$(i+NF/2)
+		if ($i-$(i+NF/2)>0.0001) {
+			print "false"
+			exit 0
+		}
+	}
+	print "true"
+	exit 0
+}
+		
