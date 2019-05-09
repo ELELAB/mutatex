@@ -1,5 +1,5 @@
-#LyX 2.2 created this file. For more info see http://www.lyx.org/
-\lyxformat 508
+#LyX 2.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 544
 \begin_document
 \begin_header
 \save_transient_properties true
@@ -26,6 +26,8 @@
 \font_osf false
 \font_sf_scale 100 100
 \font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures false
 \graphics default
 \default_output_format default
 \output_sync 1
@@ -55,6 +57,7 @@
 \suppress_date false
 \justification true
 \use_refstyle 1
+\use_minted 0
 \index Index
 \shortcut idx
 \color #008000
@@ -63,7 +66,10 @@
 \tocdepth 3
 \paragraph_separation skip
 \defskip smallskip
-\quotes_language english
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
 \papercolumns 1
 \papersides 1
 \paperpagestyle default
@@ -83,14 +89,6 @@ MutateX
 
 \begin_layout Date
 Matteo Tiberti
-\end_layout
-
-\begin_layout Date
-4/11/2015
-\end_layout
-
-\begin_layout Section
-Introduction
 \end_layout
 
 \begin_layout Section
@@ -137,13 +135,31 @@ All the mentioned packages are available for free for Linux, Windows and
  binary and the associated rotabase.txt file should be available.
  Please refer to the FoldX website ( http://http://foldx.crg.es ) to aquire
  a copy.
- The only currently supported version is FoldX 3.0 beta 6.1 (i.
- e.
- the latest version as for 10/06/2015), and we plan on supporting newer
- versions as soon as they are released.
- The FoldX binary file should be readable and executable by the user who
- intends to run MutateX, and its location as well as that of the rotabase.txt
- file should be known.
+\end_layout
+
+\begin_layout Subsection
+Supported FoldX versions
+\end_layout
+
+\begin_layout Standard
+MutateX supports FoldX Suite version 4 and 5.
+\end_layout
+
+\begin_layout Standard
+The distribution for version 4 includes a rotabase.txt file which si necessary
+ for it to work; however, the FoldX Suite 5 binary generates its own rotabase
+ file and it's not a requirement as such.
+ See section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:Required-files"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ for details.
 \end_layout
 
 \begin_layout Section
@@ -233,8 +249,20 @@ in this case, the export line above should be added to the .profile or .bashrc
 This step is optional, but strongly advised.
  MutateX needs to know the location of the FoldX binary and rotabase.txt
  file in order to work.
- MutateX first looks for the location of this files by looking at the content
- of the FOLDX_BINARY and FOLDX_ROTABASE system variables.
+ Depending on the version you are using, you might need to provide the binary
+ file only (see section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:Required-files"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+ MutateX first tries to find these files looking at the content of the FOLDX_BIN
+ARY and FOLDX_ROTABASE system variables.
  Therefore, it is advisable to set these system variables in the .profile
  or .bashrc file in the user home, so that they the set everytime a terminal
  is opened.
@@ -397,9 +425,28 @@ reference "sec:Installation"
  respectively.
  If the command line options are supplied the content of the system variables
  is ignored.
- 
+ Notice that the rotabase file is a requirement for FoldX Suite 4 but not
+ for FoldX suite 5, namely:
 \end_layout
 
+\begin_deeper
+\begin_layout Itemize
+If you're using FoldX 4 the rotabase file needs to be supplied as described
+\end_layout
+
+\begin_layout Itemize
+If you're using FoldX 5, there's no need to supply a rotabase file as the
+ software will generate one automatically when it's not present.
+ However, if a rotabase file is specified in any of the options above, the
+ custom rotabase file will be used instead
+\end_layout
+
+\begin_layout Itemize
+You should make MutateX aware of the version you intend to use by using
+ the –foldx-version option, specifying either suite4 or suite5 accordingly
+\end_layout
+
+\end_deeper
 \begin_layout Itemize
 One (or more) PDB file, containing one (or more) models of the protein to
  be mutated.

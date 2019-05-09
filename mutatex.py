@@ -170,11 +170,17 @@ class EnergyReport:
                 log.error("Couldn't write file %s" % fname)
 
 class FoldXVersion:
-    def __init__(self, binary=None):
+    def __init__(self, binary=None, rotabase=None):
         if not binary is None:
             self.binary = os.path.abspath(binary)
         else:
             self.binary = None
+
+        if not rotabase is None:
+            self.rotabase = os.path.abspath(rotabase)
+        else:
+            self.rotabase = None
+
 
     version = None
     runfile_string = None
@@ -185,6 +191,7 @@ class FoldXVersion:
 class FoldXSuiteVersion4(FoldXVersion):
     version="suite4"
     runfile_string = "-f"
+    can_generate_rotabase = False
 
     len_dif_file_header = 9
     pdblist_fxout_prefix = "PdbList_"
@@ -282,8 +289,6 @@ class FoldXSuiteVersion4(FoldXVersion):
         energies = energies.reshape(len(this_run.mutlist.mutations),
                                         energies.shape[0]/len(this_run.mutlist.mutations))
 
-        print "NRG", energies
-
         return energies
 
     def get_mutation_pdb_fnames(self, directory, pdbs, run, WT=True, include_original=False):
@@ -350,12 +355,8 @@ class FoldXSuiteVersion4(FoldXVersion):
                         energies[prefix][idx].append(float(tmp[5]))
                     else:
                         energies[prefix][idx] = [float(tmp[5])]
-
-
                 fh.close()
-                print "From file %s: " %fname , energies[prefix][idx][-1], prefix, idx
 
-            print energies, '\n-------\n'
             for k,v in energies[prefix].iteritems():
                 v = np.array(v)
                 energies[prefix][k] = v.reshape((len(run.mutlist.mutations),
@@ -364,10 +365,6 @@ class FoldXSuiteVersion4(FoldXVersion):
         interaction_groups = set(energies[types[0]].keys() + energies[types[1]].keys())
 
         for ig in interaction_groups:
-            print "GR1", energies[types[0]][ig]
-            print "GR2", energies[types[1]][ig]
-            print "GR1-2", energies[types[0]][ig] - energies[types[1]][ig]
-
             delta_energies[ig] = energies[types[1]][ig] - energies[types[0]][ig]
 
         return delta_energies
@@ -377,7 +374,6 @@ class FoldXSuiteVersion4(FoldXVersion):
         with open("%s/%s" % (cwd,fname)) as fh:
             fsize = len(fh.readlines())
 
-        print fsize, self.len_dif_file_header, nruns*nmuts,
         if fsize-self.len_dif_file_header == nruns*nmuts:
             return True
         return False
@@ -391,7 +387,9 @@ class FoldXSuiteVersion4(FoldXVersion):
             return True
         return False
 
-
+class FoldXSuiteVersion5(FoldXSuiteVersion4):
+    version = "suite5"
+    can_generate_rotabase = True
 
 class FoldXRun(object):
 
@@ -406,7 +404,6 @@ class FoldXRun(object):
 
     def __init__(self,
                 name,
-                foldx_binary,
                 foldx_version,
                 base_directory,
                 pdbs,
@@ -415,7 +412,6 @@ class FoldXRun(object):
                 runfile_processing={},
                 prepare_finalization={},
                 output_processing={},
-                rotabase=None,
                 link_files=False,
                 write_log=False,
                 clean='partial',
@@ -430,13 +426,11 @@ class FoldXRun(object):
         self.runfile_content = runfile_content
         self.runfile_processing = runfile_processing
         self.prepare_finalization = prepare_finalization
-        self.foldx_binary = foldx_binary
         self.foldx_version = foldx_version
         if output_processing is None:
             self.output_processing = {}
         else:
             self.output_processing = output_processing
-        self.rotabase = rotabase
         self.link_files = link_files
         self.write_log = write_log
         self.do_clean = clean
@@ -485,9 +479,9 @@ class FoldXRun(object):
                 self.ready = False
                 return False
 
-        if self.rotabase:
+        if self.foldx_version.rotabase:
             try:
-                safe_cp(os.path.abspath(self.rotabase), os.path.join(self.working_directory, os.path.basename(os.path.abspath(self.rotabase))), dolink=self.link_files, doexit=False)
+                safe_cp(os.path.abspath(self.foldx_version.rotabase), os.path.join(self.working_directory, os.path.basename(os.path.abspath(self.foldx_version.rotabase))), dolink=self.link_files, doexit=False)
             except:
                 log.warning("Couldn't copy essential rotabase.txt for run %s; it will be skipped." % self.name)
                 self.ready = False
@@ -530,7 +524,7 @@ class FoldXRun(object):
             log.warning("Run %s is not ready; will not be run." % self.name)
             return False
 
-        runline = [self.foldx_binary, self.foldx_version.runfile_string, self.runfile_name]
+        runline = [self.foldx_version.binary, self.foldx_version.runfile_string, self.runfile_name]
         log.info("now running: %s" % self.name)
         log.info("command is %s" % " ".join(runline))
 
@@ -542,13 +536,11 @@ class FoldXRun(object):
         with open(this_stdout_str, 'w') as this_stdout:
             returncode = sp.call(runline, cwd=self.working_directory, stderr=sp.STDOUT, stdout=this_stdout)
 
-        print "RETURNCODE", returncode
         if returncode == 0:
             log.info("run %s has completed successfully" % self.name)
             self.finished = True
 
             self.process_output(**self.output_processing)
-            print "VEDIAMO_SETTING %s" % self.name, self.finished
             return True
         else:
             log.warning("FoldX exited with error for run %s!" % self.name)
@@ -560,7 +552,6 @@ class FoldXRun(object):
             return "not_done"
         else:
             log.warning("working directory %s already exists." % self.working_directory)
-            print "listdir", os.listdir(self.working_directory)
             for f in os.listdir(self.working_directory):
                 if f.endswith(".fxout"):
                     log.warning(".fxout files already exist in directory %s; run %s will be skipped" % (self.working_directory, self.name))
@@ -683,9 +674,9 @@ class FoldXMutateRun(FoldXRun):
                 self.ready = False
                 return False
 
-        if self.rotabase:
+        if self.foldx_version.rotabase:
             try:
-                safe_cp(os.path.abspath(self.rotabase), self.working_directory+"/"+os.path.basename(os.path.abspath(self.rotabase)), dolink=self.link_files, doexit=False)
+                safe_cp(os.path.abspath(self.foldx_version.rotabase), self.working_directory+"/"+os.path.basename(os.path.abspath(self.foldx_version.rotabase)), dolink=self.link_files, doexit=False)
             except:
                 log.warning("Couldn't copy essential rotabase.txt for run %s; it will be skipped." % self.name)
                 self.ready = False
@@ -739,7 +730,6 @@ class FoldXMutateRun(FoldXRun):
             dif_file_ok = True
             try:
                 for dif_file in set(map(os.path.basename, dif_files)):
-                    print len(self.mutlist.mutations), self.runfile_processing['nruns'], "CHECK"
                     if not self.foldx_version.check_dif_file_size(self.working_directory, dif_file, len(self.mutlist.mutations), self.runfile_processing['nruns']):
                         log.warning("File %s wasn't large as expected. The run didn't complete; it will be rerun." % dif_file)
                         dif_file_ok = False
@@ -791,10 +781,8 @@ class FoldXInterfaceRun(FoldXRun):
         self.runfile_name = mr.runfile_name
         self.runfile_content = ""
         self.prepare_finalization = mr.prepare_finalization
-        self.foldx_binary = mr.foldx_binary
         self.foldx_version = mr.foldx_version
         self.output_processing = {}
-        self.rotabase = mr.rotabase
         self.link_files = mr.link_files
         self.write_log = mr.write_log
         self.ready = False
@@ -813,15 +801,10 @@ class FoldXInterfaceRun(FoldXRun):
             log.error("Couldn't parse PdbList file %s!" % pdb_list)
 
     def check_status(self):
-        print self.mr.finished, "VEDIAMO"
 
         if not self.mr.finished:
-            print self.mr.finished
-            print self.mr.name
-            print self.mr
             return "interface_missing_data"
 
-        print "WD", self.working_directory
         if os.path.exists(self.working_directory):
             log.warning("working directory %s already exists." % self.working_directory)
             dif_files = self.foldx_version.get_interaction_fxout_fnames(self.working_directory, self.pdbs, self)
@@ -949,14 +932,10 @@ def parallel_foldx_run(foldx_runs, np):
 
     pool = mp.Pool(np)
 
-    print foldx_runs
-
     result = pool.imap_unordered(foldx_worker, foldx_runs)
 
     pool.close()
     pool.join()
-
-    print result
 
     return list(result)
 
@@ -1025,7 +1004,6 @@ def get_foldx_sequence(pdb, multimers=True):
                         continue
                     residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
 
-    print "AA", residue_list
     return tuple(residue_list)
 
 def save_energy_file(fname, data, fmt="%.5f", do_avg=True, do_std=False, do_min=False, do_max=False, axis=1):
@@ -1098,7 +1076,6 @@ def compress_mutations_dir(cwd, mutations_dirname, mutations_archive_fname='muta
         return
 
     try:
-        print mutations_dir_path
         fh.add(mutations_dir_path)
     except:
         log.warning("Couldn't build compressed archive. This step will be skipped.")
@@ -1119,7 +1096,7 @@ name_separator = "_"
 
 def main():
 
-    foldx_versions = [FoldXSuiteVersion4]
+    foldx_versions = [FoldXSuiteVersion4, FoldXSuiteVersion5]
 
     supported_foldx_versions = {v.version:v for v in foldx_versions}
 
@@ -1162,6 +1139,9 @@ def main():
 
     args = parser.parse_args()
 
+# Whether current foldx version can generate a rotabase file
+    foldx_can_generate_rotabase = supported_foldx_versions[args.foldx_version].can_generate_rotabase
+
 # Test whether the FoldX binary is available and executable
     if not args.foldx_binary:
         log.error("The FoldX binary must be provided, either by setting the FOLDX_BINARY system variable to the path of the executable or by using the --foldx-binary option. Exiting...")
@@ -1177,18 +1157,23 @@ def main():
 
 # Test whether the rotabase.txt file exists and is not a link
     if not os.path.isfile(args.rotabase):
-        log.error("The rotabase.txt (%s) is not a file or could not be found. Exiting..." % args.rotabase)
-        exit(1)
-
-    if os.path.islink(args.rotabase):
-        log.warning("The provided rotabase.txt file is a link. Be advised: in some occasions, FoldX has been reported to misbehave when rotabase.txt is provided as a link.")
+        if foldx_can_generate_rotabase:
+            log.warning("No rotabase.txt file specified or rotabase file not found - it will be generated by FoldX")
+            args.rotabase = None
+        else:
+            log.error("The rotabase.txt (%s) is not a file or could not be found. Exiting..." % args.rotabase)
+            exit(1)
+    else:
+        if foldx_can_generate_rotabase:
+            log.warning("The specified rotabase file will be used instead of allowing FoldX to generate one")
 
 # Set up FoldX version object
     if args.foldx_version not in supported_foldx_versions.keys():
         log.error("FoldX version %s not supported by this release. Exiting...")
         exit(1)
 
-    current_version = supported_foldx_versions[args.foldx_version](binary=args.foldx_binary)
+    current_version = supported_foldx_versions[args.foldx_version]( binary=args.foldx_binary,
+                                                                    rotabase=args.rotabase)
 
     log.info("FoldX version %s will be used" % current_version.version)
 
@@ -1239,12 +1224,10 @@ def main():
 
     for pdb in pdbs_list:
         repair_runs.append(FoldXRepairRun(name = "repair_"+os.path.splitext(pdb)[0],
-                                        foldx_binary = current_version.binary,
                                         foldx_version = current_version,
                                         base_directory = working_directory,
                                         pdbs = [pdb],
                                         runfile_content=load_runfile(args.repair_runfile_template),
-                                        rotabase = args.rotabase,
                                         link_files = args.use_links,
                                         write_log = args.write_log,
                                         clean = args.clean
@@ -1307,7 +1290,6 @@ def main():
             repaired_pdbs_list.remove(pdb)
             continue
         residues_list.append(get_foldx_sequence(pdb, multimers=args.multimers))
-        print residues_list
 
     unique_residues = tuple(set(residues_list))
     if len(unique_residues) != 1:
@@ -1320,7 +1302,6 @@ def main():
     for res in unique_residues:
         str_unique_residues += "(%s) " % ",".join(res)
     log.info("The following residue groups will be considered: %s" % str_unique_residues)
-    print unique_residues
 
     mutation_runs = []
 
@@ -1330,23 +1311,17 @@ def main():
         mutate_clean = args.clean
 
     for r in unique_residues:
-        print "errR", r
-        print "mres", mutation_reslist
 
         mutlist = MutationList(r, mutation_reslist, selfmutate=args.selfmutate)
 
-        print mutlist.res_groups
-        print mutlist.mutations
         name = name_separator.join(r)
         for pdb in repaired_pdbs_list:
             this_workdir = working_directory+"/"+os.path.splitext(os.path.basename(pdb))[0]
             mutation_runs.append(FoldXMutateRun(name = name,
-                                        foldx_binary = current_version.binary,
                                         foldx_version = current_version,
                                         base_directory = this_workdir,
                                         pdbs = [pdb],
                                         runfile_content = load_runfile(args.mutate_runfile_template),
-                                        rotabase = args.rotabase,
                                         link_files = args.use_links,
                                         write_log = args.write_log,
                                         runfile_processing = {"nruns":args.nruns},
