@@ -27,6 +27,7 @@ import re
 import numpy as np
 import tarfile as tar
 from Bio import PDB
+from six import iteritems
 
 ptm_residues = {"y": "PTR",
                 "p": "TPO",
@@ -42,7 +43,7 @@ ptm_residues = {"y": "PTR",
 
 len_three2one = len(PDB.Polypeptide.d1_to_index)
 idx=len_three2one
-for k,v in ptm_residues.iteritems():
+for k,v in iteritems(ptm_residues):
     PDB.Polypeptide.d1_to_index[k] = idx
     PDB.Polypeptide.dindex_to_1[idx] = k
 
@@ -125,7 +126,7 @@ class EnergyReport:
         assert(energy.shape[0] == 1)
         energy = energy[0]
 
-        if not pdb in self.energies.keys():
+        if not pdb in list(self.energies):
             self.energies[pdb] = []
             self.residues[pdb] = []
 
@@ -149,7 +150,7 @@ class EnergyReport:
         header = "\t".join(header_cols)
         fmt=["%8s"] + ["%10f" for f in header_cols]
 
-        for pdb,energies in self.energies.iteritems():
+        for pdb,energies in iteritems(self.energies):
 
             out = [self.residues[pdb]]
 
@@ -162,7 +163,7 @@ class EnergyReport:
             if do_max:
                 out.append(np.max(energies, axis=1))
 
-            out = np.array(zip(*out), dtype=dtype)
+            out = np.array(list(zip(*out)), dtype=dtype)
 
             try:
                 np.savetxt(os.path.join(directory, pdb, fname), out, fmt=fmt, header=header)
@@ -351,18 +352,18 @@ class FoldXSuiteVersion4(FoldXVersion):
                 for line in fh_lines[self.len_dif_file_header:]:
                     tmp = line.strip().split()
                     idx = frozenset((tmp[1], tmp[2]))
-                    if idx in energies[prefix].keys():
+                    if idx in list(energies[prefix]):
                         energies[prefix][idx].append(float(tmp[5]))
                     else:
                         energies[prefix][idx] = [float(tmp[5])]
                 fh.close()
 
-            for k,v in energies[prefix].iteritems():
+            for k,v in iteritems(energies[prefix]):
                 v = np.array(v)
                 energies[prefix][k] = v.reshape((len(run.mutlist.mutations),
                                       v.shape[0]/len(run.mutlist.mutations)))
 
-        interaction_groups = set(energies[types[0]].keys() + energies[types[1]].keys())
+        interaction_groups = set(list(energies[types[0]]) + list(energies[types[1]]))
 
         for ig in interaction_groups:
             delta_energies[ig] = energies[types[1]][ig] - energies[types[0]][ig]
@@ -774,7 +775,7 @@ class FoldXInterfaceRun(FoldXRun):
         else:
             pdb_basename = "".join(os.path.splitext(self.original_pdb)[:-1])
             self.pdb_list = mr.foldx_version.mutate_pdblist_fxout_output_fname(pdb_basename)
-            self.pdbs    = map(lambda x: os.path.join(mr.working_directory, x), self.parse_pdb_list(os.path.join(mr.working_directory, self.pdb_list)))
+            self.pdbs    = [os.path.join(mr.working_directory, x) for x in self.parse_pdb_list(os.path.join(mr.working_directory, self.pdb_list))]
 
         self.base_directory = mr.base_directory
         self.working_directory = mr.working_directory
@@ -986,7 +987,7 @@ def get_foldx_sequence(pdb, multimers=True):
 
     if multimers:
         collated_chains = []
-        seq_ids, seqs = zip(*list(sequences.iteritems()))
+        seq_ids, seqs = list(zip(*list(iteritems(sequences))))
         seq_ids = np.array(seq_ids)
         unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
 
@@ -1122,7 +1123,7 @@ def main():
     parser.add_argument('--self-mutate', dest="selfmutate", default=False, action="store_true", help="Ignore mutation list and perform mutation to the same residue")
     parser.add_argument('-x', '--foldx-binary', dest="foldx_binary", action='store', type=str, help="Location of the FoldX binary (default: content of the FOLDX_BINARY system variable", default=foldx_binary_var)
     parser.add_argument('--rotabase', dest="rotabase", action="store", type=str, help="Location of the FoldX rotabase.txt file (default: content of the FOLDX_ROTABASE system variable", default=foldx_rotabase_var)
-    parser.add_argument('--foldx-version', dest="foldx_version", action='store', choices=supported_foldx_versions.keys(), default=supported_foldx_versions.keys()[0], help="FoldX version to be used (possible options: %s" % ", ".join(supported_foldx_versions.keys()))
+    parser.add_argument('--foldx-version', dest="foldx_version", action='store', choices=list(supported_foldx_versions), default=list(supported_foldx_versions)[0], help="FoldX version to be used (possible options: %s" % ", ".join(supported_foldx_versions.keys()))
     parser.add_argument('-v', '--verbose', dest="verbose", default=False, action='store_true', help="Verbose mode")
     parser.add_argument('--foldx-log', dest="write_log", default=False, action='store_true', help="Write FoldX standard output on file for each run")
     parser.add_argument('-l','--use-links', dest="use_links", default=False, action='store_true', help="Use links instead of copying files as much as possibile")
@@ -1168,7 +1169,7 @@ def main():
             log.warning("The specified rotabase file will be used instead of allowing FoldX to generate one")
 
 # Set up FoldX version object
-    if args.foldx_version not in supported_foldx_versions.keys():
+    if args.foldx_version not in list(supported_foldx_versions):
         log.error("FoldX version %s not supported by this release. Exiting...")
         exit(1)
 
@@ -1242,9 +1243,9 @@ def main():
     log.info("Running repair runs")
     repair_outcome = parallel_foldx_run(repair_runs, np=args.np)
 
-    if False in zip(*repair_outcome)[1]:
+    if False in list(zip(*repair_outcome))[1]:
         log.error("The following repair runs failed to complete. Exiting...")
-    for i in filter(lambda x: x[1] == False, repair_outcome):
+    for i in [x for x in repair_outcome if x[1] == False]:
         log.error("\t%s" % i[0])
 
 # PHASE TWO: mutate + energy
@@ -1341,9 +1342,9 @@ def main():
         for i,outcome in enumerate(mutate_outcome):
             mutation_runs[i].finished = outcome
 
-        if False in zip(*mutate_outcome)[1]:
+        if False in list(zip(*mutate_outcome))[1]:
             log.warning("The following mutation runs failed to complete. The corresponding positions in sequence will be skipped.")
-        for i in filter(lambda x: x[1] == False, mutate_outcome):
+        for i in [x for x in mutate_outcome if x[1] == False]:
             log.warning("\t%s" % i[0])
             unique_residues.remove(i[0])
 
@@ -1370,7 +1371,7 @@ def main():
             interface_runs.append(this_interaction_run)
         log.info("Running interface runs")
         interface_outcome = parallel_foldx_run(interface_runs, np=args.np)
-        if False in zip(*interface_outcome)[1]:
+        if False in list(zip(*interface_outcome))[1]:
             log.warning("Some interface runs failed to complete.")
 
 
@@ -1395,7 +1396,7 @@ def main():
 
             #print "UQ", unique_residues
             #for i in mutation_runs: print i.name
-            this_runs = filter(lambda x: x.name == name, mutation_runs)
+            this_runs = [ x for x in mutation_runs if x.name == name ]
             #print this_runs, "THIS_RUNS"
             dobreak = False
             for r in this_runs:
@@ -1430,7 +1431,7 @@ def main():
             for res in unique_residues_str:
                 energies = {}
                 this_runs = []
-                tmp_this_runs = filter(lambda x: x.name == res, interface_runs)
+                tmp_this_runs = [ x for x in interface_runs if x.name == res ]
                 original_pdbs = list(set([r.original_pdb for r in tmp_this_runs]))
                 for op in original_pdbs:
                     this_runs.append(next((r for r in tmp_this_runs if r.original_pdb == op)))
@@ -1446,7 +1447,7 @@ def main():
                         log.warning("Couldn't parse energy file for PDB %s; mutation site %s will be skipped." % (pdb, r.name))
                         continue
 
-                    for k in this_energies.keys():
+                    for k in list(this_energies):
                         labels = tuple(sorted(list(k)))
                         this_wd = os.path.join(    working_directory,
                                                 "".join(os.path.splitext(os.path.basename(run.original_pdb))[:-1]),
@@ -1468,7 +1469,7 @@ def main():
                                                         do_max=True,
                                                         do_min=True)
 
-                for k,e in energies.iteritems():
+                for k,e in iteritems(energies):
                     labels = tuple(sorted(list(k)))
                     this_wd = os.path.join(working_directory, averages_dirname,
                                             "%s-%s" % labels)
