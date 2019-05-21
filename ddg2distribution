@@ -16,11 +16,12 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from six import iteritems
 import argparse
 import matplotlib
 import csv
 matplotlib.use('Agg')
-matplotlib.rcParams['savefig.format'] = u'pdf'
+matplotlib.rcParams['savefig.format'] = 'pdf'
 from Bio import PDB
 
 #Add extra ptm residues to PDB.Polypeptide three to one module 
@@ -37,7 +38,7 @@ ptm_residues = {"y": "PTR",
                 "f": "H3S"}
 len_three2one = len(PDB.Polypeptide.d1_to_index)
 idx=len_three2one
-for k,v in ptm_residues.iteritems():
+for k,v in iteritems(ptm_residues):
     PDB.Polypeptide.d1_to_index[k] = idx
     PDB.Polypeptide.dindex_to_1[idx] = k
     
@@ -75,7 +76,7 @@ def get_residue_list(structure, multimers=True):
 
     if options.multimers:
         collated_chains = []
-        seq_ids, seqs = zip(*list(sequences.iteritems()))
+        seq_ids, seqs = list(zip(*list(iteritems(sequences))))
         seq_ids = np.array(seq_ids)
         unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
         for i in np.unique(unique_idxs):
@@ -258,12 +259,10 @@ def plot_scatter(mat, xlabels, vmin, vmax, title=None, fontsize=8, topmuts=0, cm
     bottom=False,
     top=False,
     labelbottom=True)
-    print mat
+
     lv_offset=0.05
     lh_offset=0.3
-    #xtick_interval = mat.shape[1] / 10
-    #if xtick_interval == 0:
-    #    xtick_interval = 1
+
     xticks = np.arange(1, mat.shape[1]+1)
     xs = np.arange(1, mat.shape[1]+1)
     xt = ["" for t in xticks]
@@ -356,7 +355,7 @@ if options.colormap is not None:
     if not options.colormap in plt.colormaps():
         log.error("The supplied colormap is not supported. Exiting...")
         exit(1)
-    for k,v in colormaps.iteritems():
+    for k,v in iteritems(colormaps):
         colormaps[k] = options.colormap
 
 

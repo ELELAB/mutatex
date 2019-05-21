@@ -20,8 +20,9 @@ import argparse
 import matplotlib
 import re
 import csv
+from six import iteritems
 matplotlib.use('Agg')
-matplotlib.rcParams['savefig.format'] = u'pdf'
+matplotlib.rcParams['savefig.format'] = 'pdf'
 from Bio import PDB
 
 # Add extra ptm residues to PDB.Polypeptide three to one module 
@@ -38,7 +39,7 @@ ptm_residues = {"y": "PTR",
                 "f": "H3S"}
 len_three2one = len(PDB.Polypeptide.d1_to_index)
 idx=len_three2one
-for k,v in ptm_residues.iteritems():
+for k,v in iteritems(ptm_residues):
     PDB.Polypeptide.d1_to_index[k] = idx
     PDB.Polypeptide.dindex_to_1[idx] = k
     
@@ -75,7 +76,7 @@ def get_residue_list(structure, multimers=True):
 
     if options.multimers:
         collated_chains = []
-        seq_ids, seqs = zip(*list(sequences.iteritems()))
+        seq_ids, seqs = list(zip(*list(iteritems(sequences))))
         seq_ids = np.array(seq_ids)
         unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
 
@@ -177,8 +178,8 @@ def plot_hist(data, stds, res_order, vmin, vmax, residue, color = "white", title
         log.error("%s is not a valid color. For all valid color names check matplotlib.colors.cnames. Exiting..." % (color))
         exit(1)
     plt.title(residue +" - " + title)
-    plt.bar(range(len(res_order)), data, 1/1.6, color = color, align="center", yerr = stds)
-    plt.xticks(range(len(res_order)), res_order, rotation='vertical', size = fontsize)
+    plt.bar(list(range(len(res_order))), data, 1/1.6, color = color, align="center", yerr = stds)
+    plt.xticks(list(range(len(res_order))), res_order, rotation='vertical', size = fontsize)
     plt.xlim(-0.5, len(res_order))
     plt.ylim(vmin,vmax)
     plt.ylabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
