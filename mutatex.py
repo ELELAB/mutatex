@@ -1123,7 +1123,7 @@ def main():
     parser.add_argument('--self-mutate', dest="selfmutate", default=False, action="store_true", help="Ignore mutation list and perform mutation to the same residue")
     parser.add_argument('-x', '--foldx-binary', dest="foldx_binary", action='store', type=str, help="Location of the FoldX binary (default: content of the FOLDX_BINARY system variable", default=foldx_binary_var)
     parser.add_argument('--rotabase', dest="rotabase", action="store", type=str, help="Location of the FoldX rotabase.txt file (default: content of the FOLDX_ROTABASE system variable", default=foldx_rotabase_var)
-    parser.add_argument('--foldx-version', dest="foldx_version", action='store', choices=list(supported_foldx_versions), default=list(supported_foldx_versions)[0], help="FoldX version to be used (possible options: %s" % ", ".join(supported_foldx_versions.keys()))
+    parser.add_argument('--foldx-version', dest="foldx_version", action='store', choices=list(supported_foldx_versions), default=list(supported_foldx_versions)[0], help="FoldX version to be used (possible options: %s" % ", ".join(list(supported_foldx_versions)))
     parser.add_argument('-v', '--verbose', dest="verbose", default=False, action='store_true', help="Verbose mode")
     parser.add_argument('--foldx-log', dest="write_log", default=False, action='store_true', help="Write FoldX standard output on file for each run")
     parser.add_argument('-l','--use-links', dest="use_links", default=False, action='store_true', help="Use links instead of copying files as much as possibile")
@@ -1454,7 +1454,7 @@ def main():
                                                 "%s-%s" % labels)
                         safe_makedirs(this_wd)
                         #print "KEYIN", k
-                        if k not in energies.keys():
+                        if k not in list(energies):
                             energies[k] = [this_energies[k]]
                             #print "NOVEL"
                         else:
