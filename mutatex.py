@@ -26,6 +26,7 @@ import shutil
 import re
 import numpy as np
 import tarfile as tar
+import platform
 from Bio import PDB
 from six import iteritems
 
@@ -1137,6 +1138,8 @@ def main():
 
 # XXX: remove default verbose mode
     log.basicConfig(level=log.INFO)
+    log.info("MutateX logging started.")
+    log.info("Running on Python %s, the interpreter is %s" % (platform.python_version(), sys.executable))
 
     args = parser.parse_args()
 
