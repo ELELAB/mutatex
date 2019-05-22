@@ -174,7 +174,7 @@ def densityplot(data, outfile, title, mycolor):
     KDV = [KDE(i)[0] for i in linspace(xmin, xmax, spaces)]
     np.savetxt(options.kdvfile, list(zip(x,KDV)), fmt='%.3f', newline='\n', header='xaxis, kdv', footer='', comments='# ')
     plot(x,KDE(x),'r', c=mycolor)
-    hist(data, int(len(data)/10) , normed=1,alpha=.3, facecolor=mycolor)
+    hist(data, len(data)//10 , normed=1,alpha=.3, facecolor=mycolor)
     plt.xlabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
     plt.ylabel('Density')
     if title is not None:

@@ -185,8 +185,8 @@ def splice_data(data, labels, sv):
     if data.shape[1] <= sv:
         return [[data, labels]]
 
-    nsplice = data.shape[1] / int(sv)
-    rest =    data.shape[1] % int(sv)
+    nsplice = data.shape[1] // int(sv)
+    rest =    data.shape[1] %  int(sv)
 
     if rest != 0:
         nsplice += 1

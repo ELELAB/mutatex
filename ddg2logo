@@ -753,12 +753,12 @@ def parse_letters_png(pngfile, letters="ACDEFGHIKLMNPQRSTVWXYypshzkmloef"):
 
     png = imread(pngfile)
     side_length = png.shape[0]
-    if png.shape[1]%png.shape[0] != 0:
+    if png.shape[1] % png.shape[0] != 0:
         log.error("Input PNG file doesn't have the right shape (horizontal size is expected to be a multplie of vertical size)")
         raise TypeError
 
 
-    if png.shape[1]/png.shape[0] != len(letters):
+    if png.shape[1] // png.shape[0] != len(letters):
         log.error("Input PNG file does not contain the right number of letters")
         raise TypeError
 

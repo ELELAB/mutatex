@@ -188,8 +188,8 @@ def plot_single(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
     
     #Calculate non-overlapping label coordinates    
     fig_height = plt.gcf().get_figheight()
-    y_range = abs(plt.ylim()[0] - plt.ylim()[1])
-    fontsize_inch = (float(1) / 72) * 12    #label font size in inches
+    y_range = float(abs(plt.ylim()[0] - plt.ylim()[1]))
+    fontsize_inch = (1.0 / 72.0) * 12    #label font size in inches
     label_size = (y_range / fig_height) * fontsize_inch #Size of the labels on the y axis
     label_size *= 1.05  #Add margin to label size
     y_coords = np.copy(mat.T)
@@ -300,8 +300,8 @@ def splice_data(data, labels, sv):
     if data.shape[1] <= sv:
         return [[data, labels]]
 
-    nsplice = data.shape[1] / int(sv)
-    rest =    data.shape[1] % int(sv)
+    nsplice = data.shape[1] // int(sv)
+    rest =    data.shape[1] %  int(sv)
 
     if rest != 0:
         nsplice += 1
