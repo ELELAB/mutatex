@@ -288,7 +288,7 @@ class FoldXSuiteVersion4(FoldXVersion):
 
         energies = np.array(energies)
         energies = energies.reshape(len(this_run.mutlist.mutations),
-                                        energies.shape[0]/len(this_run.mutlist.mutations))
+                                        energies.shape[0]//len(this_run.mutlist.mutations))
 
         return energies
 
@@ -361,7 +361,7 @@ class FoldXSuiteVersion4(FoldXVersion):
             for k,v in iteritems(energies[prefix]):
                 v = np.array(v)
                 energies[prefix][k] = v.reshape((len(run.mutlist.mutations),
-                                      v.shape[0]/len(run.mutlist.mutations)))
+                                      v.shape[0]//len(run.mutlist.mutations)))
 
         interaction_groups = set(list(energies[types[0]]) + list(energies[types[1]]))
 
