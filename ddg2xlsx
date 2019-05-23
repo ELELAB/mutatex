@@ -199,7 +199,7 @@ for i,f in enumerate(fnames):
 
 wb = pyxl.Workbook()
 #ws = wb.create_sheet(0)
-ws = wb.get_sheet_by_name('Sheet')
+ws = wb['Sheet']
 ws.title = 'FoldX mutations DDG'
 
 #prepare header
@@ -219,12 +219,12 @@ for i,resset in enumerate(res_ids):
     for j,res in enumerate(resset):
         offset = j*3
         if options.transpose:
-            ws.cell(row=1+offset,  column=1+i+1).value = res[0]
-            ws.cell(row=1+offset+1,column=1+i+1).value = res[1]
+            ws.cell(row=1+offset,  column=1+i+1).value = str(res[0])
+            ws.cell(row=1+offset+1,column=1+i+1).value = str(res[1])
             ws.cell(row=1+offset+2,column=1+i+1).value = res[2]
         else:
-            ws.cell(row=1+i+1,column=1+offset  ).value = res[0]
-            ws.cell(row=1+i+1,column=1+offset+1).value = res[1]
+            ws.cell(row=1+i+1,column=1+offset  ).value = str(res[0])
+            ws.cell(row=1+i+1,column=1+offset+1).value = str(res[1])
             ws.cell(row=1+i+1,column=1+offset+2).value = res[2]
 offset += 3
 for i,mut in enumerate(res_order):

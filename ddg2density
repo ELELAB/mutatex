@@ -153,10 +153,8 @@ def pdbmodel(residue_list, d):
 
     N, K = data.shape[0], data.shape[1]
     mask = np.ones_like(data, dtype='bool')
-    mask[[positions, remove]] = 0
-    data = data[mask].reshape(N, K-1)
-    data = data.tolist()
-    data = [item for sublist in data for item in sublist]
+    mask[(positions, remove)] = 0
+    data = data[mask].flatten()
     return data
 
 def densityplot(data, outfile, title, mycolor):
@@ -174,7 +172,7 @@ def densityplot(data, outfile, title, mycolor):
     KDV = [KDE(i)[0] for i in linspace(xmin, xmax, spaces)]
     np.savetxt(options.kdvfile, list(zip(x,KDV)), fmt='%.3f', newline='\n', header='xaxis, kdv', footer='', comments='# ')
     plot(x,KDE(x),'r', c=mycolor)
-    hist(data, len(data)//10 , normed=1,alpha=.3, facecolor=mycolor)
+    hist(data, len(data)//10 , density=1,alpha=.3, facecolor=mycolor)
     plt.xlabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
     plt.ylabel('Density')
     if title is not None:
@@ -190,8 +188,8 @@ parser.add_argument("-l","--mutation_list", dest="mutations",  help="mutation_li
 parser.add_argument("-o","--output", dest="outfile", type=str, default="densityplot.pdf")
 parser.add_argument("-i","--title", dest='title', type=str, default=None, help="Title for the output image file")
 parser.add_argument("-c","--color", dest='mycolor', type=str, default="blue", help="Color used to plot the DDG values")
-parser.add_argument("-u","--ddgfile", dest="ddgfile.dat", type=str, default="ddgvalues.dat", help="File containing all the used DDG values")
-parser.add_argument("-k","--kdvfile", dest="kdvfile.dat", type=str, default="kdvvalues.dat", help="File containing calculated density values")
+parser.add_argument("-u","--ddgfile", dest="ddgfile", type=str, default="ddgvalues.dat", help="File containing all the used DDG values")
+parser.add_argument("-k","--kdvfile", dest="kdvfile", type=str, default="kdvvalues.dat", help="File containing calculated density values")
 parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false')
 
 options = parser.parse_args()

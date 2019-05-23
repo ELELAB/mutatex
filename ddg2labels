@@ -19,6 +19,12 @@ import argparse
 import csv
 from Bio import PDB
 from six import iteritems
+import sys
+
+if sys.version_info[0] <= 2:
+    write_format = 'wb'
+else:
+    write_format = 'w'
 
 # Add extra ptm residues to PDB.Polypeptide three to one module 
 ptm_residues = {"y": "PTR",
@@ -110,7 +116,7 @@ def parse_ddg_file(fname, reslist):
     return ddgs
 
 def ddg2labels(fnames):
-    with open(options.outfile + '.csv', 'wb') as csvfile:
+    with open(options.outfile, write_format) as csvfile:
         csv_writer = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         csv_writer.writerow(['Residue_name', 'Label'])
         for fname in fnames:
@@ -127,7 +133,7 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
 parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
-parser.add_argument("-o","--output", dest="outfile", action='store', default='labels.pdf')
+parser.add_argument("-o","--output", dest="outfile", action='store', default='labels.csv')
 parser.add_argument("-a","--multimers", dest="multimers", default=True, action='store_false')
 
 options = parser.parse_args()
@@ -163,7 +169,3 @@ else:
     res_id_labels = res_ids_str
 
 ddg2labels(fnames)
-
-
-
-
