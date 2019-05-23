@@ -662,16 +662,17 @@ letters = (
 import argparse
 import base64
 import matplotlib
+
 from io import BytesIO
 from six import iteritems
 import csv
 matplotlib.use('Agg')
 matplotlib.rcParams['savefig.format'] = 'pdf'
 matplotlib.rcParams['hatch.linewidth'] = 0.5
-matplotlib.rcParams['hatch.color'] = 'grey'
 
 from matplotlib.image import imread
 from Bio import PDB
+from six import iteritems
 
 #Add extra ptm residues to PDB.Polypeptide three to one module 
 ptm_residues = {"y": "PTR",
@@ -752,12 +753,12 @@ def parse_letters_png(pngfile, letters="ACDEFGHIKLMNPQRSTVWXYypshzkmloef"):
 
     png = imread(pngfile)
     side_length = png.shape[0]
-    if png.shape[1]%png.shape[0] != 0:
+    if png.shape[1] % png.shape[0] != 0:
         log.error("Input PNG file doesn't have the right shape (horizontal size is expected to be a multplie of vertical size)")
         raise TypeError
 
 
-    if png.shape[1]/png.shape[0] != len(letters):
+    if png.shape[1] // png.shape[0] != len(letters):
         log.error("Input PNG file does not contain the right number of letters")
         raise TypeError
 

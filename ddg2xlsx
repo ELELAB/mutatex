@@ -18,6 +18,7 @@
 
 import argparse
 from Bio import PDB
+from six import iteritems
 
 #Add extra ptm residues to PDB.Polypeptide three to one module 
 ptm_residues = {"y": "PTR",
@@ -33,7 +34,7 @@ ptm_residues = {"y": "PTR",
                 "f": "H3S"}
 len_three2one = len(PDB.Polypeptide.d1_to_index)
 idx=len_three2one
-for k,v in ptm_residues.iteritems():
+for k,v in iteritems(ptm_residues):
     PDB.Polypeptide.d1_to_index[k] = idx
     PDB.Polypeptide.dindex_to_1[idx] = k
     
@@ -74,7 +75,7 @@ def get_residue_list(structure, multimers=True):
 
     if options.multimers:
         collated_chains = []
-        seq_ids, seqs = zip(*list(sequences.iteritems()))
+        seq_ids, seqs = list(zip(*list(iteritems(sequences))))
         seq_ids = np.array(seq_ids)
         unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
 
@@ -198,7 +199,7 @@ for i,f in enumerate(fnames):
 
 wb = pyxl.Workbook()
 #ws = wb.create_sheet(0)
-ws = wb.get_sheet_by_name('Sheet')
+ws = wb['Sheet']
 ws.title = 'FoldX mutations DDG'
 
 #prepare header
@@ -218,12 +219,12 @@ for i,resset in enumerate(res_ids):
     for j,res in enumerate(resset):
         offset = j*3
         if options.transpose:
-            ws.cell(row=1+offset,  column=1+i+1).value = res[0]
-            ws.cell(row=1+offset+1,column=1+i+1).value = res[1]
+            ws.cell(row=1+offset,  column=1+i+1).value = str(res[0])
+            ws.cell(row=1+offset+1,column=1+i+1).value = str(res[1])
             ws.cell(row=1+offset+2,column=1+i+1).value = res[2]
         else:
-            ws.cell(row=1+i+1,column=1+offset  ).value = res[0]
-            ws.cell(row=1+i+1,column=1+offset+1).value = res[1]
+            ws.cell(row=1+i+1,column=1+offset  ).value = str(res[0])
+            ws.cell(row=1+i+1,column=1+offset+1).value = str(res[1])
             ws.cell(row=1+i+1,column=1+offset+2).value = res[2]
 offset += 3
 for i,mut in enumerate(res_order):

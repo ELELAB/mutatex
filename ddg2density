@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 #    ddg2matrix: plot DDG MutateX results as heat maps.
-#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com> (and Thilde Bagger Terkelsen <ThildeBT@gmail.com>)
+#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com> 
+#                        Thilde Bagger Terkelsen <ThildeBT@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -18,10 +19,11 @@
 
 import matplotlib
 matplotlib.use('Agg')
-matplotlib.rcParams['savefig.format'] = u'pdf'
+matplotlib.rcParams['savefig.format'] = 'pdf'
 import argparse
 from scipy.stats.kde import gaussian_kde
 from numpy import linspace
+from six import iteritems
 from pylab import plot, hist
 import logging as log
 from matplotlib import pyplot as plt
@@ -42,15 +44,13 @@ ptm_residues = {"y": "PTR",
                 "f": "H3S"}
 len_three2one = len(PDB.Polypeptide.d1_to_index)
 idx=len_three2one
-for k,v in ptm_residues.iteritems():
+for k,v in iteritems(ptm_residues):
     PDB.Polypeptide.d1_to_index[k] = idx
     PDB.Polypeptide.dindex_to_1[idx] = k
     
     PDB.Polypeptide.d3_to_index[v] = idx
     PDB.Polypeptide.dindex_to_3[idx] = v
     idx += 1
-
-
 
 def parse_file(fname):
 
@@ -102,7 +102,7 @@ def get_residue_list(structure, multimers=True):
 
     if options.multimers:
         collated_chains = []
-        seq_ids, seqs = zip(*list(sequences.iteritems()))
+        seq_ids, seqs = list(zip(*list(iteritems(sequences))))
         seq_ids = np.array(seq_ids)
         unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
 
@@ -153,10 +153,8 @@ def pdbmodel(residue_list, d):
 
     N, K = data.shape[0], data.shape[1]
     mask = np.ones_like(data, dtype='bool')
-    mask[[positions, remove]] = 0
-    data = data[mask].reshape(N, K-1)
-    data = data.tolist()
-    data = [item for sublist in data for item in sublist]
+    mask[(positions, remove)] = 0
+    data = data[mask].flatten()
     return data
 
 def densityplot(data, outfile, title, mycolor):
@@ -166,15 +164,15 @@ def densityplot(data, outfile, title, mycolor):
         print("ggplot-grid not avalible continuing without")
     finally:
         fig = plt.figure()
-	KDE = gaussian_kde(data)
+    KDE = gaussian_kde(data)
     xmin = -5
     xmax = 10
     spaces = 150
     x = linspace(xmin,xmax,spaces)
     KDV = [KDE(i)[0] for i in linspace(xmin, xmax, spaces)]
-    np.savetxt(options.kdvfile, zip(x,KDV), fmt='%.3f', newline='\n', header='xaxis, kdv', footer='', comments='# ')
+    np.savetxt(options.kdvfile, list(zip(x,KDV)), fmt='%.3f', newline='\n', header='xaxis, kdv', footer='', comments='# ')
     plot(x,KDE(x),'r', c=mycolor)
-    hist(data, int(len(data)/10) , normed=1,alpha=.3, facecolor=mycolor)
+    hist(data, len(data)//10 , density=1,alpha=.3, facecolor=mycolor)
     plt.xlabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
     plt.ylabel('Density')
     if title is not None:
@@ -189,9 +187,9 @@ parser.add_argument("-d","--data-directory", dest="input_path", type=str, help="
 parser.add_argument("-l","--mutation_list", dest="mutations",  help="mutation_list")
 parser.add_argument("-o","--output", dest="outfile", type=str, default="densityplot.pdf")
 parser.add_argument("-i","--title", dest='title', type=str, default=None, help="Title for the output image file")
-parser.add_argument("-c","--color", dest='mycolor', type=unicode, default="blue", help="Color used to plot the DDG values")
-parser.add_argument("-u","--ddgfile", dest="ddgfile.dat", type=str, default="ddgvalues.dat", help="File containing all the used DDG values")
-parser.add_argument("-k","--kdvfile", dest="kdvfile.dat", type=str, default="kdvvalues.dat", help="File containing calculated density values")
+parser.add_argument("-c","--color", dest='mycolor', type=str, default="blue", help="Color used to plot the DDG values")
+parser.add_argument("-u","--ddgfile", dest="ddgfile", type=str, default="ddgvalues.dat", help="File containing all the used DDG values")
+parser.add_argument("-k","--kdvfile", dest="kdvfile", type=str, default="kdvvalues.dat", help="File containing calculated density values")
 parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false')
 
 options = parser.parse_args()
