@@ -147,13 +147,14 @@ class EnergyReport:
         if do_max:
             header_cols.append("max")
 
-        dtype = [('res', 'S8')] + [(i, 'f') for i in header_cols]
+        dtype = [('res', 'U8')] + [(i, 'f') for i in header_cols]
         header = "\t".join(header_cols)
         fmt=["%8s"] + ["%10f" for f in header_cols]
 
         for pdb,energies in iteritems(self.energies):
 
             out = [self.residues[pdb]]
+            print(out)
 
             if do_avg:
                 out.append(np.average(energies, axis=1))
@@ -1419,8 +1420,8 @@ def main():
 
             if not args.selfmutate:
                 save_energy_file(working_directory+"/"+averages_dirname+"/"+r.name, np.average(energies, axis=2), axis=0, do_avg=True, do_std=True, do_max=True, do_min=True)
-            else:
-                report.save(working_directory)
+        if args.selfmutate:
+            report.save(working_directory)
 
         if args.interface:
             working_directory = os.path.join(main_dir, results_dirname, interface_results_dirname)
