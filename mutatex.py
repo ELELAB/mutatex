@@ -1197,7 +1197,16 @@ def main():
         for pdb in args.pdb:
             pdb_models.append(load_models(pdb, check_models = not args.skip_check))
     except:
+        log.error("Couldn't load PDB model; exiting...")
         exit(1)
+
+    # check if multiple chains are present when interface DDG calculation has been requested
+    for structure in pdb_models:
+        for model in structure:
+            chains = list(model.get_chains())
+            if len(chains) < 2 and args.interface:
+                log.error("at least one of the provided models contains only one chain, and calculation of interface DDG has been requested; exiting...")
+                exit(1)
 
     for p in range(len(pdb_models)):
         if len(pdb_models[p].get_list()) > 1 and not args.multiple_models:
