@@ -124,7 +124,7 @@ def get_residue_list(structure, multimers=True):
                     residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
     return residue_list
 
-def get_ddg_data(residue_list, ddg_dir):
+def get_ddg_data(residue_list, mutation_list, ddg_dir):
 
     data = []
 
@@ -136,15 +136,15 @@ def get_ddg_data(residue_list, ddg_dir):
     res_restypes = [r[0][0] for r in residue_list]
     
     for fname in res_ids_str:
-        this_data = parse_ddg_file("%s/%s" % (options.input_path, fname))
+        this_data = parse_ddg_file("%s/%s" % (options.input_path, fname), mutation_list)
         data.append(np.array(this_data))
     data = np.vstack(data)
 
     remove =  []
     positions = []
     for i,r in enumerate(res_restypes):
-        if r in d:
-            remove.append(d[r])
+        if r in mutation_list:
+            remove.append(mutation_list.index(r))
             positions.append(i)
 
     mask = np.ones_like(data, dtype='bool')
@@ -152,36 +152,36 @@ def get_ddg_data(residue_list, ddg_dir):
     return data[mask].flatten()
 
 def plot_density(data, outfile, title, mycolor, bw_method, xmin, xmax, spaces):
-    try:
-        plt.style.use('ggplot')
-    except:
-        print("ggplot-grid not avalible continuing without")
-    finally:
-        fig = plt.figure()
-        
-    KDE = gaussian_kde(data, bw_method=bw_method)
+    fig, ax = plt.subplots()
+
+    kde = gaussian_kde(data, bw_method=bw_method)
     x = np.linspace(xmin, xmax, spaces)
-    KDV = [KDE(i)[0] for i in np.linspace(xmin, xmax, spaces)]
-    np.savetxt(options.kdvfile, list(zip(x,KDV)), fmt='%.3f', newline='\n', header='xaxis, kdv', footer='', comments='# ')
-    plot(x,KDE(x),'r', c=mycolor)
-    hist(data, len(data)//10 , density=1,alpha=.3, facecolor=mycolor)
-    plt.xlabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
-    plt.ylabel('Density')
+    
+    kdv = kde(np.linspace(xmin, xmax, spaces))
+    
+    np.savetxt(options.kdvfile, np.array([x, kdv]).T, fmt='%.5f', header='DDG, density', comments='#')
+
+    ax.plot(x, kdv, color=mycolor)
+    ax.plot(data, np.zeros(data.shape[0])-np.max(kdv)/50.0*2, '|', ms=15, color=mycolor)
+    ax.set_xlabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
+    ax.set_ylabel('Density')
+
     if title is not None:
-        plt.title(title)
-    plt.savefig(outfile, bbox_inches='tight')
-    plt.clf()
+        ax.title(title)
+
+    fig.tight_layout()
+    fig.savefig(outfile)
 
 parser = argparse.ArgumentParser(description='Generate probability density via kernel density estimation of the calculated DDG',)
 
 parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
 parser.add_argument("-d","--data-directory", dest="input_path", type=str, help="input data directory")
 parser.add_argument("-l","--mutation_list", dest="mutations",  help="mutation_list")
-parser.add_argument("-o","--output", dest="outfile", type=str, default="densityplot.pdf")
+parser.add_argument("-o","--output", dest="outfile", type=str, default="kde_density.pdf")
 parser.add_argument("-i","--title", dest='title', type=str, default=None, help="Title for the output image file")
-parser.add_argument("-c","--color", dest='mycolor', type=str, default="blue", help="Color used to plot the DDG values")
-parser.add_argument("-u","--ddgfile", dest="ddgfile", type=str, default="ddgvalues.dat", help="File containing all the used DDG values")
-parser.add_argument("-k","--kdvfile", dest="kdvfile", type=str, default="kdvvalues.dat", help="File containing calculated density values")
+parser.add_argument("-c","--color", dest='mycolor', type=str, default="black", help="Color used to plot the DDG values")
+parser.add_argument("-u","--ddgfile", dest="ddgfile", type=str, default="ddg_values.dat", help="File containing all the used DDG values")
+parser.add_argument("-k","--kdvfile", dest="kdvfile", type=str, default="density_values.dat", help="File containing calculated density values")
 parser.add_argument("-m","--vmin", dest="vmin", type=float, default=-5.0, help="minimum DDG value for density determination")
 parser.add_argument("-x","--vmax", dest="vmax", type=float, default=10.0, help="maxomum DDG value for density determination")
 parser.add_argument("-g","--grid-points", dest="grid", type=float, default=150.0, help="number of point between minimum and maximum to calculate density on")
@@ -205,9 +205,9 @@ except:
     log.warning("Mutation list file couldn't be parsed. Exiting...")
     exit(1)
 
-user_data = get_ddg_data(residue_list, options.input_path)
+data = get_ddg_data(residue_list, mutlist, options.input_path)
 
-plot_density(user_data, options.outfile, options.title, options.mycolor, options.bw, options.vmin, options.vmax, options.grid)
+plot_density(data, options.outfile, options.title, options.mycolor, options.bw, options.vmin, options.vmax, options.grid)
 
-np.savetxt(options.ddgfile, ddgvalues, fmt='%.3f', newline='\n', header='DDG', footer='', comments='# ')
+np.savetxt(options.ddgfile, data, fmt='%.3f', header='DDG', comments='# ')
 
