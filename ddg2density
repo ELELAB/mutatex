@@ -19,12 +19,11 @@
 
 import matplotlib
 matplotlib.use('Agg')
+from matplotlib import pyplot as plt
 import argparse
 from scipy.stats.kde import gaussian_kde
 from six import iteritems
-from pylab import plot, hist
 import logging as log
-from matplotlib import pyplot as plt
 import numpy as np
 from Bio import PDB
 
@@ -152,7 +151,7 @@ def get_ddg_data(residue_list, ddg_dir):
     mask[(positions, remove)] = 0
     return data[mask].flatten()
 
-def plot_density(data, outfile, title, mycolor):
+def plot_density(data, outfile, title, mycolor, xmin, xmax, spaces):
     try:
         plt.style.use('ggplot')
     except:
@@ -160,10 +159,7 @@ def plot_density(data, outfile, title, mycolor):
     finally:
         fig = plt.figure()
     KDE = gaussian_kde(data)
-    xmin = -5
-    xmax = 10
-    spaces = 150
-    x = np.linspace(xmin,xmax,spaces)
+    x = np.linspace(xmin, xmax, spaces)
     KDV = [KDE(i)[0] for i in np.linspace(xmin, xmax, spaces)]
     np.savetxt(options.kdvfile, list(zip(x,KDV)), fmt='%.3f', newline='\n', header='xaxis, kdv', footer='', comments='# ')
     plot(x,KDE(x),'r', c=mycolor)
@@ -185,6 +181,9 @@ parser.add_argument("-i","--title", dest='title', type=str, default=None, help="
 parser.add_argument("-c","--color", dest='mycolor', type=str, default="blue", help="Color used to plot the DDG values")
 parser.add_argument("-u","--ddgfile", dest="ddgfile", type=str, default="ddgvalues.dat", help="File containing all the used DDG values")
 parser.add_argument("-k","--kdvfile", dest="kdvfile", type=str, default="kdvvalues.dat", help="File containing calculated density values")
+parser.add_argument("-m","--vmin", dest="vmin", type=float, default=-5.0, help="minimum DDG value for density determination")
+parser.add_argument("-x","--vmax", dest="vmax", type=float, default=10.0, help="maxomum DDG value for density determination")
+parser.add_argument("-g","--grid-points", dest="grid", type=float, default=150.0, help="number of point between minimum and maximum to calculate density on")
 parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false')
 
 options = parser.parse_args()
@@ -206,7 +205,7 @@ except:
 
 user_data = get_ddg_data(residue_list, options.input_path)
 
-plot_density(user_data, options.outfile, options.title, options.mycolor)
+plot_density(user_data, options.outfile, options.title, options.mycolor, options.vmin, options.vmax, options.grid)
 
 np.savetxt(options.ddgfile, ddgvalues, fmt='%.3f', newline='\n', header='DDG', footer='', comments='# ')
 
