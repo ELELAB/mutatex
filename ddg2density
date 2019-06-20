@@ -151,14 +151,15 @@ def get_ddg_data(residue_list, ddg_dir):
     mask[(positions, remove)] = 0
     return data[mask].flatten()
 
-def plot_density(data, outfile, title, mycolor, xmin, xmax, spaces):
+def plot_density(data, outfile, title, mycolor, bw_method, xmin, xmax, spaces):
     try:
         plt.style.use('ggplot')
     except:
         print("ggplot-grid not avalible continuing without")
     finally:
         fig = plt.figure()
-    KDE = gaussian_kde(data)
+        
+    KDE = gaussian_kde(data, bw_method=bw_method)
     x = np.linspace(xmin, xmax, spaces)
     KDV = [KDE(i)[0] for i in np.linspace(xmin, xmax, spaces)]
     np.savetxt(options.kdvfile, list(zip(x,KDV)), fmt='%.3f', newline='\n', header='xaxis, kdv', footer='', comments='# ')
@@ -184,6 +185,7 @@ parser.add_argument("-k","--kdvfile", dest="kdvfile", type=str, default="kdvvalu
 parser.add_argument("-m","--vmin", dest="vmin", type=float, default=-5.0, help="minimum DDG value for density determination")
 parser.add_argument("-x","--vmax", dest="vmax", type=float, default=10.0, help="maxomum DDG value for density determination")
 parser.add_argument("-g","--grid-points", dest="grid", type=float, default=150.0, help="number of point between minimum and maximum to calculate density on")
+parser.add_argument("-w","--bandwidth-method", dest="bw", default=None, help="method used to calculate the estimator bandwith in KDE. Same options as scipy KDE function")
 parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false')
 
 options = parser.parse_args()
@@ -205,7 +207,7 @@ except:
 
 user_data = get_ddg_data(residue_list, options.input_path)
 
-plot_density(user_data, options.outfile, options.title, options.mycolor, options.vmin, options.vmax, options.grid)
+plot_density(user_data, options.outfile, options.title, options.mycolor, options.bw, options.vmin, options.vmax, options.grid)
 
 np.savetxt(options.ddgfile, ddgvalues, fmt='%.3f', newline='\n', header='DDG', footer='', comments='# ')
 
