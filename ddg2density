@@ -19,10 +19,8 @@
 
 import matplotlib
 matplotlib.use('Agg')
-matplotlib.rcParams['savefig.format'] = 'pdf'
 import argparse
 from scipy.stats.kde import gaussian_kde
-from numpy import linspace
 from six import iteritems
 from pylab import plot, hist
 import logging as log
@@ -52,24 +50,30 @@ for k,v in iteritems(ptm_residues):
     PDB.Polypeptide.dindex_to_3[idx] = v
     idx += 1
 
-def parse_file(fname):
-
-    try:
-        fh = open(fname, 'r')
-    except:
-        log.warning("file %s cannot be opened." % fname)
-        return None
-
-    values =[]
+def parse_ddg_file(fname, reslist):
+    fh = open(fname, 'r')
+    
+    ddgs = []
     for line in fh:
         if line and not line.startswith("#"):
-            values.append(float(line.split()[0]))
+            ddgs.append(float(line.split()[0]))
 
-    if len(values) != len(muts):
-        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(values), len(muts)))
+    if len(ddgs) != len(reslist):
+        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), len(reslist)))
         exit(1)
+    return ddgs
 
-    return(values)
+def parse_list_file(fname):
+    fh = open(fname, 'r')
+
+    restypes = []
+    
+    for line in fh:
+        if line and not line.startswith("#"):
+            restypes.append(line.strip()[0])
+    fh.close()
+    
+    return restypes
 
 def get_residue_list(structure, multimers=True):
 
@@ -121,43 +125,34 @@ def get_residue_list(structure, multimers=True):
                     residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
     return residue_list
 
-def pdbmodel(residue_list, d):
+def get_ddg_data(residue_list, ddg_dir):
 
-#     res_ids = []
-#     res_ids_str = []
     data = []
-    remove =  []
 
-#     res_ids.append((chain.get_id(), res.get_id()[1], this_type))
     if options.multimers:
         res_ids_str = ["_".join(r) for r in residue_list]
     else:
         res_ids_str = residue_list
         
     res_restypes = [r[0][0] for r in residue_list]
-
-    #Make remove array
-#     remove = [d[r] for r in res_restypes]
     
     for fname in res_ids_str:
-        this_data = parse_file("%s/%s" % (options.input_path, fname))
+        this_data = parse_ddg_file("%s/%s" % (options.input_path, fname))
         data.append(np.array(this_data))
+    data = np.vstack(data)
 
+    remove =  []
     positions = []
     for i,r in enumerate(res_restypes):
         if r in d:
             remove.append(d[r])
             positions.append(i)
 
-    data = np.vstack(data)
-
-    N, K = data.shape[0], data.shape[1]
     mask = np.ones_like(data, dtype='bool')
     mask[(positions, remove)] = 0
-    data = data[mask].flatten()
-    return data
+    return data[mask].flatten()
 
-def densityplot(data, outfile, title, mycolor):
+def plot_density(data, outfile, title, mycolor):
     try:
         plt.style.use('ggplot')
     except:
@@ -168,8 +163,8 @@ def densityplot(data, outfile, title, mycolor):
     xmin = -5
     xmax = 10
     spaces = 150
-    x = linspace(xmin,xmax,spaces)
-    KDV = [KDE(i)[0] for i in linspace(xmin, xmax, spaces)]
+    x = np.linspace(xmin,xmax,spaces)
+    KDV = [KDE(i)[0] for i in np.linspace(xmin, xmax, spaces)]
     np.savetxt(options.kdvfile, list(zip(x,KDV)), fmt='%.3f', newline='\n', header='xaxis, kdv', footer='', comments='# ')
     plot(x,KDE(x),'r', c=mycolor)
     hist(data, len(data)//10 , density=1,alpha=.3, facecolor=mycolor)
@@ -197,29 +192,21 @@ options = parser.parse_args()
 pdb_parser = PDB.PDBParser()
 
 try:
-    user_structure = pdb_parser.get_structure('s', options.in_pdb)
+    structure = pdb_parser.get_structure('s', options.in_pdb)
 except:
     log.error("Couldn't open or parse input pdb file. Exiting...")
     exit(1)
+residue_list = get_residue_list(structure, multimers=options.multimers)
 
 try:
-    fh = open(options.mutations, 'r')
+    mutlist = parse_list_file(options.mutations)
 except:
-    log.warning("mutationlist cannot be opened.")
-muts = []
-for line in fh:
-    mut = line.rstrip()
-    muts.append(mut)
-d = {}
-for value in muts:
-    d[value] = muts.index(value)
+    log.warning("Mutation list file couldn't be parsed. Exiting...")
+    exit(1)
 
-residue_list = get_residue_list(user_structure, multimers=options.multimers)
+user_data = get_ddg_data(residue_list, options.input_path)
 
-user_data = pdbmodel(residue_list, d)
-
-ddgvalues = np.asarray(user_data)
+plot_density(user_data, options.outfile, options.title, options.mycolor)
 
 np.savetxt(options.ddgfile, ddgvalues, fmt='%.3f', newline='\n', header='DDG', footer='', comments='# ')
 
-densityplot(user_data, options.outfile, options.title, options.mycolor)
