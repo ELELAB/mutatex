@@ -1,0 +1,8 @@
+include setup.py
+include README.md 
+include LICENSE 
+include doc 
+include templates 
+include tests/foldxsuite4 
+include tests/foldxsuite5 
+include tests/scripts
