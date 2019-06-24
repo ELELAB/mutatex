@@ -182,9 +182,9 @@ parser.add_argument("-i","--title", dest='title', type=str, default=None, help="
 parser.add_argument("-c","--color", dest='mycolor', type=str, default="black", help="Color used to plot the DDG values")
 parser.add_argument("-u","--ddgfile", dest="ddgfile", type=str, default="ddg_values.dat", help="File containing all the used DDG values")
 parser.add_argument("-k","--kdvfile", dest="kdvfile", type=str, default="density_values.dat", help="File containing calculated density values")
-parser.add_argument("-m","--vmin", dest="vmin", type=float, default=-5.0, help="minimum DDG value for density determination")
-parser.add_argument("-x","--vmax", dest="vmax", type=float, default=10.0, help="maxomum DDG value for density determination")
-parser.add_argument("-g","--grid-points", dest="grid", type=float, default=150.0, help="number of point between minimum and maximum to calculate density on")
+parser.add_argument("-m","--vmin", dest="vmin", type=float, default=-5, help="minimum DDG value for density determination")
+parser.add_argument("-x","--vmax", dest="vmax", type=float, default=10, help="maxomum DDG value for density determination")
+parser.add_argument("-g","--grid-points", dest="grid", type=int, default=150, help="number of point between minimum and maximum to calculate density on")
 parser.add_argument("-w","--bandwidth-method", dest="bw", default=None, help="method used to calculate the estimator bandwith in KDE. Same options as scipy KDE function")
 parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false')
 
