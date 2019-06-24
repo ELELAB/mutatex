@@ -19,6 +19,9 @@
 import argparse
 from Bio import PDB
 from six import iteritems
+import numpy as np
+import logging as log
+import openpyxl as pyxl
 
 #Add extra ptm residues to PDB.Polypeptide three to one module 
 ptm_residues = {"y": "PTR",
@@ -133,13 +136,7 @@ parser.add_argument("-M","--multimers", dest="multimers", default=True, action='
 
 
 # parse ddg files
-
 options = parser.parse_args()
-
-import numpy as np
-import logging as log
-import openpyxl as pyxl
-
 
 if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)
@@ -198,7 +195,6 @@ for i,f in enumerate(fnames):
     data.append(np.array(parse_ddg_file("%s/%s" % (options.dir, f), reslist=res_order, )))
 
 wb = pyxl.Workbook()
-#ws = wb.create_sheet(0)
 ws = wb['Sheet']
 ws.title = 'FoldX mutations DDG'
 

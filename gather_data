@@ -86,7 +86,7 @@ if not __name__ == "__main__":
 
 
 parser = argparse.ArgumentParser(
-description='FoldX DDG converter to the OOXML xlsx format',)
+description='Write DDG data of specific mutations in a summary text file',)
 
 parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
 parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
