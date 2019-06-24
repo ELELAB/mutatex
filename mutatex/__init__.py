@@ -22,4 +22,4 @@ for k,v in iteritems(ptm_residues):
     PDB.Polypeptide.dindex_to_3[idx] = v
     idx += 1
 
-import utils
+from . import utils
