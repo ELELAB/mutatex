@@ -22,101 +22,7 @@ from six import iteritems
 import numpy as np
 import logging as log
 import openpyxl as pyxl
-
-#Add extra ptm residues to PDB.Polypeptide three to one module 
-ptm_residues = {"y": "PTR",
-                "p": "TPO",
-                "s": "SEP",
-                "h": "HYP",
-                "z": "TYS",
-                "k": "MLZ",
-                "m": "MLY",
-                "l": "M3L",
-                "o": "H1S",
-                "e": "H2S",
-                "f": "H3S"}
-len_three2one = len(PDB.Polypeptide.d1_to_index)
-idx=len_three2one
-for k,v in iteritems(ptm_residues):
-    PDB.Polypeptide.d1_to_index[k] = idx
-    PDB.Polypeptide.dindex_to_1[idx] = k
-    
-    PDB.Polypeptide.d3_to_index[v] = idx
-    PDB.Polypeptide.dindex_to_3[idx] = v
-    idx += 1
-
-def get_residue_list(structure, multimers=True):
-
-    models = structure.get_list()
-
-    if len(models) > 1:
-        log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
-    if len(models) < 1:
-        log.error("The input PDB file does not contain any model. Exiting ...")
-        exit(1)
-
-    model = models[0]
-
-    residue_list = []
-    residue_ids = []
-    sequences = {}
-
-    for chain in model:
-        chain_name = chain.get_id()
-        sequences[chain_name] = ''
-        for residue in chain:
-            try:
-                res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
-            except:
-                log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, options.in_pdb))
-                continue
-            if not multimers:
-                residue_ids.append([(res_code, chain.get_id(), residue.get_id()[1])])
-                residue_list.append(("%s%s%d") % (res_code, chain.get_id(), residue.get_id()[1]))
-            else:
-                sequences[chain_name] += res_code
-
-    if options.multimers:
-        collated_chains = []
-        seq_ids, seqs = list(zip(*list(iteritems(sequences))))
-        seq_ids = np.array(seq_ids)
-        unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
-
-        for i in np.unique(unique_idxs):
-            collated_chains.append(seq_ids[unique_idxs == i])
-
-        for cg in collated_chains:
-            for model in structure:
-                for residue in model[cg[0]]:
-                    resid = residue.get_id()[1]
-                    try:
-                        res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
-                    except:
-                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, options.in_pdb))
-                        continue
-                    residue_ids.append([(res_code, c, resid) for c in cg])
-                    residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
-    return residue_ids, residue_list
-
-def parse_ddg_file(fname, reslist):
-    fh = open(fname, 'r')
-    ddgs = []
-    for line in fh:
-        if line and not line.startswith("#"):
-            ddgs.append(float(line.split()[0]))
-
-    if len(ddgs) != len(reslist):
-        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), len(reslist)))
-        exit(1)
-    return ddgs
-
-def parse_list_file(fname):
-    fh = open(fname, 'r')
-    restypes = []
-    for line in fh:
-        if line and not line.startswith("#"):
-            restypes.append(line.strip()[0])
-    return restypes
+from mutatex.utils import *
 
 LOGFMT = "%(levelname)s: %(message)s"
 
@@ -143,9 +49,7 @@ if options.verbose:
 else:
     log.basicConfig(level=log.WARNING, format=LOGFMT)
 
-
-
-res_order = parse_list_file(options.order)
+res_order = parse_mutlist_file(options.order)
 
 log.info("Residues list is:")
 for i,r in enumerate(res_order):
@@ -163,22 +67,9 @@ except:
     log.error("Couldn't open or parse input pdb file. Exiting...")
     exit(1)
 
-res_ids = []
+res_ids_str = get_residue_list(structure, multimers=options.multimers)
 
-models = structure.get_list()
-
-if len(models) > 1:
-    log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
-if len(models) < 1:
-    log.error("The input PDB file does not contain any model. Exiting ...")
-    exit(1)
-
-model = models[0]
-
-res_ids, res_ids_str = get_residue_list(structure, multimers=options.multimers)
-
-
-max_len_res_ids = np.max([len(r) for r in res_ids])
+max_len_res_ids = np.max([len(r) for r in res_ids_str])
 if options.multimers:
     fnames = ["_".join(r) for r in res_ids_str]
     res_id_labels = [", ".join(r) for r in res_ids_str]
@@ -211,17 +102,17 @@ for i in range(max_len_res_ids):
         ws.cell(row=1, column=1+offset+2).value = "Residue #"
 
 offset = 0
-for i,resset in enumerate(res_ids):
+for i,resset in enumerate(res_ids_str):
     for j,res in enumerate(resset):
         offset = j*3
         if options.transpose:
             ws.cell(row=1+offset,  column=1+i+1).value = str(res[0])
             ws.cell(row=1+offset+1,column=1+i+1).value = str(res[1])
-            ws.cell(row=1+offset+2,column=1+i+1).value = res[2]
+            ws.cell(row=1+offset+2,column=1+i+1).value = res[2:]
         else:
             ws.cell(row=1+i+1,column=1+offset  ).value = str(res[0])
             ws.cell(row=1+i+1,column=1+offset+1).value = str(res[1])
-            ws.cell(row=1+i+1,column=1+offset+2).value = res[2]
+            ws.cell(row=1+i+1,column=1+offset+2).value = res[2:]
 offset += 3
 for i,mut in enumerate(res_order):
     if options.transpose:
@@ -229,7 +120,7 @@ for i,mut in enumerate(res_order):
     else:
         ws.cell(row=1,column=1+i+offset).value = mut
 
-for i,res in enumerate(res_ids):
+for i,res in enumerate(res_ids_str):
     for j,ddg in enumerate(data[i]):
         if options.transpose:
             ws.cell(row=1+j+offset, column=1+i+1).value = ddg
