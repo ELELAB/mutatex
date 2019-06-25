@@ -23,3 +23,4 @@ for k,v in iteritems(ptm_residues):
     idx += 1
 
 from . import utils
+from . import core
