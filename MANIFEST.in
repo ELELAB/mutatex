@@ -1,0 +1,10 @@
+include setup.py
+include MANIFEST.in
+include README.md 
+include LICENSE 
+recursive-include doc *
+recursive-include bin *
+recursive-include templates *
+recursive-include tests/foldxsuite4 *
+recursive-include tests/foldxsuite5 *
+recursive-include tests/tools *

@@ -1,13 +1,13 @@
 #!/bin/bash
 
-export BASEDIR="../foldxsuite5/basic"
+export BASEDIR="../foldxsuite5_run_py2/basic"
 export MUTLIST=$BASEDIR"/mutation_list.txt"
 export PDB=$BASEDIR"/2klz_1.pdb"
 export RESULTS=$BASEDIR"/results/mutation_ddgs/2klz_1_model0_checked_Repair/"
 
 export BASEOPT="-p $PDB"
 
-export tools=(../../ddg2density ../../ddg2dg ../../ddg2distribution ../../ddg2histo ../../ddg2labels ../../ddg2logo ../../ddg2matrix ../../ddg2pdb ../../ddg2xlsx)
+export tools=(ddg2density ddg2dg ddg2distribution ddg2histo ddg2labels ddg2logo ddg2matrix ddg2pdb ddg2xlsx)
 export options=("-l $MUTLIST -d $RESULTS"
 "-d $RESULTS"
 "-l $MUTLIST -d $RESULTS -T box"

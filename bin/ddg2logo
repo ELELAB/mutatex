@@ -1,0 +1,309 @@
+#!/usr/bin/env python
+
+#    ddg2logo: plot DDG MutateX stabilizing mutations as logo plots
+#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import argparse
+import base64
+import matplotlib
+
+from io import BytesIO
+from six import iteritems
+import csv
+matplotlib.use('Agg')
+matplotlib.rcParams['savefig.format'] = 'pdf'
+matplotlib.rcParams['hatch.linewidth'] = 0.5
+
+from matplotlib.image import imread
+from Bio import PDB
+from six import iteritems
+from mutatex.utils import *
+from mutatex.letters import letters
+
+def parse_letters_png(pngfile, letters="ACDEFGHIKLMNPQRSTVWXYypshzkmloef"):
+    if type(pngfile) is tuple:
+        pngfile = BytesIO(base64.b64decode("".join(pngfile)))
+
+    png = imread(pngfile)
+    side_length = png.shape[0]
+    if png.shape[1] % png.shape[0] != 0:
+        log.error("Input PNG file doesn't have the right shape (horizontal size is expected to be a multplie of vertical size)")
+        raise TypeError
+
+
+    if png.shape[1] // png.shape[0] != len(letters):
+        log.error("Input PNG file does not contain the right number of letters")
+        raise TypeError
+
+
+    out = {}
+    for i,l in enumerate(letters):
+        out[l] = png[:,i*side_length:(i+1)*side_length,:]
+
+    return out
+
+def plot_matrix(mat, reslist, letters, xlabels, max_range, title=None, fontsize=8, hgap=0.5):
+
+	# initialize values
+    width = 1.0
+    offset = width/2.0
+    vgap = max_range/100.0
+    max_y = max_range + vgap*(mat.shape[1]+3)
+    xticks = np.arange(hgap, mat.shape[0]*width + mat.shape[0]*hgap, width+hgap) + offset
+
+    # create plot
+    fig, ax = plt.subplots()
+
+    # set title
+    if title is None:
+        title = ""
+    ax.set(title=title)
+
+    # for every position
+    for x,c in enumerate(mat):
+
+        # filter out values of destabilizing mutations
+        pos_idx = np.where(c > 0.0)
+
+        # sort them by energy in inverse order
+        local_pos_idx = np.argsort(c[pos_idx])[::-1]
+
+        # AA mutations sorted by energy
+        s_pos_idx = pos_idx[0][local_pos_idx]
+
+        # if too many of them are allowed, use X and continue
+        if len(s_pos_idx) >= options.degeneracy:
+            ax.imshow(letters['X'], 
+                      extent=(hgap + x*width + x*hgap, hgap + (x+1)*width + x*hgap, 0.0, max_y/4.0), 
+                      aspect='auto')
+
+            continue
+
+        # initialize y value accumulator
+        accumulator = 0
+
+        # for every DDG value
+        for idx, i in enumerate(s_pos_idx):
+
+            # add vertical gap (unless it's the first letter)
+            if idx == 0:
+                low_y = accumulator
+            else:
+                low_y = accumulator + vgap
+
+            # add DDG
+            accumulator += c[i]
+
+            # plot
+            ax.imshow(  letters[reslist[i]],
+                        extent=(hgap + x*width + x*hgap, hgap + (x+1)*width + x*hgap, low_y, accumulator),
+                        aspect='auto' )
+
+    ax.set_ylabel(r'modified FoldX $\Delta\Delta{}G$ (kcal/mol)')
+
+    ax.set_xlim((0, mat.shape[0]*width +hgap*mat.shape[0] + hgap))
+    #print(max_range)
+    ax.set_ylim((0, max_y))
+
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xlabels)
+
+    plt.setp(ax.get_xticklabels(), size=fontsize, rotation=90)
+    plt.tight_layout()
+
+    return fig
+
+def splice_data(data, labels, sv):
+
+    out = []
+
+    if data.shape[0] <= sv:
+        return [[data, labels]]
+
+    nsplice = data.shape[0] // int(sv)
+    rest =    data.shape[0] % int(sv)
+
+    if rest != 0:
+        nsplice += 1
+
+    for i in range(nsplice):
+        out.append([
+                data[i*sv:(i+1)*sv,:],
+                labels[i*sv:(i+1)*sv]
+            ])
+
+    return out
+
+
+
+LOGFMT = "%(levelname)s: %(message)s"
+
+if not __name__ == "__main__":
+    exit()
+
+parser = argparse.ArgumentParser(
+description='ddg2logo: make logo plots for DDG values',)
+
+parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
+parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
+parser.add_argument("-l","--order-list", dest="order",  help="default order list")
+parser.add_argument("-m","--include-invalid-files",dest='includeblank',action='store_true', default=False, help="Include empty columns in output instead of ignoring missing files")
+parser.add_argument("-b","--label-list", dest="labels", help="residue label list")
+parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
+parser.add_argument("-o","--output", dest="outfile", action='store', default='logo.pdf', help="output file names")
+parser.add_argument("-T","--threshold", dest="threshold", action='store', type=float, default=0.5, help="Do not consider mutations with absolute DDG lower than this value")
+parser.add_argument("-x","--maximum-degeneracy", dest="degeneracy", action='store', type=int, default=32, help="when the number of stabilizing mutations is higher than this threshold a pattern will be plotted instead")
+parser.add_argument("-t","--title", dest='title', action='store', default=None, type=str, help="Title for the output image file")
+parser.add_argument("-i","--png-letter-map",dest='pngfile',action='store', default=letters, help="png file to be used for letters")
+parser.add_argument("-s","--splice",dest='sv',action='store', type=int, default=20, help="Number of residues for each single image")
+parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Font size")
+parser.add_argument("-D","--dpi", dest="dpi", type=float, action='store', default=150, help="number of DPI for the output image. !!WARNING!! Saving the images at higher DPI (as 300) uses a lot of memory, therefore use with caution" )
+parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false')
+options = parser.parse_args()
+
+import numpy as np
+import logging as log
+import os
+from Bio import PDB
+from matplotlib import pyplot as plt
+
+#Add extra ptm residues to PDB.Polypeptide three to one module 
+ptm_residues = {"y": "PTR",
+                "p": "TPO",
+                "s": "SEP",
+                "h": "HYP",
+                "z": "TYS",
+                "k": "MLZ",
+                "m": "MLY",
+                "l": "M3L",
+                "o": "H1S",
+                "e": "H2S",
+                "f": "H3S"}
+len_three2one = len(PDB.Polypeptide.d1_to_index)
+idx=len_three2one
+for k,v in iteritems(ptm_residues):
+    PDB.Polypeptide.d1_to_index[k] = idx
+    PDB.Polypeptide.dindex_to_1[idx] = k
+    
+    PDB.Polypeptide.d3_to_index[v] = idx
+    PDB.Polypeptide.dindex_to_3[idx] = v
+    idx += 1
+
+
+if options.verbose:
+    log.basicConfig(level=log.INFO,    format=LOGFMT)
+else:
+    log.basicConfig(level=log.WARNING, format=LOGFMT)
+
+
+try:
+    letters = parse_letters_png(options.pngfile)
+except:
+    log.error("Couldn't parse PNG file containing the letters; exiting...")
+    exit(1)
+
+# parse mutation list
+res_order = parse_mutlist_file(options.order)
+
+log.info("Residues list is:")
+for i,r in enumerate(res_order):
+    log.info("%d\t%s" % (i,r))
+
+# parse structure
+pdb_parser = PDB.PDBParser()
+try:
+    structure = pdb_parser.get_structure('s', options.in_pdb)
+except:
+    log.error("Couldn't open or parse input pdb file. Exiting...")
+    exit(1)
+
+res_ids_str = []
+data = []
+
+# check one model is present
+models = structure.get_list()
+
+if len(models) > 1:
+    log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
+if len(models) < 1:
+    log.error("The input PDB file does not contain any model. Exiting ...")
+    exit(1)
+
+model = models[0]
+
+# get structure residue list
+res_ids_str = get_residue_list(structure, multimers=options.multimers)
+
+if options.multimers:
+    fnames = ["_".join(r) for r in res_ids_str]
+    res_id_labels = [", ".join(r) for r in res_ids_str]
+else:
+    fnames = res_ids_str
+    res_id_labels = res_ids_str
+
+# use custom labels if provided
+if options.labels:
+    label_dict = {}
+    with open(options.labels, 'rb') as csvfile:
+        csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        for row in csv_reader:
+            if row[1] != '':
+                label_dict[row[0]] = row[1]    
+    for i in range(len(fnames)):
+        if fnames[i] in label_dict:
+            res_id_labels[i] = label_dict[fnames[i]]
+
+# parse DDG files
+data = []
+for fname in fnames:
+    this_data = parse_ddg_file("%s/%s" % (options.dir, fname), reslist=res_order)
+
+    if this_data:
+        data.append(np.array(this_data))
+        continue
+    elif options.includeblank:
+        this_data = np.empty((len(res_order)))
+        this_data[:] = np.NAN
+        data.append(this_data)
+    else:
+        res_ids_str.pop()
+data = np.vstack(tuple(data))
+
+# set values above the maximum value to the maximum
+# move the whole range of values, so that values at maximum become 0
+# and invert sign so that higher values are more stabilizing
+data[ data >= options.threshold ] = options.threshold
+data = (data - options.threshold) * (-1)
+
+# get the number of values that would be plotted for each line, and check against
+# degeneracy value. Set the max_range according to these values only
+num_positives = np.sum(data > 0.0, axis=1) < options.degeneracy
+data_nondeg = data[num_positives,:]
+max_range = np.max(np.sum(data_nondeg, axis=1))
+
+#splice & plot
+spliced_data = splice_data(data, res_id_labels, options.sv)
+for i in range(len(spliced_data)):
+    fig = plot_matrix(  spliced_data[i][0],
+                        res_order,
+                        letters,
+                        spliced_data[i][1],
+                        max_range,
+                        title=options.title,
+                        fontsize=options.fontsize,
+                    )
+    plt.show()
+    fig.savefig("%d_%s" %(i, options.outfile), dpi=options.dpi)

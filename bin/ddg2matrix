@@ -24,106 +24,7 @@ from matplotlib import cm
 import csv
 from Bio import PDB
 from six import iteritems
-
-#Add extra ptm residues to PDB.Polypeptide three to one module 
-ptm_residues = {"y": "PTR",
-                "p": "TPO",
-                "s": "SEP",
-                "h": "HYP",
-                "z": "TYS",
-                "k": "MLZ",
-                "m": "MLY",
-                "l": "M3L",
-                "o": "H1S",
-                "e": "H2S",
-                "f": "H3S"}
-len_three2one = len(PDB.Polypeptide.d1_to_index)
-idx=len_three2one
-for k,v in iteritems(ptm_residues):
-    PDB.Polypeptide.d1_to_index[k] = idx
-    PDB.Polypeptide.dindex_to_1[idx] = k
-    
-    PDB.Polypeptide.d3_to_index[v] = idx
-    PDB.Polypeptide.dindex_to_3[idx] = v
-    idx += 1
-
-
-
-
-def get_residue_list(structure, multimers=True):
-
-    models = structure.get_list()
-
-    if len(models) > 1:
-        log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
-    if len(models) < 1:
-        log.error("The input PDB file does not contain any model. Exiting ...")
-        exit(1)
-
-    model = models[0]
-
-    residue_list = []
-    sequences = {}
-
-    for chain in model:
-        chain_name = chain.get_id()
-        sequences[chain_name] = ''
-        for residue in chain:
-            try:
-                res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
-            except:
-                log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, options.in_pdb))
-                continue
-            if not multimers:
-                residue_list.append(("%s%s%d") % (res_code, chain.get_id(), residue.get_id()[1]))
-            else:
-                sequences[chain_name] += res_code
-
-    if options.multimers:
-        collated_chains = []
-        seq_ids, seqs = list(zip(*list(iteritems(sequences))))
-        seq_ids = np.array(seq_ids)
-        unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
-
-        for i in np.unique(unique_idxs):
-            collated_chains.append(seq_ids[unique_idxs == i])
-
-        for cg in collated_chains:
-            for model in structure:
-                for residue in model[cg[0]]:
-                    resid = residue.get_id()[1]
-                    try:
-                        res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
-                    except:
-                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, options.in_pdb))
-                        continue
-                    residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
-    return residue_list
-
-def parse_ddg_file(fname, reslist):
-    try:
-        fh = open(fname, 'r')
-    except:
-        log.warning("file %s cannot be opened." % fname)
-        return None
-
-    ddgs = []
-    for line in fh:
-        if line and not line.startswith("#"):
-            ddgs.append(float(line.split()[0]))
-
-    if len(ddgs) != len(reslist):
-        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), len(reslist)))
-        exit(1)
-    return ddgs
-
-def parse_list_file(fname):
-    fh = open(fname, 'r')
-    restypes = []
-    for line in fh:
-        if line and not line.startswith("#"):
-            restypes.append(line.strip()[0])
-    return restypes
+from mutatex.utils import *
 
 def plot_matrix(mat, xlabels, ylabels, cmap, title=None, vmin=None, vmax=None, transpose=False, fontsize=8):
 
@@ -246,7 +147,7 @@ if options.cmap not in cmaps_list:
     exit(1)
 
 
-res_order = parse_list_file(options.order)
+res_order = parse_mutlist_file(options.order)
 
 log.info("Residues list is:")
 for i,r in enumerate(res_order):
