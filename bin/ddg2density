@@ -40,7 +40,12 @@ def get_ddg_data(residue_list, mutation_list, ddg_dir):
     res_restypes = [r[0][0] for r in residue_list]
     
     for fname in res_ids_str:
-        this_data = parse_ddg_file("%s/%s" % (options.input_path, fname), mutation_list)
+
+        try:
+            this_data = parse_ddg_file("%s/%s" % (options.input_path, fname), mutation_list)
+        except (IOError, TypeError):
+            exit(1)
+
         data.append(np.array(this_data))
     data = np.vstack(data)
 
@@ -97,16 +102,13 @@ options = parser.parse_args()
 pdb_parser = PDB.PDBParser()
 
 try:
-    structure = pdb_parser.get_structure('s', options.in_pdb)
-except:
-    log.error("Couldn't open or parse input pdb file. Exiting...")
+    residue_list = get_residue_list(options.in_pdb, multimers=options.multimers)
+except IOError:
     exit(1)
-residue_list = get_residue_list(structure, multimers=options.multimers)
 
 try:
     mutlist = parse_mutlist_file(options.mutations)
-except:
-    log.warning("Mutation list file couldn't be parsed. Exiting...")
+except (IOError, TypeError):
     exit(1)
 
 data = get_ddg_data(residue_list, mutlist, options.input_path)

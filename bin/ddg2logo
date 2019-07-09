@@ -18,20 +18,23 @@
 
 import argparse
 import base64
-import matplotlib
-
 from io import BytesIO
 from six import iteritems
 import csv
+import matplotlib
 matplotlib.use('Agg')
 matplotlib.rcParams['savefig.format'] = 'pdf'
 matplotlib.rcParams['hatch.linewidth'] = 0.5
-
 from matplotlib.image import imread
+from matplotlib import pyplot as plt
 from Bio import PDB
 from six import iteritems
 from mutatex.utils import *
 from mutatex.letters import letters
+import numpy as np
+import logging as log
+import os
+
 
 def parse_letters_png(pngfile, letters="ACDEFGHIKLMNPQRSTVWXYypshzkmloef"):
     if type(pngfile) is tuple:
@@ -43,11 +46,9 @@ def parse_letters_png(pngfile, letters="ACDEFGHIKLMNPQRSTVWXYypshzkmloef"):
         log.error("Input PNG file doesn't have the right shape (horizontal size is expected to be a multplie of vertical size)")
         raise TypeError
 
-
     if png.shape[1] // png.shape[0] != len(letters):
         log.error("Input PNG file does not contain the right number of letters")
         raise TypeError
-
 
     out = {}
     for i,l in enumerate(letters):
@@ -174,34 +175,6 @@ parser.add_argument("-D","--dpi", dest="dpi", type=float, action='store', defaul
 parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false')
 options = parser.parse_args()
 
-import numpy as np
-import logging as log
-import os
-from Bio import PDB
-from matplotlib import pyplot as plt
-
-#Add extra ptm residues to PDB.Polypeptide three to one module 
-ptm_residues = {"y": "PTR",
-                "p": "TPO",
-                "s": "SEP",
-                "h": "HYP",
-                "z": "TYS",
-                "k": "MLZ",
-                "m": "MLY",
-                "l": "M3L",
-                "o": "H1S",
-                "e": "H2S",
-                "f": "H3S"}
-len_three2one = len(PDB.Polypeptide.d1_to_index)
-idx=len_three2one
-for k,v in iteritems(ptm_residues):
-    PDB.Polypeptide.d1_to_index[k] = idx
-    PDB.Polypeptide.dindex_to_1[idx] = k
-    
-    PDB.Polypeptide.d3_to_index[v] = idx
-    PDB.Polypeptide.dindex_to_3[idx] = v
-    idx += 1
-
 
 if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)
@@ -216,7 +189,10 @@ except:
     exit(1)
 
 # parse mutation list
-res_order = parse_mutlist_file(options.order)
+try:
+    res_order = parse_mutlist_file(options.order)
+except IOError:
+    exit(1)
 
 log.info("Residues list is:")
 for i,r in enumerate(res_order):
@@ -233,19 +209,11 @@ except:
 res_ids_str = []
 data = []
 
-# check one model is present
-models = structure.get_list()
-
-if len(models) > 1:
-    log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
-if len(models) < 1:
-    log.error("The input PDB file does not contain any model. Exiting ...")
-    exit(1)
-
-model = models[0]
-
 # get structure residue list
-res_ids_str = get_residue_list(structure, multimers=options.multimers)
+try:
+    res_ids_str = get_residue_list(options.in_pdb, multimers=options.multimers)
+except IOError:
+    exit(1)
 
 if options.multimers:
     fnames = ["_".join(r) for r in res_ids_str]
@@ -269,7 +237,10 @@ if options.labels:
 # parse DDG files
 data = []
 for fname in fnames:
-    this_data = parse_ddg_file("%s/%s" % (options.dir, fname), reslist=res_order)
+    try:
+        this_data = parse_ddg_file("%s/%s" % (options.dir, fname), reslist=res_order)
+    except (IOError, TypeError):
+        exit(1)
 
     if this_data:
         data.append(np.array(this_data))

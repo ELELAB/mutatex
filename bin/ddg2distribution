@@ -264,30 +264,26 @@ if options.colormap is not None:
     for k,v in iteritems(colormaps):
         colormaps[k] = options.colormap
 
-
 if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)
 else:
     log.basicConfig(level=log.WARNING, format=LOGFMT)
 
-res_order = parse_mutlist_file(options.order)
+try:
+    res_order = parse_mutlist_file(options.order)
+except (IOError, TypeError):
+    exit(1)
 
 log.info("Residues list is:")
 for i,r in enumerate(res_order):
     log.info("%d\t%s" % (i,r))
 
-pdb_parser = PDB.PDBParser()
-
-try:
-    structure = pdb_parser.get_structure('s', options.in_pdb)
-except:
-    log.error("Couldn't open or parse input pdb file. Exiting...")
-    exit(1)
-
 res_ids_str = []
 data = []
-
-res_ids_str = get_residue_list(structure, multimers=options.multimers)
+try:
+    res_ids_str = get_residue_list(options.in_pdb, multimers=options.multimers)
+except IOError:
+    exit(1)
 
 if options.multimers:
     fnames = ["_".join(r) for r in res_ids_str]
@@ -310,7 +306,12 @@ if options.labels:
             res_id_labels[i] = label_dict[fnames[i]]
 
 for fname in fnames:
-    this_data = parse_ddg_file("%s/%s" % (options.dir, fname), reslist=res_order)
+
+    try:
+        this_data = parse_ddg_file("%s/%s" % (options.dir, fname), reslist=res_order)
+    except (IOError, TypeError):
+        exit(1)
+
     if this_data:
         data.append(np.array(this_data))
         continue

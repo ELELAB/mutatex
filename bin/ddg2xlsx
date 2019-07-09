@@ -49,25 +49,19 @@ if options.verbose:
 else:
     log.basicConfig(level=log.WARNING, format=LOGFMT)
 
-res_order = parse_mutlist_file(options.order)
+try:
+    res_order = parse_mutlist_file(options.order)
+except IOError:
+    exit(1)
 
 log.info("Residues list is:")
 for i,r in enumerate(res_order):
     log.info("%d\t%s" % (i,r))
 
-
-# parse PDB
-pdb_parser = PDB.PDBParser()
-
-#if True:
 try:
-    structure = pdb_parser.get_structure('s', options.in_pdb)
-#else:
-except:
-    log.error("Couldn't open or parse input pdb file. Exiting...")
+    res_ids_str = get_residue_list(options.in_pdb, multimers=options.multimers)
+except IOError:
     exit(1)
-
-res_ids_str = get_residue_list(structure, multimers=options.multimers)
 
 max_len_res_ids = np.max([len(r) for r in res_ids_str])
 if options.multimers:
@@ -77,13 +71,16 @@ else:
     fnames = res_ids_str
     res_id_labels = res_ids_str
     
-
 data = []
 
 log.info("The following files will be considered: %s" % ", ".join(res_id_labels))
 
 for i,f in enumerate(fnames):
-    data.append(np.array(parse_ddg_file("%s/%s" % (options.dir, f), reslist=res_order, )))
+    try:
+        data.append(np.array(parse_ddg_file("%s/%s" % (options.dir, f), reslist=res_order, )))
+    except (IOError, TypeError):
+        exit(1)
+
 
 wb = pyxl.Workbook()
 ws = wb['Sheet']
