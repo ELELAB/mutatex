@@ -41,13 +41,13 @@ cmaps_list = [m for m in cm.datad if not m.endswith("_r")]
 parser = argparse.ArgumentParser(
 description='Calculate folding DG from MutateX DDG and experimental DG, also applying a linear correction')
 
-parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
-parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
-parser.add_argument("-o","--output", dest="outdir", type=str, action='store', default='dgf')
+parser = init_arguments(['pdb', 'data', 'multimers'], parser)
+
 parser.add_argument("-m", "--slope", dest="m", type=float, action='store', default=1.0, help="slope value for the correction of DDG values")
 parser.add_argument("-y", "--y-intercept", dest="b", type=float, action='store', default=0.0, help="Y-intercept value for the correction of DDG values")
 parser.add_argument("-x", "--experimental-dg", dest="dg", type=float, default=0, action='store', help="Experimental energy of folding")
-parser.add_argument("-M", "--multimers", dest="multimers", default=True, action='store_false', help="Do not consider the same chains as multimers")
+
+parser.add_argument("-o","--output", dest="outdir", type=str, action='store', default='dgf')
 
 options = parser.parse_args()
 
@@ -83,7 +83,7 @@ for res in foldx_sequence:
     out_fname = "%s/%s" % (options.outdir, resname)
     
     try:
-        this_data = np.array(parse_ddg_file("%s/%s" % (options.dir, resname), None))
+        this_data = np.array(parse_ddg_file("%s/%s" % (options.ddg_dir, resname), None))
     except (IOError, TypeError):
         exit(1)
 

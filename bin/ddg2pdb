@@ -23,9 +23,6 @@ from mutatex.utils import *
 
 LOGFMT = "%(levelname)s: %(message)s"
 
-if not __name__ == "__main__":
-    exit()
-
 parser = argparse.ArgumentParser(
 description='FoldX DDG parser & plotter',
 epilog='''Please notice that cut-offs (i.e. DDG thresholds) are mandatory. In fact,
@@ -43,17 +40,16 @@ validity intervals: -a 0.5 = ]-inf,0.5] U [99999.0,+inf[ ;
 -a 0.5 -b 1.0 -t between = [0.5,1.0]
 ''')
 
-parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
-parser.add_argument("-p","--input-pdb", dest="in_pdb", help="Input pdb file")
-parser.add_argument("-l","--order-list", dest="order",  help="default order list")
-parser.add_argument("-m","--matrix", dest="dat", default="ala_scanning.mat", help="output xPyder-compatible matrix")
-parser.add_argument("-o","--output-pdb", dest="out_pdb", default="ala_scanning.pdb", help="Output pdb file")
+parser = init_arguments(['pdb', 'data', 'mutation_list', 'multimers'], parser)
+
 parser.add_argument("-a","--lower-free-energy-threshold", dest="low_thres",  default=-99999.0, type=float, help="lower threhsold; default value: -99999.0")
 parser.add_argument("-b","--upper-free-energy-threshold", dest="high_thres", default= 99999.0, type=float, help="upper threhsold; default value: 99999.0")
 parser.add_argument("-T","--threshold-mode", dest='thres_mode', choices=['between','outside'], default='outside', action='store', help="threshold mode: between=between upper and lower value, outside: <lower OR >upper")
-parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
-parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false')
 
+parser.add_argument("-m","--matrix", dest="dat", default="ala_scanning.mat", help="output xPyder-compatible matrix")
+parser.add_argument("-o","--output-pdb", dest="out_pdb", default="ala_scanning.pdb", help="Output pdb file")
+
+parser = init_arguments(['verbose'], parser)
 
 # parse ddg files
 
@@ -68,7 +64,7 @@ else:
     log.basicConfig(level=log.WARNING, format=LOGFMT)
 
 try:
-    res_order = parse_mutlist_file(options.order)
+    res_order = parse_mutlist_file(options.mutation_list)
 except IOError:
     exit(1)
 
@@ -78,7 +74,7 @@ try:
     res_ids_str, structure = get_residue_list(options.in_pdb, multimers=options.multimers, get_structure=True)
 except IOError:
     exit(1)
-    
+
 models = structure.get_list()
 
 fnames = ["_".join(r) for r in res_ids_str]
@@ -102,7 +98,7 @@ elif options.thres_mode == 'between':
 
 for i,r in enumerate(res_ids_str):
     try:
-        tmp_data = np.array(parse_ddg_file("%s/%s" % (options.dir, fnames[i]), reslist=res_order))
+        tmp_data = np.array(parse_ddg_file("%s/%s" % (options.ddg_dir, fnames[i]), reslist=res_order))
     except (IOError, TypeError):
         exit(1)
     if options.thres_mode == 'outside':

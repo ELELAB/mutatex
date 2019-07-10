@@ -95,21 +95,18 @@ if not __name__ == "__main__":
 parser = argparse.ArgumentParser( 
     description='ddg2histo: plot a histogram of the DDGs calculated for all the mutations of a single residue.',)
 
-parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
-parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
-parser.add_argument("-l","--order-list", dest="order",  help="default order list")
-parser.add_argument("-m","--include-invalid-files",dest='includeblank',action='store_true', default=False, help="Include empty columns in output instead of ignoring missing files")
-parser.add_argument("-b","--label-list", dest="labels", help="residue label list")
-parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
-parser.add_argument("-o","--output", dest="outfile", action='store', default='histogram.pdf', help="Output filename")
+parser = init_arguments(['pdb', 'data', 'mutation_list', 'multimers'])
+
+parser.add_argument("-r","--residues", dest="residues", type= str, help="Define a list of residues to plot (see below)")
 parser.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="Minimum value to be plotted")
 parser.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="Maximum value to be plotted")
-parser.add_argument("-t","--title", dest='title', action='store', default=None, type=str, help="Title for the output image file")
-parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=12, help="Axis label font size")
-parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false', help="Disable multimers mode")
-parser.add_argument("-r","--residues", dest="residues", type= str, help="Define a list of residues to plot (see below)")
+
+parser = init_arguments(['title', 'labels', 'fontsize'], parser)
 parser.add_argument("-c","--color", dest="color", default="white", type= str, help="Name a color for the bar plot")
 
+parser.add_argument("-o","--output", dest="outfile", action='store', default='histogram.pdf', help="Output filename")
+
+parser = init_arguments(['verbose'], parser)
 
 options = parser.parse_args()
 
@@ -123,7 +120,7 @@ else:
     log.basicConfig(level=log.WARNING, format=LOGFMT)
 
 try:
-    res_order = parse_mutlist_file(options.order)
+    res_order = parse_mutlist_file(options.mutation_list)
 except (IOError, TypeError):
     exit(1)
 
@@ -158,27 +155,18 @@ except AttributeError:
 
 for residue in residues[:]:
     try:
-        this_data, this_std, this_min, this_max = parse_ddg_file("%s/%s" % (options.dir, residue), reslist=res_order, full=True)
+        this_data, this_std, this_min, this_max = parse_ddg_file("%s/%s" % (options.ddg_dir, residue), reslist=res_order, full=True)
     except (IOError, TypeError):
         exit(1)
 
-    if this_data:
-        data.append(np.array(this_data))
-        stds.append(np.array(this_std))
-        continue
-    elif options.includeblank:
-        this_data = np.empty((len(res_order)))
-        this_std = np.empty((len(res_order)))
-        this_data[:] = np.NAN
-        data.append(this_data)
-        stds.append(this_data)
-    else:
-        residues.remove(residue)
+    data.append(np.array(this_data))
+    stds.append(np.array(this_std))
+
 try:
     data = np.vstack(tuple(data))
     stds = np.vstack(tuple(stds))
 except:
-    log.error("No mutation data could be loaded. Exiting...")
+    log.error("The loaded mutation data is not consistent in size. Exiting...")
     exit(1)
 
 #Find min and max in selected data

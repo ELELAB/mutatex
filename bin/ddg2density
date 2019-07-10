@@ -42,7 +42,7 @@ def get_ddg_data(residue_list, mutation_list, ddg_dir):
     for fname in res_ids_str:
 
         try:
-            this_data = parse_ddg_file("%s/%s" % (options.input_path, fname), mutation_list)
+            this_data = parse_ddg_file("%s/%s" % (ddg_dir, fname), mutation_list)
         except (IOError, TypeError):
             exit(1)
 
@@ -83,19 +83,18 @@ def plot_density(data, outfile, title, mycolor, bw_method, xmin, xmax, spaces):
 
 parser = argparse.ArgumentParser(description='Generate probability density via kernel density estimation of the calculated DDG',)
 
-parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
-parser.add_argument("-d","--data-directory", dest="input_path", type=str, help="input data directory")
-parser.add_argument("-l","--mutation_list", dest="mutations",  help="mutation_list")
-parser.add_argument("-o","--output", dest="outfile", type=str, default="kde_density.pdf")
-parser.add_argument("-i","--title", dest='title', type=str, default=None, help="Title for the output image file")
-parser.add_argument("-c","--color", dest='mycolor', type=str, default="black", help="Color used to plot the DDG values")
-parser.add_argument("-u","--ddgfile", dest="ddgfile", type=str, default="ddg_values.dat", help="File containing all the used DDG values")
-parser.add_argument("-k","--kdvfile", dest="kdvfile", type=str, default="density_values.dat", help="File containing calculated density values")
+parser = init_arguments(['pdb', 'data', 'mutation_list', 'multimers'], parser)
+
 parser.add_argument("-m","--vmin", dest="vmin", type=float, default=-5, help="minimum DDG value for density determination")
 parser.add_argument("-x","--vmax", dest="vmax", type=float, default=10, help="maxomum DDG value for density determination")
 parser.add_argument("-g","--grid-points", dest="grid", type=int, default=150, help="number of point between minimum and maximum to calculate density on")
 parser.add_argument("-w","--bandwidth-method", dest="bw", default=None, help="method used to calculate the estimator bandwith in KDE. Same options as scipy KDE function")
-parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false')
+
+parser = init_arguments(['title', 'color'], parser)
+
+parser.add_argument("-o","--output", dest="outfile", type=str, default="kde_density.pdf")
+parser.add_argument("-u","--ddgfile", dest="ddgfile", type=str, default="ddg_values.dat", help="File containing all the used DDG values")
+parser.add_argument("-k","--kdvfile", dest="kdvfile", type=str, default="density_values.dat", help="File containing calculated density values")
 
 options = parser.parse_args()
 
@@ -107,11 +106,11 @@ except IOError:
     exit(1)
 
 try:
-    mutlist = parse_mutlist_file(options.mutations)
+    mutlist = parse_mutlist_file(options.mutation_list)
 except (IOError, TypeError):
     exit(1)
 
-data = get_ddg_data(residue_list, mutlist, options.input_path)
+data = get_ddg_data(residue_list, mutlist, options.ddg_dir)
 
 plot_density(data, options.outfile, options.title, options.mycolor, options.bw, options.vmin, options.vmax, options.grid)
 
