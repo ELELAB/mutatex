@@ -157,20 +157,25 @@ if not __name__ == "__main__":
 
 parser = argparse.ArgumentParser(
 description='ddg2logo: make logo plots for DDG values',)
+optional = parser._action_groups.pop()
+required = parser.add_argument_group('required arguments')
 
-parser = init_arguments(['pdb', 'data', 'mutation_list', 'multimers'], parser)
-parser.add_argument("-L","--png-letter-map",dest='pngfile',action='store', default=letters, help="png file to be used for letters")
+required = init_arguments(['pdb', 'data', 'mutation_list'], required)
+optional = init_arguments(['multimers'], optional)
 
-parser.add_argument("-T","--threshold", dest="threshold", action='store', type=float, default=0.5, help="Do not consider mutations with absolute DDG lower than this value")
-parser.add_argument("-x","--maximum-degeneracy", dest="degeneracy", action='store', type=int, default=32, help="when the number of stabilizing mutations is higher than this threshold a pattern will be plotted instead")
+optional.add_argument("-L","--png-letter-map",dest='pngfile',action='store', default=letters, help="png file to be used for letters")
 
-parser = init_arguments(['labels', 'fontsize', 'title', 'splice'], parser)
-parser.add_argument("-D","--dpi", dest="dpi", type=float, action='store', default=150, help="number of DPI for the output image. !!WARNING!! Saving the images at higher DPI (as 300) uses a lot of memory, therefore use with caution" )
+optional.add_argument("-T","--threshold", dest="threshold", action='store', type=float, default=0.5, help="Do not consider mutations with absolute DDG lower than this value")
+optional.add_argument("-x","--maximum-degeneracy", dest="degeneracy", action='store', type=int, default=32, help="when the number of stabilizing mutations is higher than this threshold a pattern will be plotted instead")
 
-parser.add_argument("-o","--output", dest="outfile", action='store', default='logo.pdf', help="output file names")
+optional = init_arguments(['labels', 'fontsize', 'title', 'splice'], optional)
+optional.add_argument("-D","--dpi", dest="dpi", type=float, action='store', default=150, help="number of DPI for the output image. !!WARNING!! Saving the images at higher DPI (as 300) uses a lot of memory, therefore use with caution" )
 
-parser = init_arguments(['verbose'], parser)
+optional.add_argument("-o","--output", dest="outfile", action='store', default='logo.pdf', help="output file names")
 
+optional = init_arguments(['verbose'], optional)
+
+parser._action_groups.append(optional)
 options = parser.parse_args()
 
 if options.verbose:

@@ -230,21 +230,26 @@ if not __name__ == "__main__":
 
 parser = argparse.ArgumentParser( 
     description='ddg2distribution: plot DDG MutateX results as distribution plots: boxplot, violin plots or scatter plots, single-residue plots, stemplots.',)
+optional = parser._action_groups.pop()
+required = parser.add_argument_group('required arguments')
 
-parser = init_arguments(['pdb', 'data', 'mutation_list', 'multimers'], parser)
-parser.add_argument("-T","--type", dest="type", nargs = '+', required = True, choices = ["stem", "box", "violin", "single", "scatter"], help = "Choose type(s) of plot(s) to generate: stem, box, violin or scatter. Duplicates will be ignored.")
-parser.add_argument("-L","--limit", dest="limit", action='store', default = None, type=int, help="Limit scatter plot ddg values to a maximum")
-parser.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="Minimum value to be plotted")
-parser.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="Maximum value to be plotted")
-parser.add_argument("-u","--topmuts", dest="topmuts", type=int, default=0, help="Number of extreme residues to be labeled (scatter plot only)")
+required = init_arguments(['pdb', 'data', 'mutation_list'], required)
+optional = init_arguments(['multimers'], optional)
 
-parser = init_arguments(['title', 'labels', 'fontsize', 'splice'], parser)
-parser.add_argument("-c","--colormap", dest="colormap", type=str, default=None, help="Color map to be used for the plot")
+required.add_argument("-T","--type", dest="type", nargs = '+', required = True, choices = ["stem", "box", "violin", "single", "scatter"], help = "Choose type(s) of plot(s) to generate: stem, box, violin or scatter. Duplicates will be ignored.")
+optional.add_argument("-L","--limit", dest="limit", action='store', default = None, type=int, help="Limit scatter plot ddg values to a maximum")
+optional.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="Minimum value to be plotted")
+optional.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="Maximum value to be plotted")
+optional.add_argument("-u","--topmuts", dest="topmuts", type=int, default=0, help="Number of extreme residues to be labeled (scatter plot only)")
 
-parser.add_argument("-o","--output", dest="outfile", action='store', default='energies.pdf', help="output filename")
+optional = init_arguments(['title', 'labels', 'fontsize', 'splice'], optional)
+optional.add_argument("-c","--colormap", dest="colormap", type=str, default=None, help="Color map to be used for the plot")
 
-parser = init_arguments(['verbose'], parser)
+optional.add_argument("-o","--output", dest="outfile", action='store', default='energies.pdf', help="output filename")
 
+optional = init_arguments(['verbose'], optional)
+
+parser._action_groups.append(optional)
 options = parser.parse_args()
 
 if options.verbose:

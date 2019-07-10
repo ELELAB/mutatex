@@ -40,19 +40,23 @@ validity intervals: -a 0.5 = ]-inf,0.5] U [99999.0,+inf[ ;
 -a 0.5 -b 1.0 -t between = [0.5,1.0]
 ''')
 
-parser = init_arguments(['pdb', 'data', 'mutation_list', 'multimers'], parser)
+optional = parser._action_groups.pop()
+required = parser.add_argument_group('required arguments')
 
-parser.add_argument("-a","--lower-free-energy-threshold", dest="low_thres",  default=-99999.0, type=float, help="lower threhsold; default value: -99999.0")
-parser.add_argument("-b","--upper-free-energy-threshold", dest="high_thres", default= 99999.0, type=float, help="upper threhsold; default value: 99999.0")
-parser.add_argument("-T","--threshold-mode", dest='thres_mode', choices=['between','outside'], default='outside', action='store', help="threshold mode: between=between upper and lower value, outside: <lower OR >upper")
+required = init_arguments(['pdb', 'data', 'mutation_list'], required)
+optional = init_arguments(['multimers'], optional)
 
-parser.add_argument("-m","--matrix", dest="dat", default="ala_scanning.mat", help="output xPyder-compatible matrix")
-parser.add_argument("-o","--output-pdb", dest="out_pdb", default="ala_scanning.pdb", help="Output pdb file")
+optional.add_argument("-a","--lower-free-energy-threshold", dest="low_thres",  default=-99999.0, type=float, help="lower threhsold; default value: -99999.0")
+optional.add_argument("-b","--upper-free-energy-threshold", dest="high_thres", default= 99999.0, type=float, help="upper threhsold; default value: 99999.0")
+optional.add_argument("-T","--threshold-mode", dest='thres_mode', choices=['between','outside'], default='outside', action='store', help="threshold mode: between=between upper and lower value, outside: <lower OR >upper")
 
-parser = init_arguments(['verbose'], parser)
+optional.add_argument("-m","--matrix", dest="dat", default="ala_scanning.mat", help="output xPyder-compatible matrix")
+optional.add_argument("-o","--output-pdb", dest="out_pdb", default="ala_scanning.pdb", help="Output pdb file")
+
+optional = init_arguments(['verbose'], optional)
 
 # parse ddg files
-
+parser._action_groups.append(optional)
 options = parser.parse_args()
 
 import numpy as np

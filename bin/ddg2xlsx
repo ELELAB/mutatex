@@ -28,19 +28,21 @@ LOGFMT = "%(levelname)s: %(message)s"
 
 parser = argparse.ArgumentParser(
 description='FoldX DDG converter to the OOXML xlsx format',)
+optional = parser._action_groups.pop()
+required = parser.add_argument_group('required arguments')
 
-parser = init_arguments(['pdb', 'data', 'mutation_list', 'multimers'], parser)
+required = init_arguments(['pdb', 'data', 'mutation_list'], required)
+optional = init_arguments(['multimers'], optional)
 
-parser.add_argument("-T","--transpose",dest='transpose',action="store_true",default=False,help="Swap rows and columns")
+optional.add_argument("-T","--transpose", dest='transpose', action="store_true", default=False, help="Swap rows and columns")
 
-parser.add_argument("-o","--output", dest="outfile", action='store', default='energies.xlsx')
+optional.add_argument("-o","--output", dest="outfile", action='store', default='energies.xlsx')
 
-parser = init_arguments(['labels'], parser)
+optional = init_arguments(['labels'], optional)
 
-parser = init_arguments(['verbose'], parser)
+optional = init_arguments(['verbose'], optional)
 
-
-# parse ddg files
+parser._action_groups.append(optional)
 options = parser.parse_args()
 
 if options.verbose:

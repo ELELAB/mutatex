@@ -40,15 +40,19 @@ cmaps_list = [m for m in cm.datad if not m.endswith("_r")]
 
 parser = argparse.ArgumentParser(
 description='Calculate folding DG from MutateX DDG and experimental DG, also applying a linear correction')
+optional = parser._action_groups.pop()
+required = parser.add_argument_group('required arguments')
 
-parser = init_arguments(['pdb', 'data', 'multimers'], parser)
+required = init_arguments(['pdb', 'data'], required)
+optional = init_arguments(['multimers'], optional)
 
-parser.add_argument("-m", "--slope", dest="m", type=float, action='store', default=1.0, help="slope value for the correction of DDG values")
-parser.add_argument("-y", "--y-intercept", dest="b", type=float, action='store', default=0.0, help="Y-intercept value for the correction of DDG values")
-parser.add_argument("-x", "--experimental-dg", dest="dg", type=float, default=0, action='store', help="Experimental energy of folding")
+optional.add_argument("-m", "--slope", dest="m", type=float, action='store', default=1.0, help="slope value for the correction of DDG values")
+optional.add_argument("-y", "--y-intercept", dest="b", type=float, action='store', default=0.0, help="Y-intercept value for the correction of DDG values")
+optional.add_argument("-x", "--experimental-dg", dest="dg", type=float, default=0, action='store', help="Experimental energy of folding")
 
-parser.add_argument("-o","--output", dest="outdir", type=str, action='store', default='dgf')
+optional.add_argument("-o","--output", dest="outdir", type=str, action='store', default='dgf')
 
+parser._action_groups.append(optional)
 options = parser.parse_args()
 
 import numpy as np

@@ -38,11 +38,11 @@ def init_arguments(arguments, parser):
 
     for arg in arguments:
         if   arg == 'pdb':
-            parser.add_argument("-p","--pdb", dest="in_pdb", help="Input PDB file")
+            parser.add_argument("-p","--pdb", dest="in_pdb", help="Input PDB file", required=True)
         elif arg == 'data':
-            parser.add_argument("-d","--data-directory", dest="ddg_dir", type=str, help="Input DDG data directory")
+            parser.add_argument("-d","--data-directory", dest="ddg_dir", type=str, help="Input DDG data directory", required=True)
         elif arg == 'mutation_list':
-            parser.add_argument("-l","--mutation_list", dest="mutation_list",  help="MutateX mutation list file")
+            parser.add_argument("-l","--mutation_list", dest="mutation_list",  help="MutateX mutation list file", required=True)
         elif arg == 'multimers':
             parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false', help="Do not use multimers (default: yes)")
         elif arg == 'labels':
