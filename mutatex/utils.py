@@ -32,31 +32,31 @@ import numpy as np
 import tarfile as tar
 import platform
 
-def init_arguments(arguments, parser=None):
-    if parser is None:
-        parser = argparse.ArgumentParser()
+def init_arguments(arguments, parser):
+
+    assert len(set(arguments)) == len(arguments)
 
     for arg in arguments:
         if   arg == 'pdb':
-            parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
+            parser.add_argument("-p","--pdb", dest="in_pdb", help="Input PDB file")
         elif arg == 'data':
-            parser.add_argument("-d","--data-directory", dest="ddg_dir", type=str, help="input data directory")
+            parser.add_argument("-d","--data-directory", dest="ddg_dir", type=str, help="Input DDG data directory")
         elif arg == 'mutation_list':
-            parser.add_argument("-l","--mutation_list", dest="mutation_list",  help="mutation_list")
+            parser.add_argument("-l","--mutation_list", dest="mutation_list",  help="MutateX mutation list file")
         elif arg == 'multimers':
-            parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false')
+            parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false', help="Do not use multimers (default: yes)")
         elif arg == 'labels':
-            parser.add_argument("-b","--label-list", dest="labels", help="residue label list")
+            parser.add_argument("-b","--label-list", dest="labels", help="Residue label list")
         elif arg == 'fontsize':
             parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Axis label font size")
         elif arg == 'verbose':
-            parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
+            parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="Toggle verbose mode")
         elif arg == 'title':
             parser.add_argument("-i","--title", dest='title', type=str, default=None, help="Title for the output image file")
         elif arg == 'color':
-            parser.add_argument("-c","--color", dest='mycolor', type=str, default="black", help="Color used to plot the DDG values")
+            parser.add_argument("-c","--color", dest='mycolor', type=str, default="black", help="Color used for plotting")
         elif arg == 'splice':
-            parser.add_argument("-s","--splice",dest='sv',action='store', type=int, default=20, help="Number of residues for each single image")
+            parser.add_argument("-s","--splice",dest='sv',action='store', type=int, default=20, help="Divide data in multiple plots, use -s residues per plot")
         else:
             raise NameError
 
