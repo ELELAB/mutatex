@@ -98,6 +98,8 @@ parser.add_argument("-k","--kdvfile", dest="kdvfile", type=str, default="density
 
 options = parser.parse_args()
 
+log.basicConfig(level=log.WARNING, format=LOGFMT)   
+
 pdb_parser = PDB.PDBParser()
 
 try:

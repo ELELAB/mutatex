@@ -16,12 +16,15 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import numpy as np
+import logging as log
 from six import iteritems
 import argparse
-import matplotlib
 import csv
+import matplotlib
 matplotlib.use('Agg')
 matplotlib.rcParams['savefig.format'] = 'pdf'
+from matplotlib import pyplot as plt
 from Bio import PDB
 from mutatex.utils import *
 
@@ -244,9 +247,10 @@ parser = init_arguments(['verbose'], parser)
 
 options = parser.parse_args()
 
-import numpy as np
-import logging as log
-from matplotlib import pyplot as plt
+if options.verbose:
+    log.basicConfig(level=log.INFO,    format=LOGFMT)
+else:
+    log.basicConfig(level=log.WARNING, format=LOGFMT)
 
 colormaps = {'box':    'Greys_r',
              'violin': 'Greys_r',
@@ -259,11 +263,6 @@ if options.colormap is not None:
         exit(1)
     for k,v in iteritems(colormaps):
         colormaps[k] = options.colormap
-
-if options.verbose:
-    log.basicConfig(level=log.INFO,    format=LOGFMT)
-else:
-    log.basicConfig(level=log.WARNING, format=LOGFMT)
 
 try:
     res_order = parse_mutlist_file(options.mutation_list)

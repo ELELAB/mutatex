@@ -16,13 +16,16 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import numpy as np
+import logging as log
 import argparse
 import matplotlib
+matplotlib.use('Agg')
+matplotlib.rcParams['savefig.format'] = 'pdf'
+from matplotlib import pyplot as plt
 import re
 import csv
 from six import iteritems
-matplotlib.use('Agg')
-matplotlib.rcParams['savefig.format'] = 'pdf'
 from Bio import PDB
 from mutatex.utils import *
     
@@ -109,10 +112,6 @@ parser.add_argument("-o","--output", dest="outfile", action='store', default='hi
 parser = init_arguments(['verbose'], parser)
 
 options = parser.parse_args()
-
-import numpy as np
-import logging as log
-from matplotlib import pyplot as plt
 
 if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)

@@ -173,7 +173,6 @@ parser = init_arguments(['verbose'], parser)
 
 options = parser.parse_args()
 
-
 if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)
 else:
