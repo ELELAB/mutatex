@@ -23,9 +23,6 @@ from mutatex.utils import *
 
 LOGFMT = "%(levelname)s: %(message)s"
 
-if not __name__ == "__main__":
-    exit()
-
 parser = argparse.ArgumentParser(
 description='FoldX DDG parser & plotter',
 epilog='''Please notice that cut-offs (i.e. DDG thresholds) are mandatory. In fact,
@@ -43,56 +40,47 @@ validity intervals: -a 0.5 = ]-inf,0.5] U [99999.0,+inf[ ;
 -a 0.5 -b 1.0 -t between = [0.5,1.0]
 ''')
 
-parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
-parser.add_argument("-p","--input-pdb", dest="in_pdb", help="Input pdb file")
-parser.add_argument("-l","--order-list", dest="order",  help="default order list")
-parser.add_argument("-m","--matrix", dest="dat", default="ala_scanning.mat", help="output xPyder-compatible matrix")
-parser.add_argument("-o","--output-pdb", dest="out_pdb", default="ala_scanning.pdb", help="Output pdb file")
-parser.add_argument("-a","--lower-free-energy-threshold", dest="low_thres",  default=-99999.0, type=float, help="lower threhsold; default value: -99999.0")
-parser.add_argument("-b","--upper-free-energy-threshold", dest="high_thres", default= 99999.0, type=float, help="upper threhsold; default value: 99999.0")
-parser.add_argument("-T","--threshold-mode", dest='thres_mode', choices=['between','outside'], default='outside', action='store', help="threshold mode: between=between upper and lower value, outside: <lower OR >upper")
-parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
-parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false')
+optional = parser._action_groups.pop()
+required = parser.add_argument_group('required arguments')
 
+required = init_arguments(['pdb', 'data', 'mutation_list'], required)
+optional = init_arguments(['multimers'], optional)
+
+optional.add_argument("-a","--lower-free-energy-threshold", dest="low_thres",  default=-99999.0, type=float, help="lower threhsold; default value: -99999.0")
+optional.add_argument("-b","--upper-free-energy-threshold", dest="high_thres", default= 99999.0, type=float, help="upper threhsold; default value: 99999.0")
+optional.add_argument("-T","--threshold-mode", dest='thres_mode', choices=['between','outside'], default='outside', action='store', help="threshold mode: between=between upper and lower value, outside: <lower OR >upper")
+
+optional.add_argument("-m","--matrix", dest="dat", default="ala_scanning.mat", help="output xPyder-compatible matrix")
+optional.add_argument("-o","--output-pdb", dest="out_pdb", default="ala_scanning.pdb", help="Output pdb file")
+
+optional = init_arguments(['verbose'], optional)
 
 # parse ddg files
-
+parser._action_groups.append(optional)
 options = parser.parse_args()
 
 import numpy as np
 import logging as log
-
-
 
 if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)
 else:
     log.basicConfig(level=log.WARNING, format=LOGFMT)
 
-
-# parse PDB
-pdb_parser = PDB.PDBParser()
-
-
 try:
-    structure = pdb_parser.get_structure('s', options.in_pdb)
-except:
-    log.error("Couldn't open or parse input pdb file. Exiting...")
+    res_order = parse_mutlist_file(options.mutation_list)
+except IOError:
     exit(1)
-
-res_order = parse_mutlist_file(options.order)
 
 res_ids = []
 
-models = structure.get_list()
-
-if len(models) > 1:
-    log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
-if len(models) < 1:
-    log.error("The input PDB file does not contain any model. Exiting ...")
+try:
+    res_ids_str, structure = get_residue_list(options.in_pdb, multimers=options.multimers, get_structure=True)
+except IOError:
     exit(1)
 
-res_ids_str = get_residue_list(structure, multimers=options.multimers)
+models = structure.get_list()
+
 fnames = ["_".join(r) for r in res_ids_str]
 
 log.info("The following files will be considered: %s" % ", ".join(fnames))
@@ -113,8 +101,10 @@ elif options.thres_mode == 'between':
     log.info("Mode: between. Only values between %.2f and %.2f will be considered." % (options.low_thres, options.high_thres))
 
 for i,r in enumerate(res_ids_str):
-    #try:
-    tmp_data = np.array(parse_ddg_file("%s/%s" % (options.dir, fnames[i]), reslist=res_order))
+    try:
+        tmp_data = np.array(parse_ddg_file("%s/%s" % (options.ddg_dir, fnames[i]), reslist=res_order))
+    except (IOError, TypeError):
+        exit(1)
     if options.thres_mode == 'outside':
         processed_data = np.sum(np.logical_or(tmp_data <= options.low_thres, tmp_data >= options.high_thres))
     elif options.thres_mode == 'between':

@@ -32,10 +32,45 @@ import numpy as np
 import tarfile as tar
 import platform
 
+def init_arguments(arguments, parser):
+
+    assert len(set(arguments)) == len(arguments)
+
+    for arg in arguments:
+        if   arg == 'pdb':
+            parser.add_argument("-p","--pdb", dest="in_pdb", help="Input PDB file", required=True)
+        elif arg == 'data':
+            parser.add_argument("-d","--data-directory", dest="ddg_dir", type=str, help="Input DDG data directory", required=True)
+        elif arg == 'mutation_list':
+            parser.add_argument("-l","--mutation_list", dest="mutation_list",  help="MutateX mutation list file", required=True)
+        elif arg == 'multimers':
+            parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false', help="Do not use multimers (default: yes)")
+        elif arg == 'labels':
+            parser.add_argument("-b","--label-list", dest="labels", help="Residue label list")
+        elif arg == 'fontsize':
+            parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Axis label font size")
+        elif arg == 'verbose':
+            parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="Toggle verbose mode")
+        elif arg == 'title':
+            parser.add_argument("-i","--title", dest='title', type=str, default=None, help="Title for the output image file")
+        elif arg == 'color':
+            parser.add_argument("-c","--color", dest='mycolor', type=str, default="black", help="Color used for plotting")
+        elif arg == 'splice':
+            parser.add_argument("-s","--splice",dest='sv',action='store', type=int, default=20, help="Divide data in multiple plots, use -s residues per plot")
+        else:
+            raise NameError
+
+    return parser
+
 def parse_ddg_file(fname, reslist, full=False):
-    fh = open(fname, 'r')
-    
+    try:
+        fh = open(fname, 'r')
+    except:
+        log.error("Couldn't open energy file %s" % fname)
+        raise IOError
+
     ddgs = []
+
     if full:
         stds = []
         mins = []
@@ -52,8 +87,10 @@ def parse_ddg_file(fname, reslist, full=False):
 
     if reslist is not None:
         if len(ddgs) != len(reslist):
-            log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), len(reslist)))
-            exit(1)
+            log.error("file %s has %d values, with %d required." % (fname, len(ddgs), len(reslist)))
+            raise TypeError
+
+    fh.close()
 
     if full:
         return ddgs, stds, mins, maxs
@@ -61,26 +98,52 @@ def parse_ddg_file(fname, reslist, full=False):
     return ddgs
 
 def parse_mutlist_file(fname):
-    fh = open(fname, 'r')
+
+    try:
+        fh = open(fname, 'r')
+    except IOError:
+        log.error("Couldn't open mutation list file %s" % fname)
+        raise IOError
 
     restypes = []
     
     for line in fh:
         if line and not line.startswith("#"):
+            str_line = line.strip()
+            if len(str_line) == 0:
+                continue
+            if len(str_line) > 1:
+                log.warning("more than one character per line found in mutation list file; only the first letter will be considered")
             restypes.append(line.strip()[0])
+
     fh.close()
+
+    if len(set(restypes)) != len(restypes):
+        log.error("mutation list file contains duplicates")
+        raise TypeError
+
+    if len(restypes) == 0:
+        log.error("No residue types found in mutation list")
     
     return restypes
 
-def get_residue_list(structure, multimers=True):
+def get_residue_list(infile, multimers=True, get_structure=False):
+
+    parser = PDB.PDBParser()
+
+    try:
+        structure = parser.get_structure("structure", infile)
+    except IOError:
+        log.error("couldn't read or parse your PDB file")
+        raise IOError
 
     models = list(structure.get_models())
 
     if len(models) > 1:
         log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
     if len(models) < 1:
-        log.error("The input PDB file does not contain any model. Exiting ...")
-        exit(1)
+        log.error("the input PDB file does not contain any model. Exiting ...")
+        raise IOError
 
     model = models[0]
 
@@ -120,20 +183,21 @@ def get_residue_list(structure, multimers=True):
                         log.warning("Residue %s couldn't be recognized; it will be skipped" % residue)
                         continue
                     residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
+
+    if get_structure:
+        return residue_list, structure
     return residue_list
 
 #########################################################
 
 def get_foldx_sequence(pdb, multimers=True):
-    pdb_parser = PDB.PDBParser()
 
-    log.info("loading pdb file %s" % pdb)
-
+    parser = PDB.PDBParser()
     try:
-        structure = pdb_parser.get_structure('structure',pdb)
+        structure = parser.get_structure("structure", infile)
     except:
-        log.error("Couldn't open file %s." % pdb)
-        exit(1)
+        log.error("couldn't read or parse your PDB file")
+        raise IOError
 
     residue_list = []
     sequences = {}
@@ -176,6 +240,7 @@ def get_foldx_sequence(pdb, multimers=True):
 
 
 def safe_makedirs(dirname, doexit=True):
+
     if os.path.exists(dirname):
         if not os.path.isdir(dirname):
             if doexit:
@@ -247,9 +312,13 @@ def safe_cp(source, destination, dolink=True, doexit=True):
                     raise
 
 def load_models(pdb, check_models=False):
-    pdb_parser = PDB.PDBParser()
 
-    log.info("loading pdb file %s" % pdb)
+    parser = PDB.PDBParser()
+    try:
+        structure = parser.get_structure("structure", infile)
+    except:
+        log.error("couldn't read or parse your PDB file")
+        raise IOError
 
     try:
         structure = pdb_parser.get_structure('structure',pdb)
@@ -272,12 +341,13 @@ def load_models(pdb, check_models=False):
     return structure
 
 def load_runfile(runfile):
+
     try:
         with open(runfile, 'r') as fh:
             data = fh.read()
     except:
-        log.error("Couldn't open file %s." % runfile)
-        raise
+        log.error("Couldn't open runfile %s." % runfile)
+        raise IOError
 
     return data
 
@@ -297,9 +367,19 @@ def parallel_foldx_run(foldx_runs, np):
     return list(result)
 
 
-def split_pdb(filename, structure, checked):
+def split_pdb(filename, checked):
+
     pdb_list = []
+    
     writer = PDB.PDBIO()
+    parser = PDB.PDBParser()
+
+    try:
+        structure = parser.get_structure("structure", infile)
+    except:
+        log.error("couldn't read or parse your PDB file")
+        raise IOError
+
     for model in structure:
         tmpstruc = PDB.Structure.Structure('structure')
         tmpstruc.add(model)
@@ -338,7 +418,8 @@ def save_energy_file(fname, data, fmt="%.5f", do_avg=True, do_std=False, do_min=
     try:
         np.savetxt(fname, out, fmt=fmt, header=header)
     except:
-        log.error("Couldn't write file %s" % fname)
+        log.error("Couldn't write energy file %s" % fname)
+        raise IOError
 
 def save_interaction_energy_file(fname, data, fmt="%.5f", do_avg=True, do_std=False, do_min=False, do_max=False, axis=1):
 
@@ -365,7 +446,8 @@ def save_interaction_energy_file(fname, data, fmt="%.5f", do_avg=True, do_std=Fa
     try:
         np.savetxt(fname, out, fmt=fmt, header=header)
     except:
-        log.error("Couldn't write file %s" % fname)
+        log.error("Couldn't interaction energy write file %s" % fname)
+        raise IOError
 
 def compress_mutations_dir(cwd, mutations_dirname, mutations_archive_fname='mutations.tar.gz'):
 
@@ -379,7 +461,7 @@ def compress_mutations_dir(cwd, mutations_dirname, mutations_archive_fname='muta
     try:
         fh = tar.open(archive_path, 'w:gz')
     except:
-        log.warning("Couldn't open file %s for writing." % mutations_archive_fname)
+        log.warning("Couldn't open compressed file %s for writing." % mutations_archive_fname)
         return
 
     try:

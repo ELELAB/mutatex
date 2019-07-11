@@ -40,15 +40,19 @@ cmaps_list = [m for m in cm.datad if not m.endswith("_r")]
 
 parser = argparse.ArgumentParser(
 description='Calculate folding DG from MutateX DDG and experimental DG, also applying a linear correction')
+optional = parser._action_groups.pop()
+required = parser.add_argument_group('required arguments')
 
-parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
-parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
-parser.add_argument("-o","--output", dest="outdir", type=str, action='store', default='dgf')
-parser.add_argument("-m", "--slope", dest="m", type=float, action='store', default=1.0, help="slope value for the correction of DDG values")
-parser.add_argument("-y", "--y-intercept", dest="b", type=float, action='store', default=0.0, help="Y-intercept value for the correction of DDG values")
-parser.add_argument("-x", "--experimental-dg", dest="dg", type=float, default=0, action='store', help="Experimental energy of folding")
-parser.add_argument("-M", "--multimers", dest="multimers", default=True, action='store_false', help="Do not consider the same chains as multimers")
+required = init_arguments(['pdb', 'data'], required)
+optional = init_arguments(['multimers'], optional)
 
+optional.add_argument("-m", "--slope", dest="m", type=float, action='store', default=1.0, help="slope value for the correction of DDG values")
+optional.add_argument("-y", "--y-intercept", dest="b", type=float, action='store', default=0.0, help="Y-intercept value for the correction of DDG values")
+optional.add_argument("-x", "--experimental-dg", dest="dg", type=float, default=0, action='store', help="Experimental energy of folding")
+
+optional.add_argument("-o","--output", dest="outdir", type=str, action='store', default='dgf')
+
+parser._action_groups.append(optional)
 options = parser.parse_args()
 
 import numpy as np
@@ -57,28 +61,15 @@ import os
 from matplotlib import pyplot as plt
 
 log.basicConfig(level=log.WARNING, format=LOGFMT)
-
-pdb_parser = PDB.PDBParser()
-
-try:
-    structure = pdb_parser.get_structure('s', options.in_pdb)
-except:
-    log.error("Couldn't open or parse input pdb file. Exiting...")
-    exit(1)
  
 res_ids = []
 res_ids_str = []
 data = []
 
-models = structure.get_list()
-
-if len(models) > 1:
-    log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
-if len(models) < 1:
-    log.error("The input PDB file does not contain any model. Exiting ...")
+try:
+    foldx_sequence = get_residue_list(options.in_pdb, multimers=options.multimers)
+except IOError:
     exit(1)
-
-foldx_sequence = get_residue_list(structure, multimers=options.multimers)
 
 header="# dgf"
 
@@ -94,7 +85,12 @@ else:
 for res in foldx_sequence:
     resname = seq_to_res(res)
     out_fname = "%s/%s" % (options.outdir, resname)
-    this_data = np.array(parse_ddg_file("%s/%s" % (options.dir, resname), None))
+    
+    try:
+        this_data = np.array(parse_ddg_file("%s/%s" % (options.ddg_dir, resname), None))
+    except (IOError, TypeError):
+        exit(1)
+
     this_data = options.dg + this_data*options.m + options.b
     try:
         np.savetxt(out_fname, this_data, fmt="%.5f", header=header)

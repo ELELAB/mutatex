@@ -18,20 +18,23 @@
 
 import argparse
 import base64
-import matplotlib
-
 from io import BytesIO
 from six import iteritems
 import csv
+import matplotlib
 matplotlib.use('Agg')
 matplotlib.rcParams['savefig.format'] = 'pdf'
 matplotlib.rcParams['hatch.linewidth'] = 0.5
-
 from matplotlib.image import imread
+from matplotlib import pyplot as plt
 from Bio import PDB
 from six import iteritems
 from mutatex.utils import *
 from mutatex.letters import letters
+import numpy as np
+import logging as log
+import os
+
 
 def parse_letters_png(pngfile, letters="ACDEFGHIKLMNPQRSTVWXYypshzkmloef"):
     if type(pngfile) is tuple:
@@ -43,11 +46,9 @@ def parse_letters_png(pngfile, letters="ACDEFGHIKLMNPQRSTVWXYypshzkmloef"):
         log.error("Input PNG file doesn't have the right shape (horizontal size is expected to be a multplie of vertical size)")
         raise TypeError
 
-
     if png.shape[1] // png.shape[0] != len(letters):
         log.error("Input PNG file does not contain the right number of letters")
         raise TypeError
-
 
     out = {}
     for i,l in enumerate(letters):
@@ -156,52 +157,26 @@ if not __name__ == "__main__":
 
 parser = argparse.ArgumentParser(
 description='ddg2logo: make logo plots for DDG values',)
+optional = parser._action_groups.pop()
+required = parser.add_argument_group('required arguments')
 
-parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
-parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
-parser.add_argument("-l","--order-list", dest="order",  help="default order list")
-parser.add_argument("-m","--include-invalid-files",dest='includeblank',action='store_true', default=False, help="Include empty columns in output instead of ignoring missing files")
-parser.add_argument("-b","--label-list", dest="labels", help="residue label list")
-parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
-parser.add_argument("-o","--output", dest="outfile", action='store', default='logo.pdf', help="output file names")
-parser.add_argument("-T","--threshold", dest="threshold", action='store', type=float, default=0.5, help="Do not consider mutations with absolute DDG lower than this value")
-parser.add_argument("-x","--maximum-degeneracy", dest="degeneracy", action='store', type=int, default=32, help="when the number of stabilizing mutations is higher than this threshold a pattern will be plotted instead")
-parser.add_argument("-t","--title", dest='title', action='store', default=None, type=str, help="Title for the output image file")
-parser.add_argument("-i","--png-letter-map",dest='pngfile',action='store', default=letters, help="png file to be used for letters")
-parser.add_argument("-s","--splice",dest='sv',action='store', type=int, default=20, help="Number of residues for each single image")
-parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Font size")
-parser.add_argument("-D","--dpi", dest="dpi", type=float, action='store', default=150, help="number of DPI for the output image. !!WARNING!! Saving the images at higher DPI (as 300) uses a lot of memory, therefore use with caution" )
-parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false')
+required = init_arguments(['pdb', 'data', 'mutation_list'], required)
+optional = init_arguments(['multimers'], optional)
+
+optional.add_argument("-L","--png-letter-map",dest='pngfile',action='store', default=letters, help="png file to be used for letters")
+
+optional.add_argument("-T","--threshold", dest="threshold", action='store', type=float, default=0.5, help="Do not consider mutations with absolute DDG lower than this value")
+optional.add_argument("-x","--maximum-degeneracy", dest="degeneracy", action='store', type=int, default=32, help="when the number of stabilizing mutations is higher than this threshold a pattern will be plotted instead")
+
+optional = init_arguments(['labels', 'fontsize', 'title', 'splice'], optional)
+optional.add_argument("-D","--dpi", dest="dpi", type=float, action='store', default=150, help="number of DPI for the output image. !!WARNING!! Saving the images at higher DPI (as 300) uses a lot of memory, therefore use with caution" )
+
+optional.add_argument("-o","--output", dest="outfile", action='store', default='logo.pdf', help="output file names")
+
+optional = init_arguments(['verbose'], optional)
+
+parser._action_groups.append(optional)
 options = parser.parse_args()
-
-import numpy as np
-import logging as log
-import os
-from Bio import PDB
-from matplotlib import pyplot as plt
-
-#Add extra ptm residues to PDB.Polypeptide three to one module 
-ptm_residues = {"y": "PTR",
-                "p": "TPO",
-                "s": "SEP",
-                "h": "HYP",
-                "z": "TYS",
-                "k": "MLZ",
-                "m": "MLY",
-                "l": "M3L",
-                "o": "H1S",
-                "e": "H2S",
-                "f": "H3S"}
-len_three2one = len(PDB.Polypeptide.d1_to_index)
-idx=len_three2one
-for k,v in iteritems(ptm_residues):
-    PDB.Polypeptide.d1_to_index[k] = idx
-    PDB.Polypeptide.dindex_to_1[idx] = k
-    
-    PDB.Polypeptide.d3_to_index[v] = idx
-    PDB.Polypeptide.dindex_to_3[idx] = v
-    idx += 1
-
 
 if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)
@@ -216,7 +191,10 @@ except:
     exit(1)
 
 # parse mutation list
-res_order = parse_mutlist_file(options.order)
+try:
+    res_order = parse_mutlist_file(options.mutation_list)
+except IOError:
+    exit(1)
 
 log.info("Residues list is:")
 for i,r in enumerate(res_order):
@@ -233,19 +211,11 @@ except:
 res_ids_str = []
 data = []
 
-# check one model is present
-models = structure.get_list()
-
-if len(models) > 1:
-    log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
-if len(models) < 1:
-    log.error("The input PDB file does not contain any model. Exiting ...")
-    exit(1)
-
-model = models[0]
-
 # get structure residue list
-res_ids_str = get_residue_list(structure, multimers=options.multimers)
+try:
+    res_ids_str = get_residue_list(options.in_pdb, multimers=options.multimers)
+except IOError:
+    exit(1)
 
 if options.multimers:
     fnames = ["_".join(r) for r in res_ids_str]
@@ -269,17 +239,13 @@ if options.labels:
 # parse DDG files
 data = []
 for fname in fnames:
-    this_data = parse_ddg_file("%s/%s" % (options.dir, fname), reslist=res_order)
+    try:
+        this_data = parse_ddg_file("%s/%s" % (options.ddg_dir, fname), reslist=res_order)
+    except (IOError, TypeError):
+        exit(1)
 
-    if this_data:
-        data.append(np.array(this_data))
-        continue
-    elif options.includeblank:
-        this_data = np.empty((len(res_order)))
-        this_data[:] = np.NAN
-        data.append(this_data)
-    else:
-        res_ids_str.pop()
+    data.append(np.array(this_data))
+
 data = np.vstack(tuple(data))
 
 # set values above the maximum value to the maximum

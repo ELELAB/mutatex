@@ -17,61 +17,52 @@
 
 import argparse
 import csv
+import numpy as np
+import logging as log
 from Bio import PDB
 from six import iteritems
 import sys
 from mutatex.utils import *
+
 
 if sys.version_info[0] <= 2:
     write_format = 'wb'
 else:
     write_format = 'w'
 
-def ddg2labels(fnames):
-    with open(options.outfile, write_format) as csvfile:
-        csv_writer = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        csv_writer.writerow(['Residue_name', 'Label'])
-        for fname in fnames:
-            csv_writer.writerow([fname, ""])
+def names_to_labels(csv_fh):
+    csv_writer = csv.writer(csv_fh, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+    csv_writer.writerow(['Residue_name', 'Label'])
+    for fname in fnames:
+        csv_writer.writerow([fname, ""])
     
 LOGFMT = "%(levelname)s: %(message)s"
 
-if not __name__ == "__main__":
-    exit()
-
-
 parser = argparse.ArgumentParser( 
     description='ddg2labels: Generate a comma separeted .csv file to add custom labels to specific residues.',)
+optional = parser._action_groups.pop()
+required = parser.add_argument_group('required arguments')
 
-parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
-parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
-parser.add_argument("-o","--output", dest="outfile", action='store', default='labels.csv')
-parser.add_argument("-a","--multimers", dest="multimers", default=True, action='store_false')
+required = init_arguments(['pdb'], required)
+optional = init_arguments(['multimers'], optional)
 
+optional.add_argument("-o","--output", dest="outfile", action='store', default='labels.csv')
+
+optional = init_arguments(['verbose'], optional)
+
+parser._action_groups.append(optional)
 options = parser.parse_args()
-
-import numpy as np
-import logging as log
-
 
 if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)
 else:
     log.basicConfig(level=log.WARNING, format=LOGFMT)
 
-
-
-pdb_parser = PDB.PDBParser()
-
-try:
-    structure = pdb_parser.get_structure('s', options.in_pdb)
-except:
-    log.error("Couldn't open or parse input pdb file. Exiting...")
-    exit(1)
-
 res_ids_str = []
-
-res_ids_str = get_residue_list(structure, multimers=options.multimers)
+try:
+    res_ids_str = get_residue_list(options.in_pdb, multimers=options.multimers)
+except IOError:
+    exit(1)
 
 if options.multimers:
     fnames = ["_".join(r) for r in res_ids_str]
@@ -80,4 +71,16 @@ else:
     fnames = res_ids_str
     res_id_labels = res_ids_str
 
-ddg2labels(fnames)
+try:
+    csvfh = open(options.outfile, write_format)
+except:
+    log.error("couldn't open output file for writing; exiting...")
+    exit(1)
+
+names_to_labels(csvfh)
+
+csvfh.close()
+
+
+
+

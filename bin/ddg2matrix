@@ -16,10 +16,16 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
+
+import numpy as np
+import logging as log
+import os
 import argparse
 import matplotlib
 matplotlib.use('Agg')
 matplotlib.rcParams['savefig.format'] = 'pdf'
+from matplotlib import pyplot as plt
 from matplotlib import cm
 import csv
 from Bio import PDB
@@ -61,7 +67,7 @@ def plot_matrix(mat, xlabels, ylabels, cmap, title=None, vmin=None, vmax=None, t
     plt.yticks(yticks,yt,rotation=0,size=fontsize)
     plt.tight_layout()
     
-def save_matrix(mat, horizontal_header, vertical_header, fname, transpose=False):
+def save_matrix(mat, horizontal_header, vertical_header, fname):
 
     this_mat = np.array(mat, copy=True)
 
@@ -78,6 +84,7 @@ def save_matrix(mat, horizontal_header, vertical_header, fname, transpose=False)
 
     justified_out = np.core.defchararray.rjust(out, 7)
 
+    np.savetxt(justified_out, fname)
 
 def splice_data(data, labels, sv):
 
@@ -104,38 +111,30 @@ def splice_data(data, labels, sv):
 
 LOGFMT = "%(levelname)s: %(message)s"
 
-if not __name__ == "__main__":
-    exit()
-
 cmaps_list = [m for m in cm.datad if not m.endswith("_r")]
 
 parser = argparse.ArgumentParser(
 description='FoldX DDG converter to the OOXML xlsx format',)
+optional = parser._action_groups.pop()
+required = parser.add_argument_group('required arguments')
 
-parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
-parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
-parser.add_argument("-m","--include-invalid-files",dest='includeblank',action='store_true', default=False, help="Include empty columns in output instead of ignoring missing files")
-parser.add_argument("-l","--order-list", dest="order",  help="default order list")
-parser.add_argument("-b","--label-list", dest="labels", help="residue label list")
-parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
-parser.add_argument("-o","--output", dest="outfile", action='store', default='heatmap.pdf')
-parser.add_argument("-r","--output-raw-data", dest="raw", action='store', default=None, help="Save raw data file")
-parser.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="Minimum value to be plotted")
-parser.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="Maximum value to be plotted")
-parser.add_argument("-t","--transpose",dest='transpose',action="store_true",default=False,help="Swap rows and columns")
-parser.add_argument("-i","--title", dest='title', action='store', default=None, type=str, help="Title for the output image file")
-parser.add_argument("-c","--color-map",dest='cmap',action='store', type=str, default='jet', help="Color map used to plot the DDG values (choose from: %s)" % ", ".join(cmaps_list))
-parser.add_argument("-s","--splice",dest='sv',action='store', type=int, default=20, help="Number of residues for each single image")
-parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Font size")
-parser.add_argument("-a","--multimers", dest="multimers", default=True, action='store_false')
+required = init_arguments(['pdb', 'data', 'mutation_list'], required)
+optional = init_arguments(['multimers'], optional)
 
+optional.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="Minimum value to be plotted")
+optional.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="Maximum value to be plotted")
+optional.add_argument("-t","--transpose",dest='transpose',action="store_true",default=False,help="Swap rows and columns")
+
+optional = init_arguments(['labels', 'fontsize', 'title', 'splice'], optional)
+optional.add_argument("-c","--color-map",dest='cmap',action='store', type=str, default='jet', help="Color map used to plot the DDG values (choose from: %s)" % ", ".join(cmaps_list))
+
+optional.add_argument("-o","--output", dest="outfile", action='store', default='heatmap.pdf')
+optional.add_argument("-r","--output-raw-data", dest="raw", action='store', default=None, help="Save raw data file")
+
+optional = init_arguments(['verbose'], optional)
+
+parser._action_groups.append(optional)
 options = parser.parse_args()
-
-import numpy as np
-import logging as log
-import os
-from matplotlib import pyplot as plt
-
 
 if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)
@@ -147,24 +146,22 @@ if options.cmap not in cmaps_list:
     exit(1)
 
 
-res_order = parse_mutlist_file(options.order)
+try:
+    res_order = parse_mutlist_file(options.mutation_list)
+except IOError:
+    exit(1)
 
 log.info("Residues list is:")
 for i,r in enumerate(res_order):
     log.info("%d\t%s" % (i,r))
 
-pdb_parser = PDB.PDBParser()
-
-try:
-    structure = pdb_parser.get_structure('s', options.in_pdb)
-except:
-    log.error("Couldn't open or parse input pdb file. Exiting...")
-    exit(1)
-
 res_ids_str = []
 data = []
 
-res_ids_str = get_residue_list(structure, multimers=options.multimers)
+try:
+    res_ids_str = get_residue_list(options.in_pdb, multimers=options.multimers)
+except IOError:
+    exit(1)
 
 if options.multimers:
     fnames = ["_".join(r) for r in res_ids_str]
@@ -188,16 +185,13 @@ if options.labels:
 
 #load ddg data
 for fname in fnames:
-    this_data = parse_ddg_file("%s/%s" % (options.dir, fname), reslist=res_order)
-    if this_data:
-        data.append(np.array(this_data))
-        continue
-    elif options.includeblank:
-        this_data = np.empty((len(res_order)))
-        this_data[:] = np.NAN
-        data.append(this_data)
-    else:
-        res_ids_str.pop()
+    try:
+        this_data = parse_ddg_file("%s/%s" % (options.ddg_dir, fname), reslist=res_order)
+    except (IOError, TypeError):
+        exit(1)
+
+    data.append(np.array(this_data))
+
 data = np.vstack(tuple(data)).T
 
 #get min and max

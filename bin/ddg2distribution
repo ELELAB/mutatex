@@ -16,12 +16,15 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import numpy as np
+import logging as log
 from six import iteritems
 import argparse
-import matplotlib
 import csv
+import matplotlib
 matplotlib.use('Agg')
 matplotlib.rcParams['savefig.format'] = 'pdf'
+from matplotlib import pyplot as plt
 from Bio import PDB
 from mutatex.utils import *
 
@@ -227,30 +230,32 @@ if not __name__ == "__main__":
 
 parser = argparse.ArgumentParser( 
     description='ddg2distribution: plot DDG MutateX results as distribution plots: boxplot, violin plots or scatter plots, single-residue plots, stemplots.',)
+optional = parser._action_groups.pop()
+required = parser.add_argument_group('required arguments')
 
-parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
-parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
-parser.add_argument("-l","--order-list", dest="order",  help="default order list")
-parser.add_argument("-m","--include-invalid-files",dest='includeblank',action='store_true', default=False, help="Include empty columns in output instead of ignoring missing files")
-parser.add_argument("-b","--label-list", dest="labels", help="residue label list")
-parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
-parser.add_argument("-o","--output", dest="outfile", action='store', default='energies.pdf', help="output filename")
-parser.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="Minimum value to be plotted")
-parser.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="Maximum value to be plotted")
-parser.add_argument("-t","--title", dest='title', action='store', default=None, type=str, help="Title for the output image file")
-parser.add_argument("-s","--splice",dest='sv',action='store', type=int, default=20, help="Number of residues for each single image")
-parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Axis label font size")
-parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false', help="Deactivate multimers mode")
-parser.add_argument("-L","--limit", dest="limit", action='store', default = None, type=int, help="Limit scatter plot ddg values to a maximum")
-parser.add_argument("-T","--type", dest="type", nargs = '+', required = True, choices = ["stem", "box", "violin", "single", "scatter"], help = "Choose type(s) of plot(s) to generate: stem, box, violin or scatter. Duplicates will be ignored.")
-parser.add_argument("-u","--topmuts", dest="topmuts", type=int, default=0, help="Number of extreme residues to be labeled (scatter plot only)")
-parser.add_argument("-c","--colormap", dest="colormap", type=str, default=None, help="Color map to be used for the plot")
+required = init_arguments(['pdb', 'data', 'mutation_list'], required)
+optional = init_arguments(['multimers'], optional)
 
+required.add_argument("-T","--type", dest="type", nargs = '+', required = True, choices = ["stem", "box", "violin", "single", "scatter"], help = "Choose type(s) of plot(s) to generate: stem, box, violin or scatter. Duplicates will be ignored.")
+optional.add_argument("-L","--limit", dest="limit", action='store', default = None, type=int, help="Limit scatter plot ddg values to a maximum")
+optional.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="Minimum value to be plotted")
+optional.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="Maximum value to be plotted")
+optional.add_argument("-u","--topmuts", dest="topmuts", type=int, default=0, help="Number of extreme residues to be labeled (scatter plot only)")
+
+optional = init_arguments(['title', 'labels', 'fontsize', 'splice'], optional)
+optional.add_argument("-c","--colormap", dest="colormap", type=str, default=None, help="Color map to be used for the plot")
+
+optional.add_argument("-o","--output", dest="outfile", action='store', default='energies.pdf', help="output filename")
+
+optional = init_arguments(['verbose'], optional)
+
+parser._action_groups.append(optional)
 options = parser.parse_args()
 
-import numpy as np
-import logging as log
-from matplotlib import pyplot as plt
+if options.verbose:
+    log.basicConfig(level=log.INFO,    format=LOGFMT)
+else:
+    log.basicConfig(level=log.WARNING, format=LOGFMT)
 
 colormaps = {'box':    'Greys_r',
              'violin': 'Greys_r',
@@ -264,30 +269,21 @@ if options.colormap is not None:
     for k,v in iteritems(colormaps):
         colormaps[k] = options.colormap
 
-
-if options.verbose:
-    log.basicConfig(level=log.INFO,    format=LOGFMT)
-else:
-    log.basicConfig(level=log.WARNING, format=LOGFMT)
-
-res_order = parse_mutlist_file(options.order)
+try:
+    res_order = parse_mutlist_file(options.mutation_list)
+except (IOError, TypeError):
+    exit(1)
 
 log.info("Residues list is:")
 for i,r in enumerate(res_order):
     log.info("%d\t%s" % (i,r))
 
-pdb_parser = PDB.PDBParser()
-
-try:
-    structure = pdb_parser.get_structure('s', options.in_pdb)
-except:
-    log.error("Couldn't open or parse input pdb file. Exiting...")
-    exit(1)
-
 res_ids_str = []
 data = []
-
-res_ids_str = get_residue_list(structure, multimers=options.multimers)
+try:
+    res_ids_str = get_residue_list(options.in_pdb, multimers=options.multimers)
+except IOError:
+    exit(1)
 
 if options.multimers:
     fnames = ["_".join(r) for r in res_ids_str]
@@ -310,16 +306,13 @@ if options.labels:
             res_id_labels[i] = label_dict[fnames[i]]
 
 for fname in fnames:
-    this_data = parse_ddg_file("%s/%s" % (options.dir, fname), reslist=res_order)
-    if this_data:
-        data.append(np.array(this_data))
-        continue
-    elif options.includeblank:
-        this_data = np.empty((len(res_order)))
-        this_data[:] = np.NAN
-        data.append(this_data)
-    else:
-        res_ids_str.pop()
+
+    try:
+        this_data = parse_ddg_file("%s/%s" % (options.ddg_dir, fname), reslist=res_order)
+    except (IOError, TypeError):
+        exit(1)
+
+    data.append(np.array(this_data))
 
 data = np.vstack(tuple(data)).T
 
