@@ -62,40 +62,21 @@ def init_arguments(arguments, parser):
 
     return parser
 
-def parse_ddg_file(fname, reslist, full=False):
+def parse_ddg_file(fname, reslist=None, full=False):
     try:
-        fh = open(fname, 'r')
+        ddgs = np.loadtxt(fname, comments='#').T
     except:
-        log.error("Couldn't open energy file %s" % fname)
+        log.error("Couldn't open energy file %s or file in the wrong format" % fname)
         raise IOError
 
-    ddgs = []
-
-    if full:
-        stds = []
-        mins = []
-        maxs = []
-
-    for line in fh:
-        if line and not line.startswith("#"):
-            tmp = [ float(i) for i in line.split() ]
-            ddgs.append(tmp[0])
-            if full:
-                stds.append(tmp[1])
-                mins.append(tmp[2])
-                maxs.append(tmp[3])
-
     if reslist is not None:
-        if len(ddgs) != len(reslist):
+        if ddgs.shape[1] != len(reslist):
             log.error("file %s has %d values, with %d required." % (fname, len(ddgs), len(reslist)))
             raise TypeError
 
-    fh.close()
-
     if full:
-        return ddgs, stds, mins, maxs
-
-    return ddgs
+        return ddgs
+    return ddgs[0]
 
 def parse_mutlist_file(fname):
 

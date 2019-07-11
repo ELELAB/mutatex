@@ -81,7 +81,6 @@ def plot_density(data, outfile, title, mycolor, bw_method, xmin, xmax, spaces):
     fig.tight_layout()
     fig.savefig(outfile)
 
-
 LOGFMT = "%(levelname)s: %(message)s"
 
 parser = argparse.ArgumentParser(description='Generate probability density via kernel density estimation of the calculated DDG',)
