@@ -451,7 +451,7 @@ class FoldXRun(object):
             try:
                 #print 'source', os.path.abspath(pdb)
                 #print 'dest', self.working_directory+"/"+os.path.basename(os.path.abspath(pdb))
-                safe_cp(os.path.abspath(pdb), os.path.join(self.working_directory, os.path.basename(os.path.abspath(pdb))), dolink=self.link_files, doexit=False)
+                safe_cp(os.path.abspath(pdb), os.path.join(self.working_directory, os.path.basename(os.path.abspath(pdb))), dolink=self.link_files)
             except:
                 log.warning("Couldn't copy essential files for run %s; it will be skipped." % self.name)
                 self.ready = False
@@ -459,7 +459,7 @@ class FoldXRun(object):
 
         if self.foldx_version.rotabase:
             try:
-                safe_cp(os.path.abspath(self.foldx_version.rotabase), os.path.join(self.working_directory, os.path.basename(os.path.abspath(self.foldx_version.rotabase))), dolink=self.link_files, doexit=False)
+                safe_cp(os.path.abspath(self.foldx_version.rotabase), os.path.join(self.working_directory, os.path.basename(os.path.abspath(self.foldx_version.rotabase))), dolink=self.link_files)
             except:
                 log.warning("Couldn't copy essential rotabase.txt for run %s; it will be skipped." % self.name)
                 self.ready = False
@@ -646,7 +646,7 @@ class FoldXMutateRun(FoldXRun):
             try:
                 #print 'source', os.path.abspath(pdb)
                 #print 'dest', self.working_directory+"/"+os.path.basename(os.path.abspath(pdb))
-                safe_cp(os.path.abspath(pdb), self.working_directory+"/"+os.path.basename(os.path.abspath(pdb)), dolink=self.link_files, doexit=False)
+                safe_cp(os.path.abspath(pdb), self.working_directory+"/"+os.path.basename(os.path.abspath(pdb)), dolink=self.link_files)
             except:
                 log.warning("Couldn't copy essential files for run %s; it will be skipped." % self.name)
                 self.ready = False
@@ -654,7 +654,7 @@ class FoldXMutateRun(FoldXRun):
 
         if self.foldx_version.rotabase:
             try:
-                safe_cp(os.path.abspath(self.foldx_version.rotabase), self.working_directory+"/"+os.path.basename(os.path.abspath(self.foldx_version.rotabase)), dolink=self.link_files, doexit=False)
+                safe_cp(os.path.abspath(self.foldx_version.rotabase), self.working_directory+"/"+os.path.basename(os.path.abspath(self.foldx_version.rotabase)), dolink=self.link_files)
             except:
                 log.warning("Couldn't copy essential rotabase.txt for run %s; it will be skipped." % self.name)
                 self.ready = False

@@ -127,24 +127,24 @@ averages_dirname = "final_averages"
 DEVNULL = open(os.devnull, 'w')
 default_mutlist = ('G','A','V','L','I','M','F','W','P','S','T','C','Y','N','Q','D','E','K','R','H')
 
-pdb_models = []
-if True:
+pdb_structures = []
+try:
     for pdb in args.pdb:
-        pdb_models.append(load_models(pdb, check_models = not args.skip_check))
-else:
-    log.error("Couldn't load PDB model; exiting...")
+        pdb_structures.append(load_structures(pdb, check_models = not args.skip_check))
+except:
+    log.error("Couldn't load PDB structure; exiting...")
     exit(1)
 
 # check if multiple chains are present when interface DDG calculation has been requested
-for structure in pdb_models:
+for structure in pdb_structures:
     for model in structure:
         chains = list(model.get_chains())
         if len(chains) < 2 and args.interface:
             log.error("at least one of the provided models contains only one chain, and calculation of interface DDG has been requested; exiting...")
             exit(1)
 
-for p in range(len(pdb_models)):
-    if len(pdb_models[p].get_list()) > 1 and not args.multiple_models:
+for p in range(len(pdb_structures)):
+    if len(pdb_structures[p].get_list()) > 1 and not args.multiple_models:
         log.error("input pdb %s has more than one model, and --multiple-models was not selected. Please use --multiple-models or input a single-model PDB file." % args.pdb[p])
         exit(1)
 
@@ -158,14 +158,17 @@ log.info("working directory will be: %s" % main_dir)
 
 pdbs_list = []
 
-for p in range(len(pdb_models)):
-    pdbs_list.extend( split_pdb(args.pdb[p], pdb_models[p], not args.skip_check) )
+for p in range(len(pdb_structures)):
+    pdbs_list.extend( split_pdb(args.pdb[p], pdb_structures[p], not args.skip_check) )
 
 log.info("starting phase 2: REPAIR")
 
 working_directory = main_dir+"/"+repair_dirname
 
-safe_makedirs(working_directory)
+try:
+    safe_makedirs(working_directory)
+except:
+    exit(1)
 
 log.info("working dir: %s" %working_directory)
 
@@ -226,7 +229,10 @@ if args.selfmutate:
 working_directory = main_dir+"/"+mutations_dirname
 log.info("Working directory is: %s" % working_directory)
 
-safe_makedirs(working_directory)
+try:
+    safe_makedirs(working_directory)
+except:
+    exit(1)
 
 residues_list = []
 dir_list = []
@@ -240,11 +246,11 @@ for pdb in repaired_pdbs_list:
             log.error("PDB %s will be ignored." % pdb)
             repaired_pdbs_list.remove(pdb)
             continue
+        print(pdb, 'XXX')
         residues_list.append(get_foldx_sequence(pdb, multimers=args.multimers))
 
-print("AAA", residues_list)
 unique_residues = tuple(set(residues_list))
-print("BBB", unique_residues)
+
 if len(unique_residues) != 1:
     log.error("The supplied PDB files must have identical sequences. Exiting...")
     exit(1)
@@ -335,12 +341,22 @@ if not args.skip_report:
     energies = []
 
     working_directory = os.path.join(main_dir, results_dirname, mutations_results_dirname)
-    safe_makedirs(working_directory)
+    try:
+        safe_makedirs(working_directory)
+    except:
+        exit(1)
 
     for pdb in repaired_pdbs_list:
         this_pdb_dir = working_directory+"/"+os.path.splitext(os.path.basename(pdb))[0]
-        safe_makedirs(this_pdb_dir)
-    safe_makedirs(working_directory+"/"+averages_dirname)
+        try:
+            safe_makedirs(this_pdb_dir)
+        except:
+            exit(1)
+
+    try:
+        safe_makedirs(working_directory+"/"+averages_dirname)
+    except:
+        exit(1)
 
     for res in unique_residues:
         name = name_separator.join(res)
@@ -376,8 +392,15 @@ if not args.skip_report:
 
         for pdb in repaired_pdbs_list:
             this_pdb_dir = os.path.join(working_directory, os.path.splitext(os.path.basename(pdb))[0])
-            safe_makedirs(this_pdb_dir)
-        safe_makedirs(os.path.join(working_directory, averages_dirname))
+            try:
+                safe_makedirs(this_pdb_dir)
+            except:
+                exit(1)
+
+        try:
+            safe_makedirs(os.path.join(working_directory, averages_dirname))
+        except:
+            exit(1)
 
         unique_residues_str = [ "_".join(i) for i in unique_residues ]
         for res in unique_residues_str:
@@ -404,7 +427,11 @@ if not args.skip_report:
                     this_wd = os.path.join(    working_directory,
                                             "".join(os.path.splitext(os.path.basename(run.original_pdb))[:-1]),
                                             "%s-%s" % labels)
-                    safe_makedirs(this_wd)
+                    try:
+                        safe_makedirs(this_wd)
+                    except:
+                        exit(1)
+
                     #print "KEYIN", k
                     if k not in list(energies):
                         energies[k] = [this_energies[k]]
@@ -425,7 +452,10 @@ if not args.skip_report:
                 labels = tuple(sorted(list(k)))
                 this_wd = os.path.join(working_directory, averages_dirname,
                                         "%s-%s" % labels)
-                safe_makedirs(this_wd)
+                try:
+                    safe_makedirs(this_wd)
+                except:
+                    exit(1)
 
                 save_interaction_energy_file(os.path.join(this_wd, run.name),
                         np.average(energies[k],axis=2),

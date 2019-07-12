@@ -194,7 +194,7 @@ def get_foldx_sequence(pdb, multimers=True):
 
     parser = PDB.PDBParser()
     try:
-        structure = parser.get_structure("structure", infile)
+        structure = parser.get_structure("structure", pdb)
     except:
         log.error("couldn't read or parse your PDB file")
         raise IOError
@@ -239,16 +239,13 @@ def get_foldx_sequence(pdb, multimers=True):
     return tuple(residue_list)
 
 
-def safe_makedirs(dirname, doexit=True):
+def safe_makedirs(dirname):
 
     if os.path.exists(dirname):
         if not os.path.isdir(dirname):
             if doexit:
-                log.error("%s exists but is not a directory. Exiting..." % dirname)
-                exit(1)
-            else:
-                log.warning("%s exists but is not a directory" % dirname)
-                raise
+                log.error("%s exists but is not a directory." % dirname)
+                raise IOError
         else:
             log.warning("directory %s already exists" % dirname)
             return
@@ -256,14 +253,10 @@ def safe_makedirs(dirname, doexit=True):
         try:
             os.makedirs(dirname)
         except:
-            if doexit:
-                log.error("Could not create directory %s. Exiting..." % dirname )
-                exit(1)
-            else:
-                log.warning("Could not create directory %s." % dirname)
-                raise
+            log.error("Could not create directory %s." % dirname )
+            raise IOError
 
-def safe_cp(source, destination, dolink=True, doexit=True):
+def safe_cp(source, destination, dolink=True):
 
     if os.path.abspath(source) == os.path.abspath(destination):
         return
@@ -275,56 +268,40 @@ def safe_cp(source, destination, dolink=True, doexit=True):
 
     if not os.path.exists(source):
         log.error("Couldn't %s file %s; no such file or directory" % (verb, source))
-        if doexit:
-            exit(1)
-        else:
-            raise
+        raise IOError
 
     if not os.path.isfile(source):
         log.error("Couldn't %s file %s; it is not a file" % (verb, source))
-        if doexit:
-            exit(1)
-        else:
-            raise
+        raise IOError
 
     if not dolink:
         if os.path.exists(destination):
-            log.warning("Destination file %s already exist; it will be overwritten." % destination)
+            log.warning("Destination file %s already exists; it will be overwritten." % destination)
         try:
             shutil.copyfile(source, destination)
         except:
             log.error("Couldn't copy file %s to %s" % (source, destination))
-            if doexit:
-                exit(1)
-            else:
-                raise
+            raise IOError
     else:
         if os.path.exists(destination):
-            log.warning("Destination file %s already exist; it will not be overwritten by a link." % destination)
+            log.error("Destination file %s already exists; it will not be overwritten by a link" % destination)
+            raise IOError
         else:
             try:
                 os.symlink(source, destination)
             except:
                 log.error("Couldn't link file %s to %s" % (source, destination))
-                if doexit:
-                    exit(1)
-                else:
-                    raise
+                raise IOError
 
-def load_models(pdb, check_models=False):
+def load_structures(pdb, check_models=False):
 
     parser = PDB.PDBParser()
+
     try:
-        structure = parser.get_structure("structure", infile)
+        structure = parser.get_structure("structure", pdb)
     except:
         log.error("couldn't read or parse your PDB file")
         raise IOError
-
-    try:
-        structure = pdb_parser.get_structure('structure',pdb)
-    except:
-        log.error("Couldn't open file %s." % pdb)
-        raise
 
     if len(structure.get_list()) == 0:
         log.error("File %s doesn't contain any useful model." % pdb)
@@ -367,18 +344,12 @@ def parallel_foldx_run(foldx_runs, np):
     return list(result)
 
 
-def split_pdb(filename, checked):
+def split_pdb(filename, structure, checked):
 
     pdb_list = []
     
     writer = PDB.PDBIO()
     parser = PDB.PDBParser()
-
-    try:
-        structure = parser.get_structure("structure", infile)
-    except:
-        log.error("couldn't read or parse your PDB file")
-        raise IOError
 
     for model in structure:
         tmpstruc = PDB.Structure.Structure('structure')
