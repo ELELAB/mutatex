@@ -243,9 +243,8 @@ def safe_makedirs(dirname):
 
     if os.path.exists(dirname):
         if not os.path.isdir(dirname):
-            if doexit:
-                log.error("%s exists but is not a directory." % dirname)
-                raise IOError
+            log.error("%s exists but is not a directory." % dirname)
+            raise IOError
         else:
             log.warning("directory %s already exists" % dirname)
             return
