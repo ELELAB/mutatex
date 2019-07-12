@@ -263,7 +263,7 @@ def safe_makedirs(dirname, doexit=True):
                 log.warning("Could not create directory %s." % dirname)
                 raise
 
-def safe_cp(source, destination, dolink=True, doexit=True):
+def safe_cp(source, destination, dolink=True):
 
     if os.path.abspath(source) == os.path.abspath(destination):
         return
@@ -275,41 +275,30 @@ def safe_cp(source, destination, dolink=True, doexit=True):
 
     if not os.path.exists(source):
         log.error("Couldn't %s file %s; no such file or directory" % (verb, source))
-        if doexit:
-            exit(1)
-        else:
-            raise
+        raise IOError
 
     if not os.path.isfile(source):
         log.error("Couldn't %s file %s; it is not a file" % (verb, source))
-        if doexit:
-            exit(1)
-        else:
-            raise
+        raise IOError
 
     if not dolink:
         if os.path.exists(destination):
-            log.warning("Destination file %s already exist; it will be overwritten." % destination)
+            log.warning("Destination file %s already exists; it will be overwritten." % destination)
         try:
             shutil.copyfile(source, destination)
         except:
             log.error("Couldn't copy file %s to %s" % (source, destination))
-            if doexit:
-                exit(1)
-            else:
-                raise
+            raise IOError
     else:
         if os.path.exists(destination):
-            log.warning("Destination file %s already exist; it will not be overwritten by a link." % destination)
+            log.error("Destination file %s already exists; it will not be overwritten by a link" % destination)
+            raise IOError
         else:
             try:
                 os.symlink(source, destination)
             except:
                 log.error("Couldn't link file %s to %s" % (source, destination))
-                if doexit:
-                    exit(1)
-                else:
-                    raise
+                raise IOError
 
 def load_models(pdb, check_models=False):
 
