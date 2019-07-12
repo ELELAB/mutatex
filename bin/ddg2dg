@@ -33,9 +33,6 @@ def seq_to_res(seq):
 
 LOGFMT = "%(levelname)s: %(message)s"
 
-if not __name__ == "__main__":
-    exit()
-
 cmaps_list = [m for m in cm.datad if not m.endswith("_r")]
 
 parser = argparse.ArgumentParser(
@@ -87,7 +84,7 @@ for res in foldx_sequence:
     out_fname = "%s/%s" % (options.outdir, resname)
     
     try:
-        this_data = np.array(parse_ddg_file("%s/%s" % (options.ddg_dir, resname), None))
+        this_data = parse_ddg_file("%s/%s" % (options.ddg_dir, resname), None)
     except (IOError, TypeError):
         exit(1)
 
