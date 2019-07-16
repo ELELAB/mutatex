@@ -25,10 +25,29 @@ import re
 import numpy as np
 from Bio import PDB
 from six import iteritems
-from mutatex.utils import * 
+from mutatex.utils import *
 
 class MutationList(object):
+    """
+    Class to handle a mutation list object, holding the residue types our
+    protein residues will be mutated to.
+    Parameters
+    ----------
+    res_groups :
+
+    mutations :
+
+    name :
+
+    selfmutate : bool
+
+    """
     def __init__(self, res_groups, mutations, name="", selfmutate=False):
+        """
+    Class to handle a mutation list object, holding the residue types our
+    protein residues will be mutated to.
+    """
+
         self.name = name
         if selfmutate:
             self.res_groups = tuple([res_groups])
@@ -59,6 +78,21 @@ class MutationList(object):
 
 
 class ResList(object):
+    """
+    Class to handle a simple list of residue types, useful to store types we
+    want mutatex to mutate to. If neither `reslist` or `fname` are specified
+    the object is initialized as empty. `reslist` has precedence over `fname`.
+    Parameters
+    ----------
+    reslist : iterable of str
+        list of single-residue letters representing residue types
+        reslist and fname are. the reslist option takes precedence
+        over fname.
+    fname : str
+        filename of file containing a list of residue types as per the MutateX
+        format.
+    """
+
     def __init__(self, reslist=None, fname=None):
 
         if reslist and fname:
@@ -75,9 +109,33 @@ class ResList(object):
         return ", ".join(self.reslist)
 
     def parse_list_file(self, fname):
-        return parse_mutlist_file(fname)
+    """
+    parse list file and return it
+    Parameters
+    ----------
+    fname : str
+        file name of the input file
+    Returns
+    ----------
+    restypes : tuple of str
+        tuple of single-letter residue types
+    """
+    return parse_mutlist_file(fname)
 
 class EnergyReport:
+    """
+    Class to handle storing and writing free energy difference files according
+    to the MutateX format.
+    Parameters
+    ----------
+    pdbs : list of str
+        list of PDB files for which the energy values will be stored
+    Returns
+    ----------
+    restypes : tuple of str
+        tuple of single-letter residue types
+    """
+
     def __init__(self, pdbs=None):
         self.residues = {}
         self.energies = {}
@@ -87,6 +145,18 @@ class EnergyReport:
                 self.residues[pdb] = []
 
     def add_residue(self, res, energy, pdb, do_avg=None, do_std=None, do_max=None, do_min=None):
+    """
+    Class to handle storing and writing free energy difference files according
+    to the MutateX format.
+    Parameters
+    ----------
+    pdbs : list of str
+        list of PDB files for which the energy values will be stored
+    Returns
+    ----------
+    restypes : tuple of str
+        tuple of single-letter residue types
+    """
         assert(energy.shape[0] == 1)
         energy = energy[0]
 
@@ -98,6 +168,23 @@ class EnergyReport:
         self.residues[pdb].append(res)
 
     def save(self, directory, fname="selfmutation_energies.dat", do_avg=True, do_std=True, do_min=True, do_max=True):
+    """
+    save stored energies as a file in the MutateX free energy format
+    Parameters
+    ----------
+    directory : str
+        directory where the output file will be saved
+    fname : str
+        filename to be saved
+    do_avg : bool
+        write average values column in the output file
+    do_std : bool
+        write standard deviation column in the output file
+    do_min : bool
+        write minimum value column in the output file
+    do_max : bool
+        write maximum value column in the output file
+    """
 
         header_cols = []
 
@@ -117,7 +204,6 @@ class EnergyReport:
         for pdb,energies in iteritems(self.energies):
 
             out = [self.residues[pdb]]
-            print(out)
 
             if do_avg:
                 out.append(np.average(energies, axis=1))
@@ -136,6 +222,29 @@ class EnergyReport:
                 log.error("Couldn't write file %s" % fname)
 
 class FoldXVersion:
+    """
+    Base class for preparing run and parsing results from FoldX runs. This
+    simple class only contains information about the minimum information
+    that we need for most FoldX versions.
+    Parameters
+    ----------
+    binary : str
+        location of the FoldX binary executable
+    rotabase : str
+        location of the rotabase.txt file. This is necessary for FoldX versions
+        below 5 or to provide custom files.
+    Attributes
+    ----------
+    version : str or None
+        FoldX version name
+    runfile_string : str or None
+        command line flag to specify the runfile
+    out_ext : str or None
+        extension of the FoldX output energy files
+    mut_list_file : str or None
+        expected name of the mutation file
+    """
+
     def __init__(self, binary=None, rotabase=None):
         if not binary is None:
             self.binary = os.path.abspath(binary)
@@ -155,6 +264,14 @@ class FoldXVersion:
     mut_list_file = "individual_list.txt"
 
 class FoldXSuiteVersion4(FoldXVersion):
+    """
+    Class for preparing run and parsing results from FoldX Suite 4 runs.
+    Parameters
+    ----------
+    Attributes
+    ----------
+    """
+
     version="suite4"
     runfile_string = "-f"
     can_generate_rotabase = False
