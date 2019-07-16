@@ -611,6 +611,7 @@ def compress_mutations_dir(cwd, mutations_dirname, mutations_archive_fname='muta
     """
     compresses directory in a tarball file. Designed to compress the "mutations"
     directory but works with any.
+    Parameters
     ----------
     cwd : str
         current working directory
