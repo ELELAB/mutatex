@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 #    utils.py: miscellaneous utilities for MutateX plotting scripts
-#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com> 
-#                        Thilde Bagger Terkelsen <ThildeBT@gmail.com>
+#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -33,6 +32,20 @@ import tarfile as tar
 import platform
 
 def init_arguments(arguments, parser):
+    """
+    Adds arguments common to several mutatex scripts to a argparse.ArgumentParser
+    instance. Arguments are specified by name.
+    Parameters
+    ----------
+    arguments : arguments.ArgumentParser instance or any object with the ``add_argument`` method
+        instance to which options will be added
+    parser : iterable of str
+        list of names for the arguments to be added
+    Returns
+    -------
+    parser : arguments.ArgumentParser instance or any object with the ``add_argument`` method
+        the same object of the input parameter, modified with additional arguments
+    """
 
     assert len(set(arguments)) == len(arguments)
 
@@ -63,6 +76,23 @@ def init_arguments(arguments, parser):
     return parser
 
 def parse_ddg_file(fname, reslist=None, full=False):
+    """
+    Parser function for free energy file produced by MutateX
+    Parameters
+    ----------
+    fname : str
+        name of the file to be read
+    reslist : iterable of str or None
+        list of the expected mutation residue types. It's used to check that
+        the data in the file has the correct size. If None the check will be skipped.
+    full : bool
+        if True, returns all the fields in the file, otherwise just the averages
+        column
+    Returns
+    -------
+    parser : arguments.ArgumentParser instance or any object with the ``add_argument`` method
+        the same object of the parameter, modified with additional arguments
+    """
     try:
         ddgs = np.loadtxt(fname, comments='#').T
     except:
@@ -79,6 +109,17 @@ def parse_ddg_file(fname, reslist=None, full=False):
     return ddgs[0]
 
 def parse_mutlist_file(fname):
+    """
+    Parser function for mutation list files
+    Parameters
+    ----------
+    fname : str
+        name of the file to be read
+    Returns
+    -------
+    restypes : list of str
+        list of single-letter residue types
+    """
 
     try:
         fh = open(fname, 'r')
@@ -87,7 +128,7 @@ def parse_mutlist_file(fname):
         raise IOError
 
     restypes = []
-    
+
     for line in fh:
         if line and not line.startswith("#"):
             str_line = line.strip()
@@ -109,10 +150,30 @@ def parse_mutlist_file(fname):
 
     if len(restypes) == 0:
         log.error("No residue types found in mutation list")
-    
+
     return restypes
 
 def get_residue_list(infile, multimers=True, get_structure=False):
+    """
+    Reads a PDB file and returns a list of residus (number, type and chain)
+    according to the MutateX naming convention
+    ----------
+    fname : str
+        name of the PDB file to be read
+    multimers : bool
+        whether to automatically detect multimers in the input structure or
+        consider each residue independently
+    get_structure : bool
+        if True, return the ``Bio.PDB.Structure.Structure`` object of the
+        input PDB file as well
+    Returns
+    -------
+    residue_list : list of tuples
+        list of residues according to the MutateX convention
+    structure: instance of ``Bio.PDB.Structure.Structure``
+        object corresponding to the loaded PDB structure.
+
+    """
 
     parser = PDB.PDBParser()
 
@@ -173,10 +234,27 @@ def get_residue_list(infile, multimers=True, get_structure=False):
         return residue_list, structure
     return residue_list
 
-#########################################################
+
+########################################
+# Helper functions for the main script #
+########################################
+
 
 def get_foldx_sequence(pdb, multimers=True):
-
+    """
+    Reads a PDB file and returns a list of residus (number, type and chain)
+    according to the MutateX naming convention
+    Parameters
+    ----------
+    fname : str
+        name of the file to be read
+    multimers : bool
+        whether to use the multimers mode or not
+    Returns
+    -------
+    restypes : list of str
+        list of single-letter residue types
+    """
     parser = PDB.PDBParser()
     try:
         structure = parser.get_structure("structure", pdb)
@@ -225,7 +303,13 @@ def get_foldx_sequence(pdb, multimers=True):
 
 
 def safe_makedirs(dirname):
-
+    """
+    Safely creates directories and handle corner cases.
+    Parameters
+    ----------
+    dirname : str
+        name of the directory to be created
+    """
     if os.path.exists(dirname):
         if not os.path.isdir(dirname):
             log.error("%s exists but is not a directory." % dirname)
@@ -241,7 +325,17 @@ def safe_makedirs(dirname):
             raise IOError
 
 def safe_cp(source, destination, dolink=True):
-
+    """
+    Safely copies or links files and handles corner cases.
+    Parameters
+    ----------
+    source : str
+        source file name for copy
+    destination : str
+        destionation file name for copy
+    dolink : bool
+        make symbolic links instead of copying
+    """
     if os.path.abspath(source) == os.path.abspath(destination):
         return
 
@@ -278,6 +372,22 @@ def safe_cp(source, destination, dolink=True):
                 raise IOError
 
 def load_structures(pdb, check_models=False):
+    """
+    Loads structure object from PDB file and handles common failures
+    Parameters
+    ----------
+    pdb : str
+        PDB file name
+    check_models : bool
+        perform basic checks on the loaded models and fix problems if possible.
+        Currently it just checks whether the chain identifier is assigned
+        and assign one if not
+    Returns
+    ----------
+    structure : ``PDB.Structure`` object
+        structure loaded from the PDB file
+
+    """
 
     parser = PDB.PDBParser()
 
@@ -289,7 +399,7 @@ def load_structures(pdb, check_models=False):
 
     if len(structure.get_list()) == 0:
         log.error("File %s doesn't contain any useful model." % pdb)
-        raise
+        raise IOError
 
     if check_models:
         log.info("checking models in pdb file")
@@ -302,6 +412,18 @@ def load_structures(pdb, check_models=False):
     return structure
 
 def load_runfile(runfile):
+    """
+    Parses runfile template and handles most common problems
+    Parameters
+    ----------
+    runfile : str
+        Input run file name
+    Returns
+    ----------
+    data : str
+        content of the runfile
+
+    """
 
     try:
         with open(runfile, 'r') as fh:
@@ -313,11 +435,38 @@ def load_runfile(runfile):
     return data
 
 def foldx_worker(run):
+    """
+    FoldX parallel worker - starts FoldX run and logs event
+    Parameters
+    ----------
+    run : ``mutatex.FoldXRun`` instance
+        FoldX run to be performed
+    Returns
+    ----------
+    run_name : str
+        name of the run
+    run_result : bool
+        whether the run has been performed (True) or not (False)
+    """
+
+
     log.info("starting FoldX run %s" % run.name)
     return (run.name, run.run())
 
 def parallel_foldx_run(foldx_runs, np):
-
+    """
+    FoldX parallel run - run different foldx runs in parallel
+    Parameters
+    ----------
+    foldx_runs : iterable of ``mutatex.FoldXRun`` instances
+        FoldX runs to be performed
+    np : int
+        number of runs to be performed at the same time
+    Returns
+    ----------
+    results : list of (str, bool) tuples
+        whether each run has been complete successfully (name and status)
+    """
     pool = mp.Pool(np)
 
     result = pool.imap_unordered(foldx_worker, foldx_runs)
@@ -329,9 +478,25 @@ def parallel_foldx_run(foldx_runs, np):
 
 
 def split_pdb(filename, structure, checked):
+    """
+    split models in a ``PDB.Structure`` object into a file each, which
+    is written to disk.
+    Parameters
+    ----------
+    filename : file name of the original PDB file. It will be used to derive
+        the file names of the single model files
+    structure : instance of ``PDB.Structure``
+        structure object from which models will be extracted
+    checked : bool
+        whether append "_checked" to the filename
+    Returns
+    ----------
+    pdb_list : list of (str)
+        list of file names of the files that have been written
+    """
 
     pdb_list = []
-    
+
     writer = PDB.PDBIO()
     parser = PDB.PDBParser()
 
@@ -349,6 +514,27 @@ def split_pdb(filename, structure, checked):
     return pdb_list
 
 def save_energy_file(fname, data, fmt="%.5f", do_avg=True, do_std=False, do_min=False, do_max=False, axis=1):
+    """
+    saves mutation energy data to file in the Mutatex format
+    Parameters
+    ----------
+    fname : str
+        file name the data will be written to
+    fmt : str
+        output file format specification - see ``numpy.savetxt`` fmt option
+    data : ``numpy.array``
+        data to be written in the file
+    do_avg : bool
+        write column of average values
+    do_std : bool
+        write column of standard deviation values
+    do_min : bool
+        write column of minimum values
+    do_max : bool
+        write column of maximum values
+    axis : int
+        axis on which average/standard deviation/minimum/maximum will be calculated
+    """
 
     out = []
     header_cols = []
@@ -377,6 +563,27 @@ def save_energy_file(fname, data, fmt="%.5f", do_avg=True, do_std=False, do_min=
         raise IOError
 
 def save_interaction_energy_file(fname, data, fmt="%.5f", do_avg=True, do_std=False, do_min=False, do_max=False, axis=1):
+    """
+    saves interaction energy data to file in the Mutatex format
+    Parameters
+    ----------
+    fname : str
+        file name the data will be written to
+    fmt : str
+        output file format specification - see ``numpy.savetxt`` fmt option
+    data : ``numpy.array``
+        data to be written in the file
+    do_avg : bool
+        write column of average values
+    do_std : bool
+        write column of standard deviation values
+    do_min : bool
+        write column of minimum values
+    do_max : bool
+        write column of maximum values
+    axis : int
+        axis on which average/standard deviation/minimum/maximum will be calculated
+    """
 
     out = []
     header_cols = []
@@ -405,6 +612,17 @@ def save_interaction_energy_file(fname, data, fmt="%.5f", do_avg=True, do_std=Fa
         raise IOError
 
 def compress_mutations_dir(cwd, mutations_dirname, mutations_archive_fname='mutations.tar.gz'):
+    """
+    compresses directory in a tarball file. Designed to compress the "mutations"
+    directory but works with any.
+    ----------
+    cwd : str
+        current working directory
+    mutations_dirname : str
+        name of the "mutations directory"
+    mutations_archive_fname : str
+        name fo the archive file to be written
+    """
 
     archive_path = os.path.join(cwd, mutations_archive_fname)
     mutations_dir_path = mutations_dirname
@@ -431,13 +649,3 @@ def compress_mutations_dir(cwd, mutations_dirname, mutations_archive_fname='muta
     log.info("Removing mutations directory ...")
     shutil.rmtree(mutations_dir_path)
     return
-
-
-
-"""
-def seq_to_res(seq):
-    if options.multimers:
-        return "_".join(seq)
-    else:
-        return seq
-"""
