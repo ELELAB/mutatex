@@ -269,6 +269,7 @@ class FoldXSuiteVersion4(FoldXVersion):
     Class for preparing run and parsing results from FoldX Suite 4 runs.
     Parameters
     ----------
+<<<<<<< HEAD
         see ``mutatex.core.FoldXVersion``
     Attributes
     ----------
@@ -283,6 +284,10 @@ class FoldXSuiteVersion4(FoldXVersion):
         prefix for mutated PDBs mutation output files
     mutlist_eol : str
         end of line string for mutation list
+=======
+    Attributes
+    ----------
+>>>>>>> [WIP] added some docstrings to core.py
     """
 
     version="suite4"
