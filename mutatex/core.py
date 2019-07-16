@@ -109,18 +109,19 @@ class ResList(object):
         return ", ".join(self.reslist)
 
     def parse_list_file(self, fname):
-    """
-    parse list file and return it
-    Parameters
-    ----------
-    fname : str
-        file name of the input file
-    Returns
-    ----------
-    restypes : tuple of str
-        tuple of single-letter residue types
-    """
-    return parse_mutlist_file(fname)
+        """
+        parse list file and return it
+        Parameters
+        ----------
+        fname : str
+            file name of the input file
+        Returns
+        ----------
+        restypes : tuple of str
+            tuple of single-letter residue types
+        """
+
+        return parse_mutlist_file(fname)
 
 class EnergyReport:
     """
