@@ -268,8 +268,20 @@ class FoldXSuiteVersion4(FoldXVersion):
     Class for preparing run and parsing results from FoldX Suite 4 runs.
     Parameters
     ----------
+        see ``mutatex.core.FoldXVersion``
     Attributes
     ----------
+        see those in ``mutatex.core.FoldXVersion``, plus
+    can_generate_rotabase : bool
+        whether this version of FoldX can generate its rotabase file
+    len_dif_file_header : int
+        number of header lines in Dif*fxout FoldX output files
+    mutation_output_pdb_WT_prefix : str
+        prefix for wild-type PDBs mutation output files
+    mutation_output_pdb_prefix : str
+        prefix for mutated PDBs mutation output files
+    mutlist_eol : str
+        end of line string for mutation list
     """
 
     version="suite4"
@@ -277,18 +289,20 @@ class FoldXSuiteVersion4(FoldXVersion):
     can_generate_rotabase = False
 
     len_dif_file_header = 9
-    pdblist_fxout_prefix = "PdbList_"
-    summary_fxout_suffix= "_AC"
-    repaired_pdb_prefix = "RepairPDB_"
-    average_fxout_prefix = "Average_BuildModel_"
-    dif_fxout_prefix = "Dif_"
-    summary_fxout_prefix = "Summary_"
     mutation_output_pdb_WT_prefix = "WT_"
     mutation_output_pdb_prefix = ""
     mutlist_eol = ";\n"
 
     def save_mutlist(self, fname, mutlist):
-
+        """
+        saves mutation list in the individual_list.txt FoldX mutaiton list file format
+        Parameters
+        ----------
+        fname : str
+            name of the file to be written
+        mutlist : list of tuples, each containing residues to mutate in the Mutatex format
+            see ``mutatex.core.FoldXVersion``
+        """
         try:
             fh = open(fname, 'w')
         except:
@@ -302,6 +316,13 @@ class FoldXSuiteVersion4(FoldXVersion):
         fh.close()
 
     def parse_mutlist(self, fname):
+        """
+        parses mutation list in the individual_list.txt FoldX mutaiton list fiel format
+        Parameters
+        ----------
+        fname : str
+            name of the file to be read
+        """
 
         try:
             fh = open(fname, 'r')
@@ -325,25 +346,111 @@ class FoldXSuiteVersion4(FoldXVersion):
         return ml
 
     def repair_pdb_output_fname(self, basename):
+        """
+        generates expected file name for repaired output PDB file
+        Parameters
+        ----------
+        basename : str
+            basename of the file to be used
+        Returns
+        ----------
+        fname : str
+            expected file name
+        """
+
         return "%s_Repair.pdb" % "".join(os.path.splitext(basename)[:-1])
 
     def mutate_average_fxout_output_fname(self, basename, *args, **kwargs):
+        """
+        generates expected file name for average energies files
+        Parameters
+        ----------
+        basename : str
+            basename of the file to be used
+        Returns
+        ----------
+        fname : str
+            expected file name
+        """
+
         return "Average_%s.fxout" % basename
 
     def mutate_dif_fxout_output_fname(self, basename, *args, **kwargs):
+        """
+        generates expected file name for repaired output PDB file
+        Parameters
+        ----------
+        basename : str
+            basename of the file to be used
+        Returns
+        ----------
+        fname : str
+            expected file name
+        """
+
         return "Dif_%s.fxout" % basename
 
     def mutate_pdblist_fxout_output_fname(self, basename, *args, **kwargs):
-        return "%s%s.fxout" % (self.pdblist_fxout_prefix, basename)
+        return "%s%s.fxout" % ("PdbList_", basename)
+        """
+        generates expected file name for the file containing the list of PDB
+        files produced by the mutation procedure
+        Parameters
+        ----------
+        basename : str
+            basename of the file to be used
+        Returns
+        ----------
+        fname : str
+            expected file name
+        """
 
     def ac_summary_fxout_output_fname(self, basename, *args, **kwargs):
-        return "%s%s%s.fxout" % (self.summary_fxout_prefix, basename, self.summary_fxout_suffix)
+        return "%s%s%s.fxout" % ("Summary_", basename, "_AC")
+        """
+        generates expected file name for the file containing the summary of
+        binding energies
+        Parameters
+        ----------
+        basename : str
+            basename of the file to be used
+        Returns
+        ----------
+        fname : str
+            expected file name
+        """
+
 
     def get_mutation_fxout_fnames(self, directory, pdbs):
+        """
+        generates expected file name for the files containing
+        free energies upon mutation
+        Parameters
+        ----------
+        basename : str
+            basename of the file to be used
+        Returns
+        ----------
+        fname : str
+            expected file name
+        """
+
         basenames = ["".join(os.path.splitext(os.path.basename(pdb))[:-1]) for pdb in pdbs]
         return [os.path.join(directory,self.mutate_dif_fxout_output_fname(basename)) for basename in basenames]
 
     def parse_mutations_fxout(self, directory, pdbs, mutlist):
+        """
+        parses FoldX energy output file
+        Parameters
+        ----------
+        this_run : ``mutatex.FoldXMutateRun`` instance
+            object referring to a FoldX mutation run, containing the necessary
+            information to find the input files
+        Returns
+        ----------
+        fname : str
+            energy values collected from the file
+        """
 
         pattern = '(\s+([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)){22}'
 
@@ -373,6 +480,36 @@ class FoldXSuiteVersion4(FoldXVersion):
         return energies
 
     def get_mutation_pdb_fnames(self, directory, pdbs, mutlist, nruns, WT=True, include_original=False):
+        """
+        generate filenames of the PDB generated by FoldX after running a mutational scan
+        Parameters
+        ----------
+        directory : str
+            working directory of the FoldX run
+        pdbs: list of str
+            list of base pdb files used for the run
+        run: instance of ``mutatex.FoldXMutateRun``
+            FoldX mutation run
+        WT : bool
+            whether to return both the file names of the mutated
+            PDB files and the wild-type structures. Returns only the mutant
+            structures if False.
+        include_original : bool
+            whether to include the file name of the PDB file used as starting
+            point for the mutations
+        Returns
+
+        ----------
+        fname : list or str
+            if WT is False, include_original is False and only one PDB is in
+            the `pdbs` parameter, the method just returns the name of the only
+            mutated PDB as str.
+            if either WT or include_original are True and only one PDB is in
+            the `pdbs` parameter, the method just returns the names of the PDBs
+            as list. If more than one PDB file is in the `pdbs` parameter, it
+            will return a list of lists of str, each list corresponding to a
+            PDB
+        """
         fnames = []
         files = os.listdir(directory)
         if WT:
@@ -397,6 +534,27 @@ class FoldXSuiteVersion4(FoldXVersion):
         return fnames
 
     def get_interaction_fxout_fnames(self, directory, pdbs, run, original_pdb=False):
+        """
+        generate filenames of the energy fxout interaction energy files
+        generated by FoldX after running a mutational scan with calculation
+        of interaction energies
+        Parameters
+        ----------
+        directory : str
+            working directory of the FoldX run
+        pdbs: list of str
+            list of base pdb files used for the run
+        run: instance of ``mutatex.FoldXInterfaceRun``
+            FoldX free energy of binding run
+        original_pdb : bool
+            whether to include the file name of the PDB file used as starting
+            point for the mutations
+        Returns
+        ----------
+        fname : list of str
+            list of lists of filenames. Each list contains the files regarding
+            the wild-type or mutated variant
+        """
 
         fnames = [[],[]]
 
