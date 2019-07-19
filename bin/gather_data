@@ -21,156 +21,98 @@ import argparse
 import os
 from Bio import PDB
 from six import iteritems
-
-def parse_ddg_file(fname, reslist, thisres):
-    try:
-        fh = open(fname, 'r')
-    except:
-        log.warning("file %s cannot be opened." % fname)
-        return None
-
-    ddgs = []
-    for line in fh:
-        if line and not line.startswith("#"): 
-            ddgs.append(float(line.split()[0]))
-                
-    if len(ddgs) != len(reslist):
-        log.error("file %s has %d values, with %d required. Exiting..." % (fname, len(ddgs), len(reslist)))
-        exit(1)
-    return ddgs
-
-def parse_list_file(fname):
-    fh = open(fname, 'r')
-    restypes = []
-    for line in fh:
-        if line and not line.startswith("#"):
-            restypes.append(line.strip()[0])
-    return restypes
-
-def parse_mutation_list(fname):
-    strings =     [ str.strip(l) for l in  open(fname,'r').readlines() ]
-    wts     = set([ s[:-1] for s in strings ])
-    muts = {}
-    for wt in wts:
-        muts["%s%s%s"%(wt[1],wt[0],wt[2:])] = []
-    for res in strings:
-        muts["%s%s%s"%(res[1],res[0],res[2:-1])].append(res[-1])
-    return muts
-
-ptm_residues = {"y": "PTR",
-                "p": "TPO",
-                "s": "SEP",
-                "h": "HYP",
-                "z": "TYS",
-                "k": "MLZ",
-                "m": "MLY",
-                "l": "M3L",
-                "o": "H1S",
-                "e": "H2S",
-                "f": "H3S"}
-
-len_three2one = len(PDB.Polypeptide.d1_to_index)
-idx=len_three2one
-for k,v in iteritems(ptm_residues):
-    PDB.Polypeptide.d1_to_index[k] = idx
-    PDB.Polypeptide.dindex_to_1[idx] = k
-
-    PDB.Polypeptide.d3_to_index[v] = idx
-    PDB.Polypeptide.dindex_to_3[idx] = v
-    idx += 1
-
-LOGFMT = "%(levelname)s: %(message)s"
-
-if not __name__ == "__main__":
-    exit()
-
-
-parser = argparse.ArgumentParser(
-description='Write DDG data of specific mutations in a summary text file',)
-
-parser.add_argument("-p","--pdb", dest="in_pdb", help="Input pdb file")
-parser.add_argument("-d","--data-directory", dest="dir", type=str, help="input data directory")
-parser.add_argument("-L","--mutation-list", dest="mutations",  help="mutation list")
-parser.add_argument("-l","--list", dest="residues",  help="default order list")
-parser.add_argument("-v","--verbose", dest="verbose", action="store_true", default=False, help="verbose mode")
-
-options = parser.parse_args()
-
+from mutatex.utils import *
 import numpy as np
 import logging as log
 import os
-from Bio import PDB
-from matplotlib import pyplot as plt
+import re
 
-if options.verbose:
-    log.basicConfig(level=log.INFO,    format=LOGFMT)
-else:
-    log.basicConfig(level=log.WARNING, format=LOGFMT)
+def parse_desired_mutations_list(fname, reslist, mutlist):
+    mut_pattern = '^[A-Za-z]*([A-Z][0-9]+[A-Za-z])$'
+    mut_re = re.compile(mut_pattern)
 
+    processed_reslist = []
+
+    selected_muts = []
+
+    for r in reslist:
+        processed_reslist.append( tuple([ ri[1:] for ri in r]))
+
+    try:
+        with open(fname) as fh:
+            strings = [ str.strip(l) for l in fh.readlines() ]
+    except IOError:
+        log.error("File %s couldn't be opened" % fname)
+        raise IOError
+
+    for s in strings:
+        if not s:
+            continue
+        match = mut_re.match(s)
+        if match:
+            wt = match.group(1)[:-1]
+            mut = match.group(1)[-1]
+        else:
+            log.warning("Expression %s in mutation list file was not understood, it will be skipped" % s)
+            continue
+        wt_matches = []
+        for ir, r in enumerate(reslist):
+            if wt in r:
+                wt_matches.append(ir)
+        if len(wt_matches) == 0:
+            log.warning("Residue %s was not found in the PDB file, it will be skipped" % wt)
+            continue
+        if len(wt_matches) > 1:
+            log.warning("Residues %s was found more than once in the PDB file; it will be skipped0" % wt)
+
+        if mut not in mutlist:
+            log.warning("In mutation %s the mutant residue type was not found in the input residue list; it will be skipped" % s)
+            continue
+
+        selected_muts.append((ir, mutlist.index(mut)))
+
+
+
+parser = argparse.ArgumentParser(
+    description='Write DDG data of specific mutations in a summary text file',)
+optional = parser._action_groups.pop()
+required = parser.add_argument_group('required arguments')
+
+required = init_arguments(['pdb', 'data', 'mutation_list'], required)
+required.add_argument("-L","--mutation-list", dest="mutations",  help="List of mutations to consider")
+
+optional = init_arguments(['multimers'], optional)
+
+options = parser.parse_args()
 pdb_parser = PDB.PDBParser()
 
+parser._action_groups.append(optional)
+options = parser.parse_args()
+
 try:
-    structure = pdb_parser.get_structure('s', options.in_pdb)
-except:
-    log.error("Couldn't open or parse input pdb file. Exiting...")
-    exit(1)
- 
-res_ids = []
-res_ids_str = []
-data = []
-
-models = structure.get_list()
-
-if len(models) > 1:
-    log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
-if len(models) < 1:
-    log.error("The input PDB file does not contain any model. Exiting ...")
+    res_ids = get_residue_list(options.in_pdb, multimers=options.multimers)
+except IOError:
     exit(1)
 
-model = models[0]
+try:
+    res_order = parse_mutlist_file(options.mutation_list)
+except (IOError, TypeError):
+    exit(1)
 
-mutation_list = parse_mutation_list(options.mutations)
-residue_list = parse_list_file(options.residues)
-good = []
-bad = []
+try:
+    mutation_list = parse_desired_mutations_list(options.residues, res_ids, res_order)
+except (IOError, TypeError):
+    exit(1)
 
-
-for chain in model:
-    for res in chain:
-        try:
-            this_type = PDB.Polypeptide.three_to_one(res.get_resname())
-        except:
-            log.warning("residue %s, %s, %d not recognized. It will be skipped." % (res.get_resname(), chain.get_id(), res.get_id()[1]))
-            continue
-
-        res_ids.append((chain.get_id(), res.get_id()[1], this_type))
-
-        fname = "%s%s%d" % (res_ids[-1][2],res_ids[-1][0],res_ids[-1][1])
-        fpos = "%s/%s" % (options.dir, fname)
-
-        if fname not in list(mutation_list):
-            log.info("Residue %s not in list; skipping" % fname)
-            continue
-
-        if not os.path.isfile(fpos):
-            log.warning("File %s does not exist; skipping" % fname)
-            continue
-
-        try: 
-            data.append(np.loadtxt(fpos))
-        except:
-            log.error("Couldn't open file %s" % fpos)
-            continue
-
-        res_ids_str.append(fname)
-
-with open("summary.txt",'w') as fh:
-    for i,rid in enumerate(res_ids_str):
-        for mut in mutation_list[rid]:
-            idx = residue_list.index(mut)
+try:
+    with open("summary.txt",'w') as fh:
+        for residx, mutidx in mutation_list:
+            resname = "_".join(res_ids[residx])
+            fname = os.path.join(options.ddg_dir, resname)
+            ddg = parse_ddg_file(fname, reslist=res_order, full=True)
             fh.write("%s%s\t"%(rid,mut))
-            fh.write("%.3f\t%.3f\t%.3f\t%.3f\n" % (data[i][idx][0],data[i][idx][1],data[i][idx][2],data[i][idx][3]))
-        #fh.write("\n")
+            fh.write("%.3f\t%.3f\t%.3f\t%.3f\n" % ddg[mutidx])
+except IOError:
+    log.error("couldn't write output file, exiting...")
 
-            
 
