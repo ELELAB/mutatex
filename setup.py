@@ -32,7 +32,7 @@ setup(
               'bin/ddg2histo',
               'bin/ddg2logo',
               'bin/ddg2pdb',
-              'bin/gather_data' ],
+              'bin/ddg2summary' ],
     install_requires=[ 'biopython',
                        'matplotlib',
                        'scipy',
