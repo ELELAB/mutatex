@@ -7,7 +7,7 @@ export RESULTS=$BASEDIR"/results/mutation_ddgs/2klz_1_model0_checked_Repair/"
 
 export BASEOPT="-p $PDB"
 
-export tools=(ddg2density ddg2dg ddg2distribution ddg2histo ddg2labels ddg2logo ddg2matrix ddg2pdb ddg2xlsx)
+export tools=(ddg2density ddg2dg ddg2distribution ddg2histo ddg2labels ddg2logo ddg2matrix ddg2pdb ddg2summary ddg2xlsx)
 export options=("-l $MUTLIST -d $RESULTS"
 "-d $RESULTS"
 "-l $MUTLIST -d $RESULTS -T box"
@@ -16,6 +16,7 @@ export options=("-l $MUTLIST -d $RESULTS"
 "-l $MUTLIST -d $RESULTS"
 "-l $MUTLIST -d $RESULTS"
 "-l $MUTLIST -d $RESULTS" 
+"-l $MUTLIST -d $RESULTS -L mutations.txt"
 "-l $MUTLIST -d $RESULTS")
 
 for t in "${!tools[@]}"; do
