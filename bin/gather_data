@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#./gather_data -p file.pdb -d final_averages -L cancer_mutations -l mutation_list.txt
 
 #    ddg2matrix: plot DDG MutateX results as heat maps.
 #    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
@@ -55,8 +54,10 @@ def parse_desired_mutations_list(fname, reslist, mutlist):
         else:
             log.warning("Expression %s in mutation list file was not understood, it will be skipped" % s)
             continue
+
         wt_matches = []
-        for ir, r in enumerate(reslist):
+        
+        for ir, r in enumerate(processed_reslist):
             if wt in r:
                 wt_matches.append(ir)
         if len(wt_matches) == 0:
@@ -69,9 +70,9 @@ def parse_desired_mutations_list(fname, reslist, mutlist):
             log.warning("In mutation %s the mutant residue type was not found in the input residue list; it will be skipped" % s)
             continue
 
-        selected_muts.append((ir, mutlist.index(mut)))
+        selected_muts.append((wt_matches[0], mutlist.index(mut)))
 
-
+    return selected_muts
 
 parser = argparse.ArgumentParser(
     description='Write DDG data of specific mutations in a summary text file',)
@@ -100,19 +101,21 @@ except (IOError, TypeError):
     exit(1)
 
 try:
-    mutation_list = parse_desired_mutations_list(options.residues, res_ids, res_order)
+    mutation_list = parse_desired_mutations_list(options.mutations, res_ids, res_order)
 except (IOError, TypeError):
+    exit(1)
+
+if len(mutation_list) == 0:
+    log.error("no usable mutations were found in mutations file; exiting...")
     exit(1)
 
 try:
     with open("summary.txt",'w') as fh:
         for residx, mutidx in mutation_list:
-            resname = "_".join(res_ids[residx])
-            fname = os.path.join(options.ddg_dir, resname)
-            ddg = parse_ddg_file(fname, reslist=res_order, full=True)
-            fh.write("%s%s\t"%(rid,mut))
-            fh.write("%.3f\t%.3f\t%.3f\t%.3f\n" % ddg[mutidx])
+            resname = ",".join([ x + res_order[mutidx] for x in res_ids[residx] ] )
+            fname = os.path.join(options.ddg_dir, "_".join(res_ids[residx]))
+            ddg = parse_ddg_file(fname, reslist=res_order, full=True).T
+            fh.write("%s\t" % resname)
+            fh.write("%.3f\t%.3f\t%.3f\t%.3f\n" % tuple(ddg[mutidx]))
 except IOError:
     log.error("couldn't write output file, exiting...")
-
-
