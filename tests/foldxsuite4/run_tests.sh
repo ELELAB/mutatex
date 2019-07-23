@@ -1,10 +1,10 @@
 #!/bin/bash
 
-export FOLDX_BINARY=/usr/local/foldx_2017/foldx
-export FOLDX_ROTABASE=/usr/local/foldx_2017/rotabase.txt
+export FOLDX_BINARY=/usr/local/foldx2018/foldx
+export FOLDX_ROTABASE=/usr/local/foldx2018/rotabase.txt
 export FOLDX_VERSION=suite4
-export NP=16
-export tests=(basic basic_deepclean basic_multimers basic_multimodel basic_noclean basic_nomultimers basic_targz interaction interaction_deepclean interaction_multimers interaction_multimodel interaction_noclean interaction_nomultimers selfmutate selfmutate_multimers selfmutate_multimodel selfmutate_nomultimers)
+export NP=4
+export tests=(basic basic_deepclean basic_multimers basic_multimodel basic_noclean basic_nomultimers basic_ptms basic_targz interaction interaction_deepclean interaction_multimers interaction_multimodel interaction_noclean interaction_nomultimers selfmutate selfmutate_multimers selfmutate_multimodel selfmutate_nomultimers)
 
 runnables=()
 
