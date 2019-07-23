@@ -148,6 +148,23 @@ for p in range(len(pdb_structures)):
         log.error("input pdb %s has more than one model, and --multiple-models was not selected. Please use --multiple-models or input a single-model PDB file." % args.pdb[p])
         exit(1)
 
+# Prepare mutation list
+if args.selfmutate:
+    log.info("Mutation to self will be performed; mutlist will be ignored")
+    mutation_reslist = None
+elif args.mutlist:
+    log.info("File %s will be used as mutation list" % args.mutlist)
+    try:
+        mutation_reslist = ResList(fname=args.mutlist)
+    except:
+        log.error("Exiting...")
+        exit(1)
+else:
+    log.info("default mutation list will be used.")
+    mutation_reslist = ResList(reslist=default_mutlist)
+
+log.info("mutation list is: %s" % mutation_reslist)
+
 # PHASE ONE: prepare PDB file(s)
 log.info("starting phase 1: structure check and generation of required PDB files")
 
@@ -198,25 +215,9 @@ if False in list(zip(*repair_outcome))[1]:
     log.error("The following repair runs failed to complete. Exiting...")
 for i in [x for x in repair_outcome if x[1] == False]:
     log.error("\t%s" % i[0])
+    exit(1)
 
 # PHASE TWO: mutate + energy
-
-# Prepare mutation list
-if args.selfmutate:
-    log.info("Mutation to self will be performed; mutlist will be ignored")
-    mutation_reslist = None
-elif args.mutlist:
-    log.info("File %s will be used as mutation list" % args.mutlist)
-    try:
-        mutation_reslist = ResList(fname=args.mutlist)
-    except:
-        log.error("Couldn't parse mutation list")
-        exit(1)
-else:
-    log.info("default mutation list will be used.")
-    mutation_reslist = ResList(reslist=default_mutlist)
-
-log.info("mutation list is: %s" % mutation_reslist)
 
 # Select PDB(s) to be used
 repaired_pdbs_list = [repair_runs[i].working_directory+"/"+current_version.repair_pdb_output_fname(pdbs_list[i]) for i in range(len(pdbs_list))]
@@ -247,7 +248,10 @@ for pdb in repaired_pdbs_list:
             repaired_pdbs_list.remove(pdb)
             continue
         print(pdb, 'XXX')
-        residues_list.append(get_foldx_sequence(pdb, multimers=args.multimers))
+        try:
+            residues_list.append(get_foldx_sequence(pdb, multimers=args.multimers))
+        except IOError:
+            exit(1)
 
 unique_residues = tuple(set(residues_list))
 

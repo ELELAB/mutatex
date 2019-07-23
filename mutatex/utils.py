@@ -95,7 +95,11 @@ def parse_mutlist_file(fname):
                 continue
             if len(str_line) > 1:
                 log.warning("more than one character per line found in mutation list file; only the first letter will be considered")
-            restypes.append(line.strip()[0])
+            mtype = line.strip()[0]
+            if mtype not in PDB.Polypeptide.d1_to_index.keys():
+                log.error("one or more residue types in the mutation list were incorrectly specified")
+                raise TypeError
+            restypes.append(mtype)
 
     fh.close()
 
