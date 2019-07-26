@@ -75,19 +75,7 @@ class ResList(object):
         return ", ".join(self.reslist)
 
     def parse_list_file(self, fname):
-        try:
-            fh = open(fname, 'r')
-        except:
-            log.error("Couldn't open mutation list file %s." % fname)
-            raise
-
-        restypes = []
-        for line in fh:
-            if line and not line.startswith("#"):
-                restypes.append(line.strip()[0])
-
-        fh.close()
-        return tuple(restypes)
+        return parse_mutlist_file(fname)
 
 class EnergyReport:
     def __init__(self, pdbs=None):
@@ -440,7 +428,7 @@ class FoldXRun(object):
 
         # Create the working directory
         try:
-            safe_makedirs(self.working_directory, doexit=False)
+            safe_makedirs(self.working_directory)
         except:
             log.warning("Could not create working directory %s; run %s will be skipped." % (    self.working_directory, self.name))
             self.ready = False
@@ -615,6 +603,8 @@ class FoldXMutateRun(FoldXRun):
 
     def prepare(self):
 
+        dir_reset = False
+
         # Check if base directory exists
         if not os.path.exists(self.base_directory):
             log.warning("base directory %s does not exist; run %s will be skipped." % (self.base_directory, self.name))
@@ -632,14 +622,16 @@ class FoldXMutateRun(FoldXRun):
             self.finished = False
             log.warning("Working directory of run %s was left in an undefined state; it will be reset" % self.name)
             self.reset_working_directory()
+            dir_reset = True
 
         # Create the working directory
-        try:
-            safe_makedirs(self.working_directory, doexit=False)
-        except:
-            log.warning("Could not create working directory %s; run %s will be skipped." % (    self.working_directory, self.name))
-            self.ready = False
-            return False
+        if not dir_reset:
+            try:
+                safe_makedirs(self.working_directory)
+            except:
+                log.warning("Could not create working directory %s; run %s will be skipped." % (    self.working_directory, self.name))
+                self.ready = False
+                return False
 
         # Copy the PDB file(s) in the working directory
         for pdb in self.pdbs:
