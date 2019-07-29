@@ -583,13 +583,12 @@ class FoldXSuiteVersion4(FoldXVersion):
         ----------
         delta_energies : dict
             dictionary of differences of interaction energies as calculated by
-            FoldX. It's a dictionary of dictionaries, structured as
+            FoldX. It's a dictionary of dictionaries, structured as 
             [type][interaction_group]. Type can be either 'wt' of 'mutated'
-            for the respective interaction energies; interaction_group is a
+            for the respective interaction energies; interaction_group is a 
             frozenset containing the chain names of the two chains between
             which the interaction energy has been calculated
         """
->>>>>>> [WIP] added more docstrings
 
         fnames = self.get_interaction_fxout_fnames(directory, pdbs, run, original_pdb=True)
 
