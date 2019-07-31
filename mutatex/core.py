@@ -359,14 +359,7 @@ class FoldXSuiteVersion5(FoldXSuiteVersion4):
 
 class FoldXRun(object):
 
-    runfile_name = "runfile.txt"
-
     logfile_name = "FoldXrun.log"
-
-    runfile_content = ""
-
-    finished = False
-    ready = False
 
     def __init__(self,
                 name,
@@ -400,6 +393,8 @@ class FoldXRun(object):
         self.link_files = link_files
         self.write_log = write_log
         self.do_clean = clean
+        self.finished = False
+        self.ready = False
 
     def prepare(self):
 
@@ -421,10 +416,14 @@ class FoldXRun(object):
             self.finished = True
             return True
 
-        elif status == "conflicting" or status == "broken":
-            log.warning("Something went wrong with run %s; it will be skipped." % self.name)
-            self.finished = False
-            return False
+        elif status == "broken" or status == "conflicting" or status == "partially_done":
+            log.warning("Working directory of run %s was left in an undefined" % self.name)
+            if self.reset_working_directory():
+                log.warning("Working directory of run %s was reset" % self.name)
+            else:
+                log.warning("Working directory of run %s wasn't reset" % self.name)
+                self.finished = False
+                return False
 
         # Create the working directory
         try:
@@ -514,19 +513,12 @@ class FoldXRun(object):
 
 
     def check_status(self, **kwargs):
-        if not os.path.exists(self.working_directory):
-            return "not_done"
-        else:
-            log.warning("working directory %s already exists." % self.working_directory)
-            for f in os.listdir(self.working_directory):
-                if f.endswith(".fxout"):
-                    log.warning(".fxout files already exist in directory %s; run %s will be skipped" % (self.working_directory, self.name))
-                    self.finished = True
-                    return "conflicting"
-
-        return "not_done"
+        pass
 
     def process_runfile(self, **kwargs):
+        pass
+
+    def finalize_prepare(self, **kwargs):
         pass
 
     def process_output(self, **kwargs):
@@ -537,10 +529,6 @@ class FoldXRun(object):
             self.partial_clean()
         elif self.do_clean == 'none':
             log.info("No cleaning will be performed at this stage.")
-
-
-    def finalize_prepare(self, **kwargs):
-        pass
 
     def partial_clean(self):
         log.info("Doing partial cleaning of the working directory %s" % self.working_directory)
@@ -575,6 +563,7 @@ class FoldXRun(object):
                     os.remove(full_path)
                 except:
                     pass
+        return True
 
 class FoldXRepairRun(FoldXRun):
     def check_status(self):
@@ -593,6 +582,9 @@ class FoldXRepairRun(FoldXRun):
     def clean(self):
         pass
 
+    def reset_working_directory(self):
+        return False
+
 class FoldXMutateRun(FoldXRun):
 
     logfile_name = "MutateFoldXRun.log"
@@ -601,84 +593,6 @@ class FoldXMutateRun(FoldXRun):
         super(FoldXMutateRun, self).__init__(*args, **kwargs)
         self.mutlist = mutlist
 
-    def prepare(self):
-
-        dir_reset = False
-
-        # Check if base directory exists
-        if not os.path.exists(self.base_directory):
-            log.warning("base directory %s does not exist; run %s will be skipped." % (self.base_directory, self.name))
-            self.ready = False
-            return False
-
-        # Check status. Possible statuses: "already_done", "conflicting", "not_done", "broken"
-        status = self.check_status()
-
-        if status == "already_done":
-            self.finished = True
-            return True
-
-        elif status == "broken" or status == "conflicting" or status == "partially_done":
-            self.finished = False
-            log.warning("Working directory of run %s was left in an undefined state; it will be reset" % self.name)
-            self.reset_working_directory()
-            dir_reset = True
-
-        # Create the working directory
-        if not dir_reset:
-            try:
-                safe_makedirs(self.working_directory)
-            except:
-                log.warning("Could not create working directory %s; run %s will be skipped." % (    self.working_directory, self.name))
-                self.ready = False
-                return False
-
-        # Copy the PDB file(s) in the working directory
-        for pdb in self.pdbs:
-            try:
-                #print 'source', os.path.abspath(pdb)
-                #print 'dest', self.working_directory+"/"+os.path.basename(os.path.abspath(pdb))
-                safe_cp(os.path.abspath(pdb), self.working_directory+"/"+os.path.basename(os.path.abspath(pdb)), dolink=self.link_files)
-            except:
-                log.warning("Couldn't copy essential files for run %s; it will be skipped." % self.name)
-                self.ready = False
-                return False
-
-        if self.foldx_version.rotabase:
-            try:
-                safe_cp(os.path.abspath(self.foldx_version.rotabase), self.working_directory+"/"+os.path.basename(os.path.abspath(self.foldx_version.rotabase)), dolink=self.link_files)
-            except:
-                log.warning("Couldn't copy essential rotabase.txt for run %s; it will be skipped." % self.name)
-                self.ready = False
-                return False
-
-        # process runfile (if required)
-        try:
-            self.process_runfile(**self.runfile_processing)
-        except:
-            log.warning("Couldn't process the runfile as required for run %s; it will be skipped." % self.name)
-            self.ready = False
-            return False
-
-        # Write runfile
-        try:
-            with open(self.working_directory+"/"+self.runfile_name, 'w') as fh:
-                fh.write(self.runfile_content)
-        except:
-            log.warning("Couldn't write runfile for run %s; it will be skipped." % self.name)
-            self.ready = False
-            return False
-
-        try:
-            self.finalize_prepare(**self.prepare_finalization)
-        except:
-            log.warning("Couldn't finalize preparation step for run %s; it will be skipped." % self.name)
-            self.ready = False
-            return False
-
-        # Finally ...
-        self.ready = True
-        return True
 
     def check_status(self):
         # Check if working directory exists
@@ -756,9 +670,11 @@ class FoldXInterfaceRun(FoldXRun):
         self.link_files = mr.link_files
         self.write_log = mr.write_log
         self.ready = False
+        self.finished = False
         self.runfile_processing = {'pdb_list' : self.pdb_list}
         self.do_clean = mr.do_clean
         self.mutlist = mr.mutlist
+
 
     def parse_pdb_list(self, pdb_list=None):
         if not pdb_list:
@@ -788,3 +704,5 @@ class FoldXInterfaceRun(FoldXRun):
     def process_runfile(self, **kwargs):
         self.runfile_content = self.runfile_content.replace('$PDBLIST$', kwargs['pdb_list'])
 
+    def reset_working_directory(self):
+        return False
