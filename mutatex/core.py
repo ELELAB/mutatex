@@ -585,9 +585,9 @@ class FoldXSuiteVersion4(FoldXVersion):
         ----------
         delta_energies : dict
             dictionary of differences of interaction energies as calculated by
-            FoldX. It's a dictionary of dictionaries, structured as 
+            FoldX. It's a dictionary of dictionaries, structured as
             [type][interaction_group]. Type can be either 'wt' of 'mutated'
-            for the respective interaction energies; interaction_group is a 
+            for the respective interaction energies; interaction_group is a
             frozenset containing the chain names of the two chains between
             which the interaction energy has been calculated
         """
@@ -709,12 +709,6 @@ class FoldXRun(object):
     ----------
     logfile_name : str
         name of the log files in which the output from FoldX will be written
-    mutation_output_pdb_WT_prefix : str
-        prefix for wild-type PDBs mutation output files
-    mutation_output_pdb_prefix : str
-        prefix for mutated PDBs mutation output files
-    mutlist_eol : str
-        end of line string for mutation list
     Parameters
     ----------
     name : str
@@ -727,7 +721,7 @@ class FoldXRun(object):
         names of PDB files the run should be performed on
     runfile_name : str
         name of the FoldX run file that will be generated and run
-    runfile_processing : dict 
+    runfile_processing : dict
         kwargs for the process_runfile method called during run preparation
     prepare_finalization : dict
         kwargs for the finalize_prepare method called during run preparation
@@ -739,7 +733,7 @@ class FoldXRun(object):
         whether to write a log file containing all the output from FoldX
     clean : 'partial', 'none' or 'deep'
         how to clean the output directory after the run has been performed.
-        none doesn't remove any file, partial removes all the PDB files, and 
+        none doesn't remove any file, partial removes all the PDB files, and
         full removes all file except for FoldX fxout output files and the log
         file.
     """
@@ -758,9 +752,7 @@ class FoldXRun(object):
                 output_processing={},
                 link_files=False,
                 write_log=False,
-                clean='partial',
-                *args,
-                **kwargs):
+                clean='partial'):
 
         self.name = name
         self.pdbs = pdbs
@@ -810,8 +802,8 @@ class FoldXRun(object):
             self.finished = True
             return True
 
-        elif status == "broken" or status == "conflicting" or status == "partially_done":
-            log.warning("Working directory of run %s was left in an undefined" % self.name)
+        elif status == "broken":
+            log.warning("Working directory of run %s was left in an undefined state" % self.name)
             if self.reset_working_directory():
                 log.warning("Working directory of run %s was reset" % self.name)
             else:
@@ -876,7 +868,8 @@ class FoldXRun(object):
 
     def run(self):
         """
-        Runs the current FoldX run, if it's not complete already and if it's ready to run.
+        Runs the current FoldX run, if it's not complete already and if it's
+        ready to run.
         Returns
         ----------
         bool
@@ -914,16 +907,30 @@ class FoldXRun(object):
             return False
 
 
-    def check_status(self, **kwargs):
+    def check_status(self):
+        """
+        dummy check_status function - to be overridden by derived classes
+        """
         pass
 
     def process_runfile(self, **kwargs):
+        """
+        dummy process_runfile function - to be overridden by derived classes
+        """
         pass
 
     def finalize_prepare(self, **kwargs):
+        """
+        dummy finalize_prepare function - to be overridden by derived classes
+        """
         pass
 
     def process_output(self, **kwargs):
+        """
+        Processes the content of a FoldX run folder after it has finished by
+        removing undesired files, according to the content of self.do_clean,
+        which is set by the constructor.
+        """
         log.info("Processing output ...")
         if self.do_clean == 'deep':
             self.clean()
@@ -933,6 +940,10 @@ class FoldXRun(object):
             log.info("No cleaning will be performed at this stage.")
 
     def partial_clean(self):
+        """
+        Performs partial cleaning of the working directory. This function
+        removes all the WT_*.pdb files in the directory.
+        """
         log.info("Doing partial cleaning of the working directory %s" % self.working_directory)
         for f in os.listdir(self.working_directory):
             fname = os.path.join(self.working_directory, f)
@@ -941,6 +952,10 @@ class FoldXRun(object):
                 os.remove(fname)
 
     def clean(self):
+        """
+        Performs complete cleaning of the working directory. This function
+        removes all files except those with the .fxout and .log extensions.
+        """
         log.info("Cleaning working directory %s" % self.working_directory)
         for f in os.listdir(self.working_directory):
             fname = os.path.join(self.working_directory, f)
@@ -949,6 +964,15 @@ class FoldXRun(object):
                 os.remove(fname)
 
     def reset_working_directory(self):
+        """
+        Performs complete reset of the working directory. This function
+        removes all the input and output files from the previous run.
+        Returns
+        ----------
+        True
+            signals that the working directory has been reset
+
+        """
         ftypes = [".pdb", ".fxout", ".log"]
         individual_files = ["individual_list.txt", "rotabase.txt", "runfile.txt"]
         for f in os.listdir(self.working_directory):
@@ -968,7 +992,28 @@ class FoldXRun(object):
         return True
 
 class FoldXRepairRun(FoldXRun):
+    """
+    FoldX repair run - runs a complete repair on a set of PDB files. Prepares
+    and keeps track of a single FoldX repair run.
+    Attributes
+    ----------
+        see ``mutatex.core.FoldXRun``
+    Parameters
+    ----------
+        see ``mutatex.core.FoldXRun``
+    """
+
     def check_status(self):
+        """
+        checks status of the repair run. Since we are just interested in the
+        repaired PDB, two statuses are possible: either the output PDB is
+        present and the run was thus sucessful or not.
+        Returns
+        ----------
+        str
+           either "already_done", if the output PDB is present, or "not_done"
+           otherwise
+        """
         if os.path.exists(self.working_directory):
             log.warning("working directory %s already exists." % self.working_directory)
             if self.foldx_version.repair_pdb_output_fname(self.pdbs[0]) in os.listdir(self.working_directory):
@@ -977,17 +1022,50 @@ class FoldXRepairRun(FoldXRun):
         return "not_done"
 
     def process_runfile(self, **kwargs):
+        """
+        processes runfile content before it's written to disk.
+        """
+
         pdbs = [os.path.basename(i) for i in self.pdbs]
         pdbstring = ",".join(pdbs)
         self.runfile_content = self.runfile_content.replace('$PDBS$',pdbstring)
 
     def clean(self):
+        """
+        no cleaning is expected for Repair runs, so this function is left
+        undefined
+        """
         pass
 
+    def partial_clean(self):
+        """
+        no cleaning is expected for Repair runs, so this function is left
+        undefined
+        """
+
     def reset_working_directory(self):
+        """
+        no directory reset needs to performed for for Repair runs, so this
+        function will always return False
+        Returns
+        ----------
+        False
+            return values that signals the prepare function that the directory
+            hasn't ben reset
+        """
         return False
 
 class FoldXMutateRun(FoldXRun):
+    """
+    FoldX mutate run - runs a complete mutation run on a set of PDB files.
+    Prepares and keeps track of a single FoldX mutation run.
+    Attributes
+    ----------
+        see ``mutatex.core.FoldXRun``
+    Parameters
+    ----------
+        see ``mutatex.core.FoldXRun``
+    """
 
     logfile_name = "MutateFoldXRun.log"
 
@@ -997,6 +1075,21 @@ class FoldXMutateRun(FoldXRun):
 
 
     def check_status(self):
+        """
+        checks the current status of the run. If the working directory exists
+        some checks on the presently found file performed, and if they are found
+        inconsistent with the current requested run "broken" is returned.
+        A "broken" status can signify that input files are not as expected
+        or that the output files are not consistent with a completed run.
+        If the run is already finished, "already_done" will be
+        returned. if the working directory doesn't exist, "not_done" will be
+        returned.
+        Returns
+        ----------
+        str
+            either broken, already_done, not_done
+        """
+
         # Check if working directory exists
         if os.path.exists(self.working_directory):
             log.warning("working directory %s already exists." % self.working_directory)
@@ -1004,14 +1097,14 @@ class FoldXMutateRun(FoldXRun):
             try:
                 old_mutlist = self.foldx_version.parse_mutlist(os.path.join(self.working_directory, self.foldx_version.mut_list_file))
                 if old_mutlist != self.mutlist:
-                    return "conflicting"
+                    return "broken"
             except:
                 log.warning("Couldn't open mutation file, so it's not clear what's in here. Continuing anyway")
 
 
             dif_files = self.foldx_version.get_mutation_fxout_fnames(self.working_directory, self.pdbs)
             if not set(map(os.path.basename, dif_files)).issubset(os.listdir(self.working_directory)):
-                return "partially_done"
+                return "broken"
 
             dif_file_ok = True
             try:
@@ -1020,11 +1113,12 @@ class FoldXMutateRun(FoldXRun):
                         log.warning("File %s wasn't large as expected. The run didn't complete; it will be rerun." % dif_file)
                         dif_file_ok = False
             except:
-                log.warning("Couldn't read Dif_*.fxout out file; run will be skipped")
-                return "conflicting"
+                log.warning("Couldn't read Dif_*.fxout out file; run will be repeated")
+                return "broken"
 
             pdb_basename = "".join(os.path.splitext(os.path.basename(self.pdbs[0]))[:-1])
             pdb_list_fname = self.foldx_version.mutate_pdblist_fxout_output_fname(pdb_basename)
+
             pdb_file_ok = True
             if not self.foldx_version.check_pdb_file_size(self.working_directory, pdb_list_fname, len(self.mutlist.mutations), self.runfile_processing['nruns']):
                 log.warning("File %s wasn't large as expected. The run didn't complete; it will be rerun." % pdb_list_fname)
@@ -1036,20 +1130,50 @@ class FoldXMutateRun(FoldXRun):
                 return "broken"
         return "not_done"
 
-    def process_runfile(self, **kwargs):
+    def process_runfile(self, nruns):
+        """
+        processes in-place the content of the runfile before it's written to
+        disk and used
+        Parameters
+        ----------
+        nruns : int or str
+            number of FoldX replicates to be performed in this run
+        """
+
+
         pdbs = [os.path.basename(i) for i in self.pdbs]
         pdbstring = ",".join(pdbs)
         self.runfile_content = self.runfile_content.replace('$PDBS$',pdbstring)
-        self.runfile_content = self.runfile_content.replace('$NRUNS$', str(kwargs["nruns"]))
+        self.runfile_content = self.runfile_content.replace('$NRUNS$', str(nruns))
 
     def finalize_prepare(self, **kwargs):
+        """
+        finalize preparation step - that is, write the mutation list file
+        to disk
+        """
+
         self.foldx_version.save_mutlist(self.working_directory+"/"+self.foldx_version.mut_list_file, self.mutlist)
 
 class FoldXInterfaceRun(FoldXRun):
+    """
+    FoldX interaction energy run - starting from a mutation run, it calculates
+    the difference of free energy of binding upon mutation.
+    Attributes
+    ----------
+        see ``mutatex.core.FoldXRun``
+    Parameters
+    ----------
+    mr :  ``mutatex.core.FoldXMutationRun``
+        MutateX mutation run object on which the interaction energies will be
+        calculated
+    pdbs : list of str
+        optional list of PDB files on which the interface run should be
+        performed. By default this is provided by `mr`.
+    """
 
     logfile_name = "InterfaceFoldXRun.log"
 
-    def __init__(self, mr, pdbs=None, *args, **kwargs):
+    def __init__(self, mr, pdbs=None):
 
         self.mr = mr
         self.name = mr.name
@@ -1077,8 +1201,15 @@ class FoldXInterfaceRun(FoldXRun):
         self.do_clean = mr.do_clean
         self.mutlist = mr.mutlist
 
-
     def parse_pdb_list(self, pdb_list=None):
+        """
+        Parses FoldX PdbList fxout outpit file
+        Parameters
+        ----------
+        pdb_list : str or None
+            name of the PdbList file to be read. If It's None, the name stored in
+            `self.pdb_list` will be used instead
+        """
         if not pdb_list:
             pdb_list = self.pdb_list
 
@@ -1089,6 +1220,16 @@ class FoldXInterfaceRun(FoldXRun):
             log.error("Couldn't parse PdbList file %s!" % pdb_list)
 
     def check_status(self):
+        """
+        checks the current status of the run. If the corresponding mutation run
+        is not finished "interface_missing_data" will be returned. If output
+        files are already present "already_done" will be returned, while if the
+        run has been found not have been performed "not_done" will be returned
+        Returns
+        ----------
+        str
+            either interface_missing_data, not_done or already_done
+        """
 
         if not self.mr.finished:
             return "interface_missing_data"
@@ -1103,8 +1244,25 @@ class FoldXInterfaceRun(FoldXRun):
 
         return "already_done"
 
-    def process_runfile(self, **kwargs):
-        self.runfile_content = self.runfile_content.replace('$PDBLIST$', kwargs['pdb_list'])
+    def process_runfile(self, pdb_list):
+        """
+        processes in-place the content of the runfile before it's written to
+        disk and used
+        Parameters
+        ----------
+        kwargs : dict
+            only the 'pdb_list' key will be considered
+        """
+        self.runfile_content = self.runfile_content.replace('$PDBLIST$', pdb_list)
 
     def reset_working_directory(self):
+        """
+        no directory reset needs to performed for for Repair runs, so this
+        function will always return False
+        Returns
+        ----------
+        False
+            return values that signals the prepare function that the directory
+            hasn't ben reset
+        """
         return False
