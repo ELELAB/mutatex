@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-# core.py: classes and functions for the main script
-# Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
+# core.py: classes and functions for the main mutatex script
+# Copyright (C) 2019, Matteo Tiberti <matteo.tiberti@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,21 +33,21 @@ class MutationList(object):
     protein residues will be mutated to.
     Parameters
     ----------
-    res_groups :
-
-    mutations :
-
-    name :
-
+    res_groups : list of tuples of str
+        Residue groups. Each group of residue has to be mutated with the same
+        mutation at the same time because they are part of a multimer.
+        The format is like [ ('CA1','CB1'), ('LA2', 'LB2'), ... ] where each
+        tuple is a residue group, composed of one of more residues in different
+        chains.
+    mutations : instance of ``mutatex.core.ResList``
+        residue type list to generate the mutations 
+    name : str
+        name for the mutation list 
     selfmutate : bool
-
+        if True, the mutations keyword will be ignored and instead each residue
+        group will be mutated to their own wild-type residue
     """
     def __init__(self, res_groups, mutations, name="", selfmutate=False):
-        """
-    Class to handle a mutation list object, holding the residue types our
-    protein residues will be mutated to.
-    """
-
         self.name = name
         if selfmutate:
             self.res_groups = tuple([res_groups])
@@ -94,7 +94,6 @@ class ResList(object):
     """
 
     def __init__(self, reslist=None, fname=None):
-
         if reslist and fname:
             log.warning("Warning; mutation list AND file specified. Mutation list will be ignored.")
         if fname:
@@ -145,19 +144,18 @@ class EnergyReport:
                 self.energies[pdb] = []
                 self.residues[pdb] = []
 
-    def add_residue(self, res, energy, pdb, do_avg=None, do_std=None, do_max=None, do_min=None):
-    """
-    Class to handle storing and writing free energy difference files according
-    to the MutateX format.
-    Parameters
-    ----------
-    pdbs : list of str
-        list of PDB files for which the energy values will be stored
-    Returns
-    ----------
-    restypes : tuple of str
-        tuple of single-letter residue types
-    """
+    def add_residue(self, res, energy, pdb):
+        """
+        add energy value for one residue to the energy report
+        Parameters
+        ----------
+        pdb : str
+            PDB for which the energy values will be stored
+        res : str
+            residue for which the energy values will be stored
+        energy : float
+            energy value
+        """
         assert(energy.shape[0] == 1)
         energy = energy[0]
 
@@ -169,23 +167,23 @@ class EnergyReport:
         self.residues[pdb].append(res)
 
     def save(self, directory, fname="selfmutation_energies.dat", do_avg=True, do_std=True, do_min=True, do_max=True):
-    """
-    save stored energies as a file in the MutateX free energy format
-    Parameters
-    ----------
-    directory : str
-        directory where the output file will be saved
-    fname : str
-        filename to be saved
-    do_avg : bool
-        write average values column in the output file
-    do_std : bool
-        write standard deviation column in the output file
-    do_min : bool
-        write minimum value column in the output file
-    do_max : bool
-        write maximum value column in the output file
-    """
+        """
+        save stored energies as a file in the MutateX free energy format
+        Parameters
+        ----------
+        directory : str
+            directory where the output file will be saved
+        fname : str
+            filename to be saved
+        do_avg : bool
+            write average values column in the output file
+        do_std : bool
+            write standard deviation column in the output file
+        do_min : bool
+            write minimum value column in the output file
+        do_max : bool
+            write maximum value column in the output file
+        """
 
         header_cols = []
 
@@ -225,8 +223,9 @@ class EnergyReport:
 class FoldXVersion:
     """
     Base class for preparing run and parsing results from FoldX runs. This
-    simple class only contains information about the minimum information
-    that we need for most FoldX versions.
+    simple class only contains the minimum information that we need for most
+    FoldX versions. Derived classes implement required methods according to
+    the differences between the FoldX versions they represent.
     Parameters
     ----------
     binary : str
