@@ -226,13 +226,11 @@ class FoldXSuiteVersion4(FoldXVersion):
         basenames = ["".join(os.path.splitext(os.path.basename(pdb))[:-1]) for pdb in pdbs]
         return [os.path.join(directory,self.mutate_dif_fxout_output_fname(basename)) for basename in basenames]
 
-    def parse_mutations_fxout(self, this_run):
+    def parse_mutations_fxout(self, directory, pdbs, mutlist):
 
         pattern = '(\s+([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)){22}'
 
-        directory = this_run.working_directory
-
-        pdb = this_run.pdbs[0]
+        pdb = pdbs[0]
 
         fname = self.mutate_dif_fxout_output_fname("".join(os.path.splitext(os.path.basename(pdb))[:-1]))
 
@@ -252,12 +250,12 @@ class FoldXSuiteVersion4(FoldXVersion):
             log.error("No energy values found in energy files!")
 
         energies = np.array(energies)
-        energies = energies.reshape(len(this_run.mutlist.mutations),
-                                        energies.shape[0]//len(this_run.mutlist.mutations))
+        energies = energies.reshape(len(mutlist.mutations),
+                                        energies.shape[0]//len(mutlist.mutations))
 
         return energies
 
-    def get_mutation_pdb_fnames(self, directory, pdbs, run, WT=True, include_original=False):
+    def get_mutation_pdb_fnames(self, directory, pdbs, mutlist, nruns, WT=True, include_original=False):
         fnames = []
         files = os.listdir(directory)
         if WT:
@@ -270,8 +268,8 @@ class FoldXSuiteVersion4(FoldXVersion):
             fnames.append([[] for i in range(len(prefixes)+int(include_original))])
 
             for p,prefix in enumerate(prefixes):
-                for i in range(1,len(run.mutlist.mutations)+1):
-                    for j in range(run.runfile_processing['nruns']):
+                for i in range(1,len(mutlist.mutations)+1):
+                    for j in range(nruns):
                         fnames[-1][p].append("%s/%s%s_%d_%d.pdb" % (directory, prefix, results_basedir, i, j))
                         fnames[-1][-1].append(pdb)
 
@@ -294,7 +292,7 @@ class FoldXSuiteVersion4(FoldXVersion):
 
         return fnames
 
-    def parse_interaction_energy_summary_fxout(self, directory, pdbs, run):
+    def parse_interaction_energy_summary_fxout(self, directory, pdbs, mutlist):
 
         fnames = self.get_interaction_fxout_fnames(directory, pdbs, run, original_pdb=True)
 
@@ -325,8 +323,8 @@ class FoldXSuiteVersion4(FoldXVersion):
 
             for k,v in iteritems(energies[prefix]):
                 v = np.array(v)
-                energies[prefix][k] = v.reshape((len(run.mutlist.mutations),
-                                      v.shape[0]//len(run.mutlist.mutations)))
+                energies[prefix][k] = v.reshape((len(mutlist.mutations),
+                                      v.shape[0]//len(mutlist.mutations)))
 
         interaction_groups = set(list(energies[types[0]]) + list(energies[types[1]]))
 

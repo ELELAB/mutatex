@@ -374,7 +374,7 @@ if not args.skip_report:
         for r in this_runs:
             pdb = r.pdbs[0]
             try:
-                energies.append(current_version.parse_mutations_fxout(r))
+                energies.append(current_version.parse_mutations_fxout(r.working_directory, r.pdbs, r.mutlist))
             except:
                 log.warning("Couldn't parse energy file for PDB %s; mutation site %s will be skipped." % (pdb, r.name))
                 dobreak=True
@@ -421,7 +421,7 @@ if not args.skip_report:
                 try:
                     this_energies = run.foldx_version.parse_interaction_energy_summary_fxout(    run.working_directory,
                                                                                                 run.pdbs,
-                                                                                                run    )
+                                                                                                run.mutlist    )
                 except:
                     log.warning("Couldn't parse energy file for PDB %s; mutation site %s will be skipped." % (pdb, r.name))
                     continue
