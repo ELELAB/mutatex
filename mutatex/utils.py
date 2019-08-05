@@ -21,6 +21,7 @@ import numpy as np
 import logging as log
 from six import iteritems
 from Bio import PDB
+import matplotlib
 import sys
 import os
 import argparse
@@ -31,6 +32,7 @@ import re
 import numpy as np
 import tarfile as tar
 import platform
+import textwrap
 
 def init_arguments(arguments, parser):
 
@@ -47,6 +49,8 @@ def init_arguments(arguments, parser):
             parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false', help="Do not use multimers (default: yes)")
         elif arg == 'labels':
             parser.add_argument("-b","--label-list", dest="labels", help="Residue label list")
+        elif arg == 'fonts':
+            parser.add_argument("-F","--font", dest='font',action='store', type=str, default=None, help="Use this font for plotting. If this isn't specified, the default font will be used.")
         elif arg == 'fontsize':
             parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Axis label font size")
         elif arg == 'verbose':
@@ -56,11 +60,26 @@ def init_arguments(arguments, parser):
         elif arg == 'color':
             parser.add_argument("-c","--color", dest='mycolor', type=str, default="black", help="Color used for plotting")
         elif arg == 'splice':
-            parser.add_argument("-s","--splice",dest='sv',action='store', type=int, default=20, help="Divide data in multiple plots, use -s residues per plot")
+            parser.add_argument("-s","--splice", dest='sv',action='store', type=int, default=20, help="Divide data in multiple plots, use -s residues per plot")
         else:
             raise NameError
 
     return parser
+
+def get_font_list(str=True):
+    flist = matplotlib.font_manager.get_fontconfig_fonts()
+    names = [ matplotlib.font_manager.FontProperties(fname=fname).get_name() for fname in flist ]
+    if not str:
+        return names
+    return textwrap.fill(", ".join(sorted(list(set(names)))), width=69)
+
+def set_default_font(font):
+    available_fonts = get_font_list()
+    if font not in available_fonts:
+        raise NameError
+
+    matplotlib.rcParams['font.family'] = 'sans-serif'
+    matplotlib.rcParams['font.sans-serif'] = [ font ]
 
 def parse_ddg_file(fname, reslist=None, full=False):
     try:

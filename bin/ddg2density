@@ -28,6 +28,10 @@ import numpy as np
 from Bio import PDB
 from mutatex.utils import *
 
+
+description = 'Generate probability density via kernel density estimation of the calculated DDG'
+epilog = ''
+
 def get_ddg_data(residue_list, mutation_list, ddg_dir):
 
     data = []
@@ -72,7 +76,7 @@ def plot_density(data, outfile, title, mycolor, bw_method, xmin, xmax, spaces):
 
     ax.plot(x, kdv, color=mycolor)
     ax.plot(data, np.zeros(data.shape[0])-np.max(kdv)/50.0*2, '|', ms=15, color=mycolor)
-    ax.set_xlabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
+    ax.set_xlabel(r'FoldX $\Delta\Delta{}$G (kcal/mol)')
     ax.set_ylabel('Density')
 
     if title is not None:
@@ -83,7 +87,7 @@ def plot_density(data, outfile, title, mycolor, bw_method, xmin, xmax, spaces):
 
 LOGFMT = "%(levelname)s: %(message)s"
 
-parser = argparse.ArgumentParser(description='Generate probability density via kernel density estimation of the calculated DDG',)
+parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
 optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
 
@@ -95,7 +99,7 @@ optional.add_argument("-x","--vmax", dest="vmax", type=float, default=10, help="
 optional.add_argument("-g","--grid-points", dest="grid", type=int, default=150, help="number of point between minimum and maximum to calculate density on")
 optional.add_argument("-w","--bandwidth-method", dest="bw", default=None, help="method used to calculate the estimator bandwith in KDE. Same options as scipy KDE function")
 
-optional = init_arguments(['title', 'color'], optional)
+optional = init_arguments(['title', 'color', 'fonts'], optional)
 
 optional.add_argument("-o","--output", dest="outfile", type=str, default="kde_density.pdf")
 optional.add_argument("-u","--ddgfile", dest="ddgfile", type=str, default="ddg_values.dat", help="File containing all the used DDG values")
@@ -103,6 +107,14 @@ optional.add_argument("-k","--kdvfile", dest="kdvfile", type=str, default="densi
 
 parser._action_groups.append(optional)
 options = parser.parse_args()
+
+if options.font is not None:
+    try:
+        set_default_font(options.font)
+    except NameError:
+        log.error("The specified font is not available. Available fonts:")
+        log.error(get_font_list())
+        exit(1)
 
 log.basicConfig(level=log.WARNING, format=LOGFMT)   
 

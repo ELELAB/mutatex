@@ -28,7 +28,10 @@ import csv
 from six import iteritems
 from Bio import PDB
 from mutatex.utils import *
-    
+
+description = 'ddg2histo: plot a histogram of the DDGs calculated for all the mutations of a single residue.'
+epilog = ''
+
 def parse_residues(residues, fnames, single_res_ids):
     residues = residues.split(",")
     selections = []
@@ -76,18 +79,21 @@ def parse_residues(residues, fnames, single_res_ids):
     return selections
         
         
-def plot_hist(data, stds, res_order, vmin, vmax, residue, color = "white", title=None, fontsize=12):
+def plot_hist(data, stds, res_order, vmin, vmax, residue, color="grey", title=None, fontsize=12):
     if title is None:
         title = ""
     if color not in matplotlib.colors.cnames:
         log.error("%s is not a valid color. For all valid color names check matplotlib.colors.cnames. Exiting..." % (color))
         exit(1)
-    plt.title(residue +" - " + title)
+    if title:
+        plt.title(residue +" - " + title)
+    else:
+        plt.title(residue)
     plt.bar(list(range(len(res_order))), data, 1/1.6, color = color, align="center", yerr = stds)
     plt.xticks(list(range(len(res_order))), res_order, rotation='vertical', size = fontsize)
-    plt.xlim(-0.5, len(res_order))
+    plt.xlim(-0.5, len(res_order) - 0.5)
     plt.ylim(vmin,vmax)
-    plt.ylabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
+    plt.ylabel(r'FoldX $\Delta\Delta{}$G (kcal/mol)')
     plt.xlabel('Mutations')
 
 LOGFMT = "%(levelname)s: %(message)s"
@@ -96,7 +102,7 @@ if not __name__ == "__main__":
     exit()
 
 parser = argparse.ArgumentParser( 
-    description='ddg2histo: plot a histogram of the DDGs calculated for all the mutations of a single residue.',)
+    description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
 optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
 
@@ -107,8 +113,8 @@ optional.add_argument("-r","--residues", dest="residues", type= str, help="Defin
 optional.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="Minimum value to be plotted")
 optional.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="Maximum value to be plotted")
 
-optional = init_arguments(['title', 'labels', 'fontsize'], optional)
-optional.add_argument("-c","--color", dest="color", default="white", type= str, help="Name a color for the bar plot")
+optional = init_arguments(['title', 'labels', 'fonts', 'fontsize'], optional)
+optional.add_argument("-c","--color", dest="color", default="grey", type= str, help="Name a color for the bar plot")
 
 optional.add_argument("-o","--output", dest="outfile", action='store', default='histogram.pdf', help="Output filename")
 
@@ -116,6 +122,14 @@ optional = init_arguments(['verbose'], optional)
 
 parser._action_groups.append(optional)
 options = parser.parse_args()
+
+if options.font is not None:
+    try:
+        set_default_font(options.font)
+    except NameError:
+        log.error("The specified font is not available. Available fonts:")
+        log.error(get_font_list())
+        exit(1)
 
 if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)
