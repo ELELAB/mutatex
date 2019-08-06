@@ -114,7 +114,7 @@ def splice_data(data, labels, sv):
 
 LOGFMT = "%(levelname)s: %(message)s"
 
-cmaps_list = [m for m in cm.datad if not m.endswith("_r")]
+cmaps_list = plt.colormaps()
 
 parser = argparse.ArgumentParser(
 description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
