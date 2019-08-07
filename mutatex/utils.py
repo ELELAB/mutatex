@@ -101,9 +101,6 @@ def parse_label_file(csv_fname, fnames, default_labels):
         log.error("Labels file couldn't be parsed correctly")
         raise
 
-    if len(label_dict) != len(fnames):
-        log.warning("the number of labels in the label file doesn't correspond to the number of residues of this run")
-
     for i, fname in enumerate(fnames):
         try:
             labels[i] = label_dict[fname]
