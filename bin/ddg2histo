@@ -45,7 +45,7 @@ def parse_residues(residues, fnames, single_res_ids):
                 if "_" in idx:
                     log.error("Selection: '%s' in range '%s' invalid residue format. Select a range using non-multimers. If a multimer falls within that range, it will be added. Exiting..." %(idx, residue))
                     exit(1) 
-                elif not re.match(r'[A-Z]{2}\d+$', idx):
+                elif not re.match(r'[A-Za-z]{2}\d+$', idx):
                     log.error("Selection: '%s' in range '%s' invalid residue format. Exiting..." %(idx, residue))
                     exit(1)
             try:    #Try to get indices of the range.
@@ -63,7 +63,7 @@ def parse_residues(residues, fnames, single_res_ids):
             if "_" in residue:
                 log.error("Selection: '%s' invalid residue format. Select a residue using non-multimers. If a multimer matches, it will be added. Exiting..." %(residue))
                 exit(1) 
-            elif not re.match(r'[A-Z]{2}\d+$', residue):
+            elif not re.match(r'[A-Za-z]{2}\d+$', residue):
                 log.error("Selection: '%s' invalid residue format. Exiting..." %(residue))
                 exit(1)
 
