@@ -62,7 +62,6 @@ def plot_matrix(mat, xlabels, ylabels, cmap, title=None, vmin=None, vmax=None, t
         orientation='horizontal'
         rotation_xt=90
 
-
     ax = plt.gca()
     im = plt.imshow(mat, interpolation="nearest",cmap=cmap, vmin=vmin, vmax=vmax)
     plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
@@ -73,8 +72,6 @@ def plot_matrix(mat, xlabels, ylabels, cmap, title=None, vmin=None, vmax=None, t
     cax = divider.append_axes("right", size=width, pad=pad)
     cb = plt.colorbar(im, cax=cax, orientation=orientation)
     cb.set_label(r'FoldX $\Delta\Delta{}$G (kcal/mol)')
-
-
 
     for t in cb.ax.get_yticklabels():
         t.set_fontsize(fontsize)
