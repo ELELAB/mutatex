@@ -236,15 +236,12 @@ else:
 
 # use custom labels if provided
 if options.labels:
-    label_dict = {}
-    with open(options.labels, 'rb') as csvfile:
-        csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-        for row in csv_reader:
-            if row[1] != '':
-                label_dict[row[0]] = row[1]    
-    for i in range(len(fnames)):
-        if fnames[i] in label_dict:
-            res_id_labels[i] = label_dict[fnames[i]]
+    try:
+        labels = parse_label_file(options.labels, fnames, res_id_labels)
+    except:
+        exit(1)
+else:
+    labels = res_id_labels
 
 # parse DDG files
 data = []
@@ -271,7 +268,7 @@ data_nondeg = data[num_positives,:]
 max_range = np.max(np.sum(data_nondeg, axis=1))
 
 #splice & plot
-spliced_data = splice_data(data, res_id_labels, options.sv)
+spliced_data = splice_data(data, labels, options.sv)
 for i in range(len(spliced_data)):
     fig = plot_matrix(  spliced_data[i][0],
                         res_order,

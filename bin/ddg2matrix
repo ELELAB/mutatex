@@ -192,15 +192,12 @@ else:
 
 #Assign custom residue labels
 if options.labels:
-    label_dict = {}
-    with open(options.labels, 'rb') as csvfile:
-        csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-        for row in csv_reader:
-            if row[1] != '':
-                label_dict[row[0]] = row[1]
-    for i in range(len(fnames)):
-        if fnames[i] in label_dict:
-            res_id_labels[i] = label_dict[fnames[i]]
+    try:
+        labels = parse_label_file(options.labels, fnames, res_id_labels)
+    except:
+        exit(1)
+else:
+    labels = res_id_labels
 
 #load ddg data
 for fname in fnames:
@@ -220,10 +217,10 @@ if not options.vmin:
     options.vmin = np.min(data)
 
 #splice data into blocks for plotting
-spliced_data = splice_data(data, res_id_labels, options.sv)
+spliced_data = splice_data(data, labels, options.sv)
 
 if options.raw:
-    save_matrix(data, res_order, res_id_labels, options.raw, options.transpose)
+    save_matrix(data, res_order, labels, options.raw, options.transpose)
 
 for i in range(len(spliced_data)):
     plot_matrix(spliced_data[i][0],
