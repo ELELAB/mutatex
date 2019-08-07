@@ -44,7 +44,7 @@ def parse_residues(residues, fnames, single_res_ids):
             for idx in residue.split("-"):
                 if "_" in idx:
                     log.error("Selection: '%s' in range '%s' invalid residue format. Select a range using non-multimers. If a multimer falls within that range, it will be added. Exiting..." %(idx, residue))
-                    exit(1) 
+                    exit(1)
                 elif not re.match(r'[A-Za-z]{2}\d+$', idx):
                     log.error("Selection: '%s' in range '%s' invalid residue format. Exiting..." %(idx, residue))
                     exit(1)
@@ -54,15 +54,15 @@ def parse_residues(residues, fnames, single_res_ids):
             except ValueError as e:
                 log.error("Invalid range: " + str(e) + ". Make sure you use exisiting residues. Exiting...")
                 exit(1)
-                
-            range = single_res_ids[range_idxs[0]:range_idxs[1] + 1]            
+
+            range = single_res_ids[range_idxs[0]:range_idxs[1] + 1]
             for single_res in range:   #Get selection from fnames
                 selections += [s for s in fnames if single_res in s]
             log.info("Pdb file matched %d residues in range '%s'" % (len(range), residue))
         else:   #If the selection is not a range.
             if "_" in residue:
                 log.error("Selection: '%s' invalid residue format. Select a residue using non-multimers. If a multimer matches, it will be added. Exiting..." %(residue))
-                exit(1) 
+                exit(1)
             elif not re.match(r'[A-Za-z]{2}\d+$', residue):
                 log.error("Selection: '%s' invalid residue format. Exiting..." %(residue))
                 exit(1)
@@ -73,12 +73,12 @@ def parse_residues(residues, fnames, single_res_ids):
                 log.info("Pdb file matched single residue %s" % (residue))
             else:
                 log.warn("Selection: '%s' no match was found; it will be skipped" % (residue))
-                
+
     selections = list(set(selections))
     log.info("Pdb file matched %d residues in total without duplicates" %(len(selections)))
     return selections
-        
-        
+
+
 def plot_hist(data, stds, res_order, vmin, vmax, residue, color="grey", title=None, fontsize=12):
     if title is None:
         title = ""
@@ -91,7 +91,7 @@ def plot_hist(data, stds, res_order, vmin, vmax, residue, color="grey", title=No
         plt.title(residue)
     plt.bar(list(range(len(res_order))), data, 1/1.6, color = color, align="center", yerr = stds)
     plt.axhline(0.0, color="black", linewidth=0.5)
-    plt.xticks(list(range(len(res_order))), res_order, rotation='vertical', size = fontsize)
+    plt.xticks(list(range(len(res_order))), res_order, rotation='horizontal', size = fontsize)
     plt.xlim(-0.5, len(res_order) - 0.5)
     plt.ylim(vmin,vmax)
     plt.ylabel(r'FoldX $\Delta\Delta{}$G (kcal/mol)')
@@ -102,7 +102,7 @@ LOGFMT = "%(levelname)s: %(message)s"
 if not __name__ == "__main__":
     exit()
 
-parser = argparse.ArgumentParser( 
+parser = argparse.ArgumentParser(
     description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
 optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
@@ -156,10 +156,8 @@ single_res_ids = get_residue_list(options.in_pdb, multimers=False)
 
 if options.multimers:
     fnames = ["_".join(r) for r in res_ids_str]
-    res_id_labels = [", ".join(r) for r in res_ids_str]
 else:
     fnames = res_ids_str
-    res_id_labels = res_ids_str
 
 #Parse residue selection
 try:
@@ -171,7 +169,19 @@ except AttributeError:
     log.error("No residue selection. Please select residues with atribute '-r'. Try 'ddg2hist --help' for more info.  Exiting...")
     exit(1)
 
-for residue in residues[:]:
+#Assign custom residue labels
+
+res_id_labels = [ r.replace('_', ', ') for r in residues ]
+
+if options.labels:
+    try:
+        labels = parse_label_file(options.labels, residues, res_id_labels)
+    except:
+        exit(1)
+else:
+    labels = res_id_labels
+
+for residue in residues:
     try:
         this_data, this_std, this_min, this_max = parse_ddg_file("%s/%s" % (options.ddg_dir, residue), reslist=res_order, full=True)
     except (IOError, TypeError):
@@ -195,32 +205,18 @@ if not options.vmax:
 if not options.vmin:
     options.vmin = np.floor(np.min(data) - data_range*0.2)
 
-#Assign custom residue labels
-label_dict = {}
-labels = residues[:]
-
-if options.labels:
-    with open(options.labels, 'rb') as csvfile:
-        spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
-        for row in spamreader:
-            if row[1] != '':
-                label_dict[row[0]] = row[1]
-    for i in range(len(residues)):
-        if residues[i] in label_dict:
-            labels[i] = label_dict[residues[i]]
-
 #Make plots
 log.info("Plotting " + str(len(data)) + " figures.")
 log.info("Ylims: " + str(options.vmax) + " , " + str(options.vmin))
 for i in range(len(residues)):
     plot_hist(data[i],
-              stds[i], 
+              stds[i],
               res_order,
-              options.vmin, 
+              options.vmin,
               options.vmax,
               labels[i],
-              color = options.color, 
-              title = options.title, 
+              color = options.color,
+              title = options.title,
               fontsize = options.fontsize)
     plt.savefig("%s_%s" %(residues[i], options.outfile))
     plt.clf()

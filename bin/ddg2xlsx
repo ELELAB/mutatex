@@ -71,10 +71,18 @@ if options.multimers:
 else:
     fnames = res_ids_str
     res_id_labels = res_ids_str
-    
+
+if options.labels:
+    try:
+        labels = parse_label_file(options.labels, fnames, res_id_labels)
+    except:
+        exit(1)
+else:
+    labels = res_id_labels
+
 data = []
 
-log.info("The following files will be considered: %s" % ", ".join(res_id_labels))
+log.info("The following files will be considered: %s" % ", ".join(fnames))
 
 for i,f in enumerate(fnames):
     try:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #    utils.py: miscellaneous utilities for MutateX plotting scripts
-#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com> 
+#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
 #                        Thilde Bagger Terkelsen <ThildeBT@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -33,6 +33,7 @@ import numpy as np
 import tarfile as tar
 import platform
 import textwrap
+import csv
 
 def init_arguments(arguments, parser):
 
@@ -81,6 +82,33 @@ def set_default_font(font):
     matplotlib.rcParams['font.family'] = 'sans-serif'
     matplotlib.rcParams['font.sans-serif'] = [ font ]
 
+def parse_label_file(csv_fname, fnames, default_labels):
+    label_dict = {}
+    labels = list(default_labels)
+
+    try:
+        with open(csv_fname, 'rb') as csvfile:
+            csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+            for row in csv_reader:
+                if row[0] == 'Residue_name':
+                    continue
+                if row[1] != '':
+                    label_dict[row[0]] = row[1]
+    except IOError:
+        log.error("Labels file couldn't be read")
+        raise IOError
+    except:
+        log.error("Labels file couldn't be parsed correctly")
+        raise
+
+    for i, fname in enumerate(fnames):
+        try:
+            labels[i] = label_dict[fname]
+        except KeyError:
+            log.warning("label for residue %s not found; it will be skipped" % fname)
+
+    return labels
+
 def parse_ddg_file(fname, reslist=None, full=False):
     try:
         ddgs = np.loadtxt(fname, comments='#').T
@@ -106,7 +134,7 @@ def parse_mutlist_file(fname):
         raise IOError
 
     restypes = []
-    
+
     for line in fh:
         if line and not line.startswith("#"):
             str_line = line.strip()
@@ -128,7 +156,7 @@ def parse_mutlist_file(fname):
 
     if len(restypes) == 0:
         log.error("No residue types found in mutation list")
-    
+
     return restypes
 
 def get_residue_list(infile, multimers=True, get_structure=False):
@@ -350,7 +378,7 @@ def parallel_foldx_run(foldx_runs, np):
 def split_pdb(filename, structure, checked):
 
     pdb_list = []
-    
+
     writer = PDB.PDBIO()
     parser = PDB.PDBParser()
 
