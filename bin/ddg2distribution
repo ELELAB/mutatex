@@ -31,13 +31,14 @@ description = 'ddg2distribution: plot DDG MutateX results as distribution plots:
 epilog = ''
 
 def plot_box(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys_r'):
+    flierprops = dict(marker='.', linestyle='none', fillstyle='full')
     xt = xlabels
     xticks = np.arange(1,mat.shape[1]+1)
     if title is None:
         title = ""
 
     plt.title(title)
-    box = plt.boxplot(mat)
+    box = plt.boxplot(mat, flierprops=flierprops)
     
     cm = plt.cm.get_cmap(cmap)
     for i, key in enumerate(list(box.keys())):
@@ -191,7 +192,7 @@ def plot_scatter(mat, xlabels, vmin, vmax, title=None, fontsize=8, topmuts=0, cm
     fig = plt.figure()
     plt.title(title)
     ax = plt.subplot(111)
-    sc = ax.scatter(xs, mean_means, s=100, marker='o', c=mean_means_color, edgecolors='grey', cmap=cm, alpha=1)
+    sc = ax.scatter(xs, mean_means, s=20, marker='o', c=mean_means_color, edgecolors='grey', cmap=cm, alpha=1)
     ax.set_xlabel('Wild-type Amino Acids')
     ax.set_ylabel(r'Mean FoldX $\Delta\Delta{}G (kcal/mol)$')
     plt.xticks(xticks, xt)

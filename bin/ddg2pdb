@@ -20,6 +20,8 @@ import argparse
 from Bio import PDB
 from six import iteritems
 from mutatex.utils import * 
+import numpy as np
+import logging as log
 
 LOGFMT = "%(levelname)s: %(message)s"
 
@@ -50,17 +52,14 @@ optional.add_argument("-a","--lower-free-energy-threshold", dest="low_thres",  d
 optional.add_argument("-b","--upper-free-energy-threshold", dest="high_thres", default= 99999.0, type=float, help="upper threhsold; default value: 99999.0")
 optional.add_argument("-T","--threshold-mode", dest='thres_mode', choices=['between','outside'], default='outside', action='store', help="threshold mode: between=between upper and lower value, outside: <lower OR >upper")
 
-optional.add_argument("-m","--matrix", dest="dat", default="ala_scanning.mat", help="output xPyder-compatible matrix")
-optional.add_argument("-o","--output-pdb", dest="out_pdb", default="ala_scanning.pdb", help="Output pdb file")
+optional.add_argument("-m","--matrix", dest="dat", default="ddgs.dat", help="output xPyder-compatible matrix")
+optional.add_argument("-o","--output-pdb", dest="out_pdb", default="ddgs.pdb", help="Output pdb file")
 
 optional = init_arguments(['verbose'], optional)
 
 # parse ddg files
 parser._action_groups.append(optional)
 options = parser.parse_args()
-
-import numpy as np
-import logging as log
 
 if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)
