@@ -90,6 +90,7 @@ def plot_hist(data, stds, res_order, vmin, vmax, residue, color="grey", title=No
     else:
         plt.title(residue)
     plt.bar(list(range(len(res_order))), data, 1/1.6, color = color, align="center", yerr = stds)
+    plt.axhline(0.0, color="black", linewidth=0.5)
     plt.xticks(list(range(len(res_order))), res_order, rotation='vertical', size = fontsize)
     plt.xlim(-0.5, len(res_order) - 0.5)
     plt.ylim(vmin,vmax)

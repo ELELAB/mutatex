@@ -74,6 +74,7 @@ def plot_density(data, outfile, title, mycolor, bw_method, xmin, xmax, spaces):
     
     np.savetxt(options.kdvfile, np.array([x, kdv]).T, fmt='%.5f', header='DDG, density', comments='#')
 
+    ax.axvline(0, linestyle='--', linewidth=1, color='black')
     ax.plot(x, kdv, color=mycolor)
     ax.plot(data, np.zeros(data.shape[0])-np.max(kdv)/50.0*2, '|', ms=15, color=mycolor)
     ax.set_xlabel(r'FoldX $\Delta\Delta{}$G (kcal/mol)')
