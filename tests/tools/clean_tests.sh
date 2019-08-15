@@ -1,2 +1,2 @@
-rm *.pdf *.mat *.pdb *.csv *.dat *.xlsx
+rm *.pdf *.mat *.pdb labels.csv *.dat *.xlsx
 rm -rf dgf
