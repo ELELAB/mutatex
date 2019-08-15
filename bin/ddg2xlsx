@@ -52,7 +52,7 @@ else:
 
 try:
     res_order = parse_mutlist_file(options.mutation_list)
-except IOError:
+except (IOError, TypeError):
     exit(1)
 
 log.info("Residues list is:")
@@ -78,7 +78,7 @@ if options.labels:
     except:
         exit(1)
 else:
-    labels = res_id_labels
+    labels = None
 
 data = []
 
@@ -90,36 +90,48 @@ for i,f in enumerate(fnames):
     except (IOError, TypeError):
         exit(1)
 
-
 wb = pyxl.Workbook()
 ws = wb['Sheet']
 ws.title = 'FoldX mutations DDG'
 
 #prepare header
-for i in range(max_len_res_ids):
-    offset=i*3
-    if options.transpose:
-        ws.cell(row=1+offset, column=1).value = "WT Residue type"
-        ws.cell(row=1+offset+1, column=1).value = "Chain ID"
-        ws.cell(row=1+offset+2, column=1).value = "Residue #"
-    else:
-        ws.cell(row=1, column=1+offset).value = "WT Residue type"
-        ws.cell(row=1, column=1+offset+1).value = "Chain ID"
-        ws.cell(row=1, column=1+offset+2).value = "Residue #"
+if labels:
+    ws.cell(row=1, column=1).value = "Residue"
 
-offset = 0
-for i,resset in enumerate(res_ids_str):
-    for j,res in enumerate(resset):
-        offset = j*3
+    offset = 0
+    for i,l in enumerate(labels):
         if options.transpose:
-            ws.cell(row=1+offset,  column=1+i+1).value = str(res[0])
-            ws.cell(row=1+offset+1,column=1+i+1).value = str(res[1])
-            ws.cell(row=1+offset+2,column=1+i+1).value = res[2:]
+            ws.cell(row=1, column=1+i+1).value = l
         else:
-            ws.cell(row=1+i+1,column=1+offset  ).value = str(res[0])
-            ws.cell(row=1+i+1,column=1+offset+1).value = str(res[1])
-            ws.cell(row=1+i+1,column=1+offset+2).value = res[2:]
-offset += 3
+            ws.cell(row=1+i+1,column=1).value = l
+    offset = 1
+
+else:
+    for i in range(max_len_res_ids):
+        offset=i*3
+        if options.transpose:
+            ws.cell(row=1+offset, column=1).value = "WT Residue type"
+            ws.cell(row=1+offset+1, column=1).value = "Chain ID"
+            ws.cell(row=1+offset+2, column=1).value = "Residue #"
+        else:
+            ws.cell(row=1, column=1+offset).value = "WT Residue type"
+            ws.cell(row=1, column=1+offset+1).value = "Chain ID"
+            ws.cell(row=1, column=1+offset+2).value = "Residue #"
+
+    offset = 0
+    for i,resset in enumerate(res_ids_str):
+        for j,res in enumerate(resset):
+            offset = j*3
+            if options.transpose:
+                ws.cell(row=1+offset,  column=1+i+1).value = str(res[0])
+                ws.cell(row=1+offset+1,column=1+i+1).value = str(res[1])
+                ws.cell(row=1+offset+2,column=1+i+1).value = res[2:]
+            else:
+                ws.cell(row=1+i+1,column=1+offset  ).value = str(res[0])
+                ws.cell(row=1+i+1,column=1+offset+1).value = str(res[1])
+                ws.cell(row=1+i+1,column=1+offset+2).value = res[2:]
+    offset += 3
+
 for i,mut in enumerate(res_order):
     if options.transpose:
         ws.cell(row=1+i+offset,column=1).value = mut
