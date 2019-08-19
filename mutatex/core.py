@@ -295,7 +295,7 @@ class FoldXSuiteVersion4(FoldXVersion):
 
     def save_mutlist(self, fname, mutlist):
         """
-        saves mutation list in the individual_list.txt FoldX mutaiton list file
+        saves mutation list in the individual_list.txt FoldX mutation list file
         format
         Parameters
         ----------
