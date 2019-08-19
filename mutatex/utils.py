@@ -2,6 +2,7 @@
 
 #    utils.py: miscellaneous utilities for MutateX plotting scripts
 #    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
+#                        Thilde Bagger Terkelsen <ThildeBT@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -20,6 +21,7 @@ import numpy as np
 import logging as log
 from six import iteritems
 from Bio import PDB
+import matplotlib
 import sys
 import os
 import argparse
@@ -30,6 +32,8 @@ import re
 import numpy as np
 import tarfile as tar
 import platform
+import textwrap
+import csv
 
 def init_arguments(arguments, parser):
     """
@@ -60,6 +64,8 @@ def init_arguments(arguments, parser):
             parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false', help="Do not use multimers (default: yes)")
         elif arg == 'labels':
             parser.add_argument("-b","--label-list", dest="labels", help="Residue label list")
+        elif arg == 'fonts':
+            parser.add_argument("-F","--font", dest='font',action='store', type=str, default=None, help="Use this font for plotting. If this isn't specified, the default font will be used.")
         elif arg == 'fontsize':
             parser.add_argument("-f","--fontsize",dest='fontsize',action='store', type=int, default=8, help="Axis label font size")
         elif arg == 'verbose':
@@ -69,11 +75,53 @@ def init_arguments(arguments, parser):
         elif arg == 'color':
             parser.add_argument("-c","--color", dest='mycolor', type=str, default="black", help="Color used for plotting")
         elif arg == 'splice':
-            parser.add_argument("-s","--splice",dest='sv',action='store', type=int, default=20, help="Divide data in multiple plots, use -s residues per plot")
+            parser.add_argument("-s","--splice", dest='sv',action='store', type=int, default=20, help="Divide data in multiple plots, use -s residues per plot")
         else:
             raise NameError
 
     return parser
+
+def get_font_list(str=True):
+    flist = matplotlib.font_manager.get_fontconfig_fonts()
+    names = [ matplotlib.font_manager.FontProperties(fname=fname).get_name() for fname in flist ]
+    if not str:
+        return names
+    return textwrap.fill(", ".join(sorted(list(set(names)))), width=69)
+
+def set_default_font(font):
+    available_fonts = get_font_list()
+    if font not in available_fonts:
+        raise NameError
+
+    matplotlib.rcParams['font.family'] = 'sans-serif'
+    matplotlib.rcParams['font.sans-serif'] = [ font ]
+
+def parse_label_file(csv_fname, fnames, default_labels):
+    label_dict = {}
+    labels = list(default_labels)
+
+    try:
+        with open(csv_fname, 'rb') as csvfile:
+            csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+            for row in csv_reader:
+                if row[0] == 'Residue_name':
+                    continue
+                if row[1] != '':
+                    label_dict[row[0]] = row[1]
+    except IOError:
+        log.error("Labels file couldn't be read")
+        raise IOError
+    except:
+        log.error("Labels file couldn't be parsed correctly")
+        raise
+
+    for i, fname in enumerate(fnames):
+        try:
+            labels[i] = label_dict[fname]
+        except KeyError:
+            log.warning("label for residue %s not found; it will be skipped" % fname)
+
+    return labels
 
 def parse_ddg_file(fname, reslist=None, full=False):
     """

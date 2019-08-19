@@ -35,6 +35,8 @@ import numpy as np
 import logging as log
 import os
 
+description = 'ddg2logo: make logo plots for DDG values'
+epilog = ''
 
 def parse_letters_png(pngfile, letters="ACDEFGHIKLMNPQRSTVWXYypshzkmloef"):
     if type(pngfile) is tuple:
@@ -113,7 +115,7 @@ def plot_matrix(mat, reslist, letters, xlabels, max_range, title=None, fontsize=
                         extent=(hgap + x*width + x*hgap, hgap + (x+1)*width + x*hgap, low_y, accumulator),
                         aspect='auto' )
 
-    ax.set_ylabel(r'modified FoldX $\Delta\Delta{}G$ (kcal/mol)')
+    ax.set_ylabel(r'modified FoldX $\Delta\Delta{}$G (kcal/mol)')
 
     ax.set_xlim((0, mat.shape[0]*width +hgap*mat.shape[0] + hgap))
     #print(max_range)
@@ -156,7 +158,7 @@ if not __name__ == "__main__":
     exit()
 
 parser = argparse.ArgumentParser(
-description='ddg2logo: make logo plots for DDG values',)
+description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
 optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
 
@@ -168,7 +170,7 @@ optional.add_argument("-L","--png-letter-map",dest='pngfile',action='store', def
 optional.add_argument("-T","--threshold", dest="threshold", action='store', type=float, default=0.5, help="Do not consider mutations with absolute DDG lower than this value")
 optional.add_argument("-x","--maximum-degeneracy", dest="degeneracy", action='store', type=int, default=32, help="when the number of stabilizing mutations is higher than this threshold a pattern will be plotted instead")
 
-optional = init_arguments(['labels', 'fontsize', 'title', 'splice'], optional)
+optional = init_arguments(['labels', 'fonts', 'fontsize', 'title', 'splice'], optional)
 optional.add_argument("-D","--dpi", dest="dpi", type=float, action='store', default=150, help="number of DPI for the output image. !!WARNING!! Saving the images at higher DPI (as 300) uses a lot of memory, therefore use with caution" )
 
 optional.add_argument("-o","--output", dest="outfile", action='store', default='logo.pdf', help="output file names")
@@ -177,6 +179,14 @@ optional = init_arguments(['verbose'], optional)
 
 parser._action_groups.append(optional)
 options = parser.parse_args()
+
+if options.font is not None:
+    try:
+        set_default_font(options.font)
+    except NameError:
+        log.error("The specified font is not available. Available fonts:")
+        log.error(get_font_list())
+        exit(1)
 
 if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)
@@ -226,15 +236,12 @@ else:
 
 # use custom labels if provided
 if options.labels:
-    label_dict = {}
-    with open(options.labels, 'rb') as csvfile:
-        csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-        for row in csv_reader:
-            if row[1] != '':
-                label_dict[row[0]] = row[1]    
-    for i in range(len(fnames)):
-        if fnames[i] in label_dict:
-            res_id_labels[i] = label_dict[fnames[i]]
+    try:
+        labels = parse_label_file(options.labels, fnames, res_id_labels)
+    except:
+        exit(1)
+else:
+    labels = res_id_labels
 
 # parse DDG files
 data = []
@@ -261,7 +268,7 @@ data_nondeg = data[num_positives,:]
 max_range = np.max(np.sum(data_nondeg, axis=1))
 
 #splice & plot
-spliced_data = splice_data(data, res_id_labels, options.sv)
+spliced_data = splice_data(data, labels, options.sv)
 for i in range(len(spliced_data)):
     fig = plot_matrix(  spliced_data[i][0],
                         res_order,

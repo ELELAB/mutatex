@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 #    ddg2distribution: plot DDG MutateX results as distribution plots: boxplot, violinplot or scatterplot.
 #    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com, Tycho Canter Cremers <tycho.c.c@gmail.com>, 
 #    Thilde Bagger Terkelsen <thildebt@gmail.com>
@@ -23,19 +24,22 @@ import argparse
 import csv
 import matplotlib
 matplotlib.use('Agg')
-matplotlib.rcParams['savefig.format'] = 'pdf'
 from matplotlib import pyplot as plt
 from Bio import PDB
 from mutatex.utils import *
 
+description = 'ddg2distribution: plot DDG MutateX results as distribution plots: boxplot, violin plots or scatter plots, single-residue plots, stemplots'
+epilog = ''
+
 def plot_box(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys_r'):
+    flierprops = dict(marker='.', linestyle='none', fillstyle='full')
     xt = xlabels
     xticks = np.arange(1,mat.shape[1]+1)
     if title is None:
         title = ""
 
     plt.title(title)
-    box = plt.boxplot(mat)
+    box = plt.boxplot(mat, flierprops=flierprops)
     
     cm = plt.cm.get_cmap(cmap)
     for i, key in enumerate(list(box.keys())):
@@ -43,7 +47,7 @@ def plot_box(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys_r'):
 
     plt.ylim(vmin, vmax)
     plt.xlabel("Residue id")
-    plt.ylabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
+    plt.ylabel(r'FoldX $\Delta\Delta{}$G (kcal/mol)')
     rotation_xt=90
     plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
     plt.tight_layout()
@@ -189,7 +193,7 @@ def plot_scatter(mat, xlabels, vmin, vmax, title=None, fontsize=8, topmuts=0, cm
     fig = plt.figure()
     plt.title(title)
     ax = plt.subplot(111)
-    sc = ax.scatter(xs, mean_means, s=100, marker='o', c=mean_means_color, edgecolors='grey', cmap=cm, alpha=1)
+    sc = ax.scatter(xs, mean_means, s=20, marker='o', c=mean_means_color, edgecolors='grey', cmap=cm, alpha=1)
     ax.set_xlabel('Wild-type Amino Acids')
     ax.set_ylabel(r'Mean FoldX $\Delta\Delta{}G (kcal/mol)$')
     plt.xticks(xticks, xt)
@@ -229,7 +233,7 @@ if not __name__ == "__main__":
     exit()
 
 parser = argparse.ArgumentParser( 
-    description='ddg2distribution: plot DDG MutateX results as distribution plots: boxplot, violin plots or scatter plots, single-residue plots, stemplots.',)
+    description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
 optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
 
@@ -242,7 +246,7 @@ optional.add_argument("-n","--min", dest='vmin',action='store',default=None,type
 optional.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="Maximum value to be plotted")
 optional.add_argument("-u","--topmuts", dest="topmuts", type=int, default=0, help="Number of extreme residues to be labeled (scatter plot only)")
 
-optional = init_arguments(['title', 'labels', 'fontsize', 'splice'], optional)
+optional = init_arguments(['title', 'labels', 'fonts', 'fontsize', 'splice'], optional)
 optional.add_argument("-c","--colormap", dest="colormap", type=str, default=None, help="Color map to be used for the plot")
 
 optional.add_argument("-o","--output", dest="outfile", action='store', default='energies.pdf', help="output filename")
@@ -251,6 +255,14 @@ optional = init_arguments(['verbose'], optional)
 
 parser._action_groups.append(optional)
 options = parser.parse_args()
+
+if options.font is not None:
+    try:
+        set_default_font(options.font)
+    except NameError:
+        log.error("The specified font is not available. Available fonts:")
+        log.error(get_font_list())
+        exit(1)
 
 if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)
@@ -292,18 +304,15 @@ else:
     fnames = res_ids_str
     res_id_labels = res_ids_str
 
-
 #Assign custom residue labels
 if options.labels:
-    label_dict = {}
-    with open(options.labels, 'rb') as csvfile:
-        csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-        for row in csv_reader:
-            if row[1] != '':
-                label_dict[row[0]] = row[1]
-    for i in range(len(fnames)):
-        if fnames[i] in label_dict:
-            res_id_labels[i] = label_dict[fnames[i]]
+    try:
+        labels = parse_label_file(options.labels, fnames, res_id_labels)
+    except:
+        exit(1)
+else:
+    labels = res_id_labels
+
 
 for fname in fnames:
 
@@ -321,7 +330,7 @@ if not options.vmax:
 if not options.vmin:
     options.vmin = np.floor(np.min(data) - abs(0 - np.min(data))*0.2)
 
-spliced_data = splice_data(data, res_id_labels, options.sv)
+spliced_data = splice_data(data, labels, options.sv)
 
 #Plot the plots
 for i in range(len(spliced_data)):
