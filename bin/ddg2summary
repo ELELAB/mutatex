@@ -102,8 +102,21 @@ def parse_desired_mutations_list(fname, reslist, mutlist):
 
     return selected_muts
 
-parser = argparse.ArgumentParser(
-    description='Write DDG data of specific mutations in a summary text file',)
+description='ddg2summary: write DDG data of specific mutations in a summary text file'
+epilog = """ddg2summary fetches the values of some specific mutations from a MutateX full
+mutational scan and writes the respective average values in a text file (-L). The
+list of mutations of interested is provided in a mutation list file, one per
+line, and they need to be defined according to the following format:
+
+    [wild-type residue type][chain identifier][residue number][mutant residue type]
+
+The wild type residue type is optional. For instnace, QA39C means "residue Q39
+of chain A mutated to C". Similarly, A22W means "residue 22 of chain A mutated
+to W" """
+
+
+
+parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
 optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
 

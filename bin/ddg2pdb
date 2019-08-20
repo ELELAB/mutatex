@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#    ddg2pdb: plot DDG MutateX results in the B-factor fields of PDB files
+#    ddg2pdb: write DDG MutateX results in the B-factor fields of PDB files
 #    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -19,28 +19,39 @@
 import argparse
 from Bio import PDB
 from six import iteritems
-from mutatex.utils import * 
+from mutatex.utils import *
 import numpy as np
 import logging as log
 
 LOGFMT = "%(levelname)s: %(message)s"
 
-parser = argparse.ArgumentParser(
-description='FoldX DDG parser & plotter',
-epilog='''Please notice that cut-offs (i.e. DDG thresholds) are mandatory. In fact,
-the program will save for each residue the number of mutations which are
-within the specified parameters. You can control this behaviour using options
--a (low threshold), -b (high threshold)  and -t (mode).
-By default, the program will consider valid values < low_thr OR (logical) > high_thr.
-If -a or -b are not specified, the values of low and high thresholds are defaulted to,
-respectively, -99999.0 and 99999.0. If "between" mode is selected
-(option -t between), it will consider as valid those values found between the low
-and high threshold. For instance, these options generate the relative
-validity intervals: -a 0.5 = ]-inf,0.5] U [99999.0,+inf[ ;
--b 0.5 = ]-inf,-99999.0] U [0.5,+inf[;
--a 0.5 -b 1.0 = ]-inf,0.5] U [1.0,+inf[;
--a 0.5 -b 1.0 -t between = [0.5,1.0]
-''')
+description='ddg2pdb: write MutateX DDGs in the B-factor field of PDB files',
+epilog='''ddg2pdb counts the number of mutants per mutation site that are within a
+given range of DDG, and writes this number in the B-factor field of the
+structure from the input PDB file. The range of accepted DDG values to be
+counted is controlled by options -T, -a and -b and specified as follows.
+
+Option -T accepts to value: "between" and "outside". When T is set to between
+the values between a low and high thresholds are considered. When T is set to
+outisde (default), the values below the low and above the low and high
+thresholds respectively are considered. The low threshold is specified using
+option -a, while the high threshold with -b. The default arguments for -a and -b
+are -99999 and 99999. Extremes are always included.
+
+For instance, these as some example combinations of options and the respective
+considered intervals:
+
+-a 0.5                      ]-inf,0.5] U [99999.0,+inf[
+-b 0.5                      ]-inf,-99999.0] U [0.5,+inf[
+-a 0.5 -b 1.0               ]-inf,0.5] U [1.0,+inf[
+-a 0.5 -b 1.0 -T between    [0.5,1.0]
+
+Option -o writes the modified PDB file, while option -m writes a NxN square
+matrix, where N is the number of residues of the PDB, that is zero everywhere
+except for the diagonal, in which the calculated values are written. This is the
+supported format of the xPyder PyMOL plugin'''
+
+parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
 
 optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
@@ -95,9 +106,9 @@ else:
     log.info("High threshold: %.2f"% options.high_thres)
 
 if options.thres_mode == 'outside':
-    log.info("Mode: outside. Only values > %.2f OR values < %.2f will be considered." % (options.high_thres, options.low_thres))
+    log.info("Mode: outside. Only values >= %.2f OR values <= %.2f will be considered." % (options.high_thres, options.low_thres))
 elif options.thres_mode == 'between':
-    log.info("Mode: between. Only values between %.2f and %.2f will be considered." % (options.low_thres, options.high_thres))
+    log.info("Mode: between. Only values between %.2f and %.2f (including extremes) will be considered." % (options.low_thres, options.high_thres))
 
 for i,r in enumerate(res_ids_str):
     try:

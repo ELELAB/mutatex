@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
-#    ddg2matrix: plot DDG MutateX results as histograms, one per residue.
-#    Copyright (C) 2018,  Isabelle da Piedade <isap@cancer.dk>, Matteo Tiberti <matteo.tiberti@gmail.com>, Tycho Canter Cremers <tycho.c.c@gmail.com>
+#    ddg2histo: plot DDG MutateX results as histograms, one per residue.
+#    Copyright (C) 2019,    Isabelle da Piedade <isap@cancer.dk>,
+#                            Matteo Tiberti <matteo.tiberti@gmail.com>,
+#                            Tycho Canter Cremers <tycho.c.c@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -29,8 +31,22 @@ from six import iteritems
 from Bio import PDB
 from mutatex.utils import *
 
-description = 'ddg2histo: plot a histogram of the DDGs calculated for all the mutations of a single residue.'
-epilog = ''
+description = 'ddg2histo: plot a histogram of the DDGs calculated for all the mutations of a single residue'
+epilog = """This script plots the DDG values for a single mutation site as a histogram,
+one mutant per bar. The error bar in the histogram corresponds to the standard
+deviation of DDG as stored in the DDG file (so it might be over different
+conformations or over different FoldX runs, depending on which dataset is used).
+Option -r allows to specify which residues or residue have to be plotted using a
+mini-language: single residue are specified in a similar fashion as the output
+DDG filenames: [wild-type type][chain][number] (ex. KA32). Multiple residues
+definitions are separated by commas and ranges are defined by dashes. Use single
+residues only - not multiple residues as when doing scans of multimers - the
+program will identify the corresponding residues regardless. For example:
+
+    KA32 KA32,LA26,LA54 KA32-QA64,DB34
+
+the values for each mutation site will be plotted individually indifferent
+files"""
 
 def parse_residues(residues, fnames, single_res_ids):
     residues = residues.split(",")

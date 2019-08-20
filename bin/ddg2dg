@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#    ddg2matrix: plot DDG MutateX results as heat maps.
+#    ddg2dg: apply linear correction to DDG values
 #    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -35,8 +35,24 @@ LOGFMT = "%(levelname)s: %(message)s"
 
 cmaps_list = [m for m in cm.datad if not m.endswith("_r")]
 
-parser = argparse.ArgumentParser(
-description='Calculate folding DG from MutateX DDG and experimental DG, also applying a linear correction')
+description = 'Calculate folding DG from MutateX DDG and experimental DG, also applying a linear correction'
+
+epilog = """This script applies a linear correction to each DDG value read from input.
+The modified values are calculated as:
+
+    DGmut = x + DDG * m + y
+
+where x, m and y can be selected with -x, -m and -y. The default values are 0.0,
+1.0 and 0.0 meaning the input values is not changed. x is typically specified as
+the experimental free energy of folding of the wild-type protein - in this case
+the output value will be the free energy of folding of the mutatated variant.
+
+The output of this script is a directory with the same structure of the input
+MutateX results directory, in which each files contains the modified value. This
+directory can then be used as input of all the other post-processing scripts."""
+
+parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
+
 optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
 
