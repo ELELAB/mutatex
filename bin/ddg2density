@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #    ddg2density: plot probability density of DDG MutateX results.
-#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com> 
+#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
 #                        Thilde Bagger Terkelsen <ThildeBT@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -29,19 +29,20 @@ from Bio import PDB
 from mutatex.utils import *
 
 
-description = "Generate probability density via kernel density estimation of the calculated DDG"
-epilog = """This script uses all the input DDG data to generate a probability
+description = "ddg2density: generate probability density via kernel density estimation of the calculated DDG values"
+epilog = """ddg2density uses all the input DDG data to generate a probability
 density over the DDG values, using the kernel density estimation method. In
 particular, this script uses the KDE implementation available in scipy (see
 https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.gaussian_kde.html).
 Before calculating the density the program excludes the DDG values coming from
 all self-mutations (i.e. mutations of each residue to the same type) as they
-aren't meaningful for the purpose of the script.
+aren't meaningful for the purpose of evaluating the distribution of DDG upon
+mutation.
 
 The user can tune how the density calculation is performed by setting the DDG
 limits between which density is calculated (-m and -x), the number of grid
 points on which the density is calculated (-g), the method for the calculation
-of the bandwidth (-w).
+of the bandwidth (-w - same arguments as the scipy KDE function).
 
 The script writes the density plot as a default (-o), and optionally simple text
 files containing either the DDG values used for the calculation (-u) or the
@@ -55,9 +56,9 @@ def get_ddg_data(residue_list, mutation_list, ddg_dir):
         res_ids_str = ["_".join(r) for r in residue_list]
     else:
         res_ids_str = residue_list
-        
+
     res_restypes = [r[0][0] for r in residue_list]
-    
+
     for fname in res_ids_str:
 
         try:
@@ -84,9 +85,9 @@ def plot_density(data, outfile, title, mycolor, bw_method, xmin, xmax, spaces):
 
     kde = gaussian_kde(data, bw_method=bw_method)
     x = np.linspace(xmin, xmax, spaces)
-    
+
     kdv = kde(np.linspace(xmin, xmax, spaces))
-    
+
     np.savetxt(options.kdvfile, np.array([x, kdv]).T, fmt='%.5f', header='DDG, density', comments='#')
 
     ax.axvline(0, linestyle='--', linewidth=1, color='black')
@@ -132,7 +133,7 @@ if options.font is not None:
         log.error(get_font_list())
         exit(1)
 
-log.basicConfig(level=log.WARNING, format=LOGFMT)   
+log.basicConfig(level=log.WARNING, format=LOGFMT)
 
 pdb_parser = PDB.PDBParser()
 
