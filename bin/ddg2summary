@@ -121,7 +121,7 @@ optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
 
 required = init_arguments(['pdb', 'data', 'mutation_list'], required)
-required.add_argument("-L","--mutation-list", dest="mutations",  help="List of mutations to consider")
+required.add_argument("-L","--mutation-list", dest="mutations",  help="List of interesting to be collected")
 
 optional = init_arguments(['multimers'], optional)
 

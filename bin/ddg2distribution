@@ -51,8 +51,11 @@ plots correspond to different representations of the DDG values, namely
     * scatter: scatter plot of mean values. Useful when wanting to keep many
     values (i.e. many mutation sites) in the same plot.
 
-Option -u n only works with type scatter - it adds the label with the mutation site
-to the top n destabilizing mutations."""
+Options -n and -x control the range of the y axis.
+
+Type scatter has two special options: option -w adds the label with the mutation site
+on top of the n most destabilizing mutations, option -L sets a limit for the DDG values
+- values higher than this will be reduced to the threshold value."""
 
 def plot_box(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys_r'):
     flierprops = dict(marker='.', linestyle='none', fillstyle='full')
@@ -263,14 +266,14 @@ required = parser.add_argument_group('required arguments')
 required = init_arguments(['pdb', 'data', 'mutation_list'], required)
 optional = init_arguments(['multimers'], optional)
 
-required.add_argument("-T","--type", dest="type", nargs = '+', required = True, choices = ["stem", "box", "violin", "single", "scatter"], help = "Choose type(s) of plot(s) to generate: stem, box, violin or scatter. Duplicates will be ignored.")
-optional.add_argument("-L","--limit", dest="limit", action='store', default = None, type=float, help="Limit scatter plot ddg values to a maximum")
-optional.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="Minimum value to be plotted")
-optional.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="Maximum value to be plotted")
-optional.add_argument("-u","--topmuts", dest="topmuts", type=int, default=0, help="Number of extreme residues to be labeled (scatter plot only)")
+required.add_argument("-T","--type", dest="type", nargs = '+', required = True, choices = ["stem", "box", "violin", "single", "scatter"], help = "type of plot(s) to generate: stem, box, violin, scatter or single")
+optional.add_argument("-L","--limit", dest="limit", action='store', default = None, type=float, help="maximum DDG value to be plotted in scatter plots")
+optional.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="lower limit for the range of the y axis")
+optional.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="upper limit for the range of the y axis")
+optional.add_argument("-u","--topmuts", dest="topmuts", type=int, default=0, help="number of extreme residues to be labeled (scatter plot only)")
 
 optional = init_arguments(['title', 'labels', 'fonts', 'fontsize', 'splice'], optional)
-optional.add_argument("-c","--colormap", dest="colormap", type=str, default=None, help="Color map to be used for the plot")
+optional.add_argument("-c","--colormap", dest="colormap", type=str, default=None, help="color map to be used for the plot")
 
 optional.add_argument("-o","--output", dest="outfile", action='store', default='energies.pdf', help="output filename")
 

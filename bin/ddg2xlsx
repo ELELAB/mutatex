@@ -40,9 +40,9 @@ required = parser.add_argument_group('required arguments')
 required = init_arguments(['pdb', 'data', 'mutation_list'], required)
 optional = init_arguments(['multimers'], optional)
 
-optional.add_argument("-T","--transpose", dest='transpose', action="store_true", default=False, help="Swap rows and columns")
+optional.add_argument("-T","--transpose", dest='transpose', action="store_true", default=False, help="swap rows and columns")
 
-optional.add_argument("-o","--output", dest="outfile", action='store', default='energies.xlsx')
+optional.add_argument("-o","--output", dest="outfile", action='store', default='energies.xlsx', help="output excel file")
 
 optional = init_arguments(['labels'], optional)
 

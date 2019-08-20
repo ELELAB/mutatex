@@ -185,13 +185,13 @@ optional = init_arguments(['multimers'], optional)
 
 optional.add_argument("-L","--png-letter-map",dest='pngfile',action='store', default=letters, help="png file to be used for letters")
 
-optional.add_argument("-T","--threshold", dest="threshold", action='store', type=float, default=0.5, help="Do not consider mutations with absolute DDG lower than this value. Default is 0.5")
-optional.add_argument("-x","--maximum-degeneracy", dest="degeneracy", action='store', type=int, default=20, help="when the number of stabilizing mutations is higher than this threshold a pattern will be plotted instead")
+optional.add_argument("-T","--threshold", dest="threshold", action='store', type=float, default=0.5, help="DDG threshold values - mutations with DDG higher than this are not considered. Default is 0.5")
+optional.add_argument("-x","--maximum-degeneracy", dest="degeneracy", action='store', type=int, default=20, help="when the number of stabilizing mutations is higher than this threshold an X will be plotted instead")
 
 optional = init_arguments(['labels', 'fonts', 'fontsize', 'title', 'splice'], optional)
-optional.add_argument("-D","--dpi", dest="dpi", type=float, action='store', default=150, help="number of DPI for the output image. !!WARNING!! Saving the images at higher DPI (as 300) uses a lot of memory, therefore use with caution" )
+optional.add_argument("-D","--dpi", dest="dpi", type=float, action='store', default=150, help="number of DPI for the output image. Saving the images at higher DPI (as 300) uses a lot of memory, therefore use with caution" )
 
-optional.add_argument("-o","--output", dest="outfile", action='store', default='logo.pdf', help="output file names")
+optional.add_argument("-o","--output", dest="outfile", action='store', default='logo.pdf', help="logo plot file names")
 
 optional = init_arguments(['verbose'], optional)
 

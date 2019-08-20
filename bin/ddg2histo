@@ -126,14 +126,14 @@ required = parser.add_argument_group('required arguments')
 required = init_arguments(['pdb', 'data', 'mutation_list'], required)
 optional = init_arguments(['multimers'], optional)
 
-optional.add_argument("-r","--residues", dest="residues", type= str, help="Define a list of residues to plot (see below)")
-optional.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="Minimum value to be plotted")
-optional.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="Maximum value to be plotted")
+optional.add_argument("-r","--residues", dest="residues", type= str, help="list of residues to be plotted (see below)")
+optional.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="minimum value to be plotted")
+optional.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="maximum value to be plotted")
 
 optional = init_arguments(['title', 'labels', 'fonts', 'fontsize'], optional)
-optional.add_argument("-c","--color", dest="color", default="grey", type= str, help="Name a color for the bar plot")
+optional.add_argument("-c","--color", dest="color", default="grey", type= str, help="color of the bars in the barplot (default: black)")
 
-optional.add_argument("-o","--output", dest="outfile", action='store', default='histogram.pdf', help="Output filename")
+optional.add_argument("-o","--output", dest="outfile", action='store', default='histogram.pdf', help="output filename")
 
 optional = init_arguments(['verbose'], optional)
 

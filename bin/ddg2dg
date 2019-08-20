@@ -61,10 +61,10 @@ required = init_arguments(['pdb', 'data'], required)
 optional = init_arguments(['multimers'], optional)
 
 optional.add_argument("-m", "--slope", dest="m", type=float, action='store', default=1.0, help="slope value for the correction of DDG values")
-optional.add_argument("-y", "--y-intercept", dest="b", type=float, action='store', default=0.0, help="Y-intercept value for the correction of DDG values")
-optional.add_argument("-x", "--experimental-dg", dest="dg", type=float, default=0, action='store', help="Experimental energy of folding")
+optional.add_argument("-y", "--y-intercept", dest="b", type=float, action='store', default=0.0, help="y-intercept value for the correction of DDG values")
+optional.add_argument("-x", "--experimental-dg", dest="dg", type=float, default=0, action='store', help="experimental energy of folding")
 
-optional.add_argument("-o","--output", dest="outdir", type=str, action='store', default='dgf')
+optional.add_argument("-o","--output", dest="outdir", type=str, action='store', default='dgf', help="name of the output directory for the modified energy values")
 
 parser._action_groups.append(optional)
 options = parser.parse_args()

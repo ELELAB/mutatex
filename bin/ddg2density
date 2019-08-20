@@ -112,15 +112,15 @@ required = init_arguments(['pdb', 'data', 'mutation_list'], required)
 optional = init_arguments(['multimers'], optional)
 
 optional.add_argument("-m","--vmin", dest="vmin", type=float, default=-5, help="minimum DDG value for density determination (default: -5.0)")
-optional.add_argument("-x","--vmax", dest="vmax", type=float, default=10, help="maxomum DDG value for density determination (default:  10.0)")
+optional.add_argument("-x","--vmax", dest="vmax", type=float, default=10, help="maximum DDG value for density determination (default:  10.0)")
 optional.add_argument("-g","--grid-points", dest="grid", type=int, default=150, help="number of point between minimum and maximum to calculate density on")
 optional.add_argument("-w","--bandwidth-method", dest="bw", default=None, help="method used to calculate the estimator bandwith in KDE. Same options as scipy KDE function")
 
 optional = init_arguments(['title', 'color', 'fonts'], optional)
 
-optional.add_argument("-o","--output", dest="outfile", type=str, default="kde_density.pdf")
-optional.add_argument("-u","--ddgfile", dest="ddgfile", type=str, default="ddg_values.dat", help="File containing all the used DDG values")
-optional.add_argument("-k","--kdvfile", dest="kdvfile", type=str, default="density_values.dat", help="File containing calculated density values")
+optional.add_argument("-o","--output", dest="outfile", type=str, default="kde_density.pdf", help="output density plot")
+optional.add_argument("-u","--ddgfile", dest="ddgfile", type=str, default="ddg_values.dat", help="output file containing all the used DDG values")
+optional.add_argument("-k","--kdvfile", dest="kdvfile", type=str, default="density_values.dat", help="output file containing calculated density values")
 
 parser._action_groups.append(optional)
 options = parser.parse_args()
