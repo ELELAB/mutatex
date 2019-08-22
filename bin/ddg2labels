@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-#    ddg2labels: Generate a custom .csv file used to add labels to residues in most other plotting tools.
-#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com, Tycho Canter Cremers <tycho.c.c@gmail.com>
+#    ddg2labels: Generate a custom .csv file aimed at using custom labels.
+#    Copyright (C) 2019, Matteo Tiberti <matteo.tiberti@gmail.com,
+#                        Tycho Canter Cremers <tycho.c.c@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -24,6 +25,14 @@ from six import iteritems
 import sys
 from mutatex.utils import *
 
+description = "ddg2labels: generate a csv file used to specify custom residue labels to the plotting scripts"
+epilog = """starting from a pdb file, ddg2labels generates a csv table file to be filled
+in by the user and fed to the plotting scripts, so that custom residue labels
+can be used instead of the default ones. The csv file has two columns: one with
+MutateX residue specifiers generated from the PDB file, and the second has
+custom labels to be used instead, that must be filled in by the user. Only a
+subset of labels may be filled in, and the default labels will be used instead
+of the missing ones"""
 
 if sys.version_info[0] <= 2:
     write_format = 'wb'
@@ -35,18 +44,18 @@ def names_to_labels(csv_fh):
     csv_writer.writerow(['Residue_name', 'Label'])
     for fname in fnames:
         csv_writer.writerow([fname, ""])
-    
+
 LOGFMT = "%(levelname)s: %(message)s"
 
-parser = argparse.ArgumentParser( 
-    description='ddg2labels: Generate a comma separeted .csv file to add custom labels to specific residues.',)
+parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
+
 optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
 
 required = init_arguments(['pdb'], required)
 optional = init_arguments(['multimers'], optional)
 
-optional.add_argument("-o","--output", dest="outfile", action='store', default='labels.csv')
+optional.add_argument("-o","--output", dest="outfile", action='store', default='labels.csv', help='output csv label file')
 
 optional = init_arguments(['verbose'], optional)
 

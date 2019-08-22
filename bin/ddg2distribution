@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #    ddg2distribution: plot DDG MutateX results as distribution plots: boxplot, violinplot or scatterplot.
-#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com, Tycho Canter Cremers <tycho.c.c@gmail.com>, 
+#    Copyright (C) 2019, Matteo Tiberti <matteo.tiberti@gmail.com, Tycho Canter Cremers <tycho.c.c@gmail.com>,
 #    Thilde Bagger Terkelsen <thildebt@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -28,8 +28,34 @@ from matplotlib import pyplot as plt
 from Bio import PDB
 from mutatex.utils import *
 
-description = 'ddg2distribution: plot DDG MutateX results as distribution plots: boxplot, violin plots or scatter plots, single-residue plots, stemplots'
-epilog = ''
+description = 'ddg2distribution: plot DDG MutateX results as distribution plot'
+epilog = """This script plots a representation of distributions of DDG values for each
+mutation site. For instance, the user can request a box plot, which means that
+one box plot will be generated from the DDG values of each site. This allows to
+understand both the general effect of mutating certain sites, and to understand
+which of them are generally more sensitive to mutation. The user can choose the
+plot type with option -T, among stem, box, violin, single and scatter. Each plot
+type has mutation sites (i.e. residue labels) on the X axis. Different type of
+plots correspond to different representations of the DDG values, namely
+
+    * stem: stem plot. The central dot is the average DDG values, the stems
+      span as far as the standard deviation
+    * box: box plot. The box extends from the lower to upper quartile values
+      of the data, with a line at the median. The whiskers extend from the
+      box to show the range of the data. Flier points are those past the end of
+      the whiskers. This is default behaviour of matplotlib.pyplot.boxplot
+      (see https://matplotlib.org/3.1.1/api/_as_genmatplotlib.pyplot.boxplot.html)
+    * violin: violin plot
+    * single: scatter plot in which each point is a different mutation. Useful
+      to show all the mutations at a glance
+    * scatter: scatter plot of mean values. Useful when wanting to keep many
+    values (i.e. many mutation sites) in the same plot.
+
+Options -n and -x control the range of the y axis.
+
+Type scatter has two special options: option -w adds the label with the mutation site
+on top of the n most destabilizing mutations, option -L sets a limit for the DDG values
+- values higher than this will be reduced to the threshold value."""
 
 def plot_box(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys_r'):
     flierprops = dict(marker='.', linestyle='none', fillstyle='full')
@@ -40,7 +66,7 @@ def plot_box(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys_r'):
 
     plt.title(title)
     box = plt.boxplot(mat, flierprops=flierprops)
-    
+
     cm = plt.cm.get_cmap(cmap)
     for i, key in enumerate(list(box.keys())):
         plt.setp(box[key], color=cm(float(i)/10))
@@ -51,7 +77,7 @@ def plot_box(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys_r'):
     rotation_xt=90
     plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
     plt.tight_layout()
-    
+
 def plot_violin(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys_r'):
     xt = xlabels
     xticks = np.arange(1,mat.shape[1]+1)
@@ -59,59 +85,59 @@ def plot_violin(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys_r'
         title = ""
 
     plt.title(title)
-     
-    violin = plt.violinplot(mat, 
-                            xticks, 
-                            showmeans = True, 
-                            showextrema = True, 
-                            showmedians = True, 
+
+    violin = plt.violinplot(mat,
+                            xticks,
+                            showmeans = True,
+                            showextrema = True,
+                            showmedians = True,
                             points = 100,
-                            widths = 0.7, 
+                            widths = 0.7,
                             bw_method='scott')
-    
+
     cm = plt.cm.get_cmap(cmap)
     for i, key in enumerate(list(violin.keys())):
         plt.setp(violin[key], color=cm(float(i)/10))
 
     plt.ylim(vmin, vmax)
-    
+
     plt.xlabel("Residue id")
     plt.ylabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
     rotation_xt=90
     plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
     plt.xlim(0,mat.shape[1]+1)
     plt.tight_layout()
-    
+
 def plot_single(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
     xt = xlabels
     xticks = np.arange(1,mat.shape[1]+1)
     if title is None:
         title = ""
-    
+
     if options.limit:
         mat[mat > options.limit] = options.limit
         vmax = options.limit + abs(0 - options.limit * 0.2)
 
     plt.title(title)
-    
+
     #Plot graph
     for i in range(len(res_order)):
         plt.scatter(xticks, mat[i], color="black", s=1.5)
     plt.ylim(vmin, vmax)
-    
-    #Calculate non-overlapping label coordinates    
+
+    #Calculate non-overlapping label coordinates
     fig_height = plt.gcf().get_figheight()
     y_range = float(abs(plt.ylim()[0] - plt.ylim()[1]))
     fontsize_inch = (1.0 / 72.0) * 12    #label font size in inches
     label_size = (y_range / fig_height) * fontsize_inch #Size of the labels on the y axis
     label_size *= 1.05  #Add margin to label size
     y_coords = np.copy(mat.T)
-    
+
     mat = mat.T
     overlap = True
     while overlap:
         overlap = False
-        for residue in range(y_coords.shape[0]):        
+        for residue in range(y_coords.shape[0]):
             for i in range(y_coords.shape[1]):
                 for j in range(y_coords.shape[1]):
                     diff = abs(y_coords[residue][i] - y_coords[residue][j])
@@ -126,15 +152,15 @@ def plot_single(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
                         else:
                             if(y_coords[residue][i] - offset/2 > vmin):
                                 y_coords[residue][i] -= offset/2
-                            if(y_coords[residue][i] + offset/2 < vmax):            
+                            if(y_coords[residue][i] + offset/2 < vmax):
                                 y_coords[residue][j] += offset/2
     #Add labels
     x_offset = float(len(xticks)) / 270
     for i in range(len(res_order)):
-        res = res_order[i]        
+        res = res_order[i]
         for j in xticks:
             plt.annotate(res, (j + x_offset, y_coords[j-1][i]), fontsize = fontsize)
-    
+
     plt.xlabel("Residue id")
     plt.ylabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
     rotation_xt=90
@@ -142,16 +168,16 @@ def plot_single(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
     plt.xlim(0,mat.shape[0]+1)
     plt.tight_layout()
 
-def plot_stemplot(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys'):  
+def plot_stemplot(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys'):
     xt = xlabels
     xticks = np.arange(1,mat.shape[1]+1)
     if title is None:
         title = ""
     cm = plt.cm.get_cmap(cmap)
-    
+
     mean_means = [np.average(i) for i in mat.T]
     ste = [np.std(i) for i in mat.T]
-    
+
     fig = plt.figure()
     plt.title(title)
     ax = plt.subplot(111)
@@ -182,7 +208,7 @@ def plot_scatter(mat, xlabels, vmin, vmax, title=None, fontsize=8, topmuts=0, cm
     if title is None:
         title = ""
     cm = plt.cm.get_cmap(cmap)
-    
+
     mean_means = np.array([np.average(i) for i in mat.T])
     mean_means_color = mean_means.copy()
     mean_means_color[mean_means_color >= vmax] = vmax
@@ -232,7 +258,7 @@ LOGFMT = "%(levelname)s: %(message)s"
 if not __name__ == "__main__":
     exit()
 
-parser = argparse.ArgumentParser( 
+parser = argparse.ArgumentParser(
     description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
 optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
@@ -240,14 +266,14 @@ required = parser.add_argument_group('required arguments')
 required = init_arguments(['pdb', 'data', 'mutation_list'], required)
 optional = init_arguments(['multimers'], optional)
 
-required.add_argument("-T","--type", dest="type", nargs = '+', required = True, choices = ["stem", "box", "violin", "single", "scatter"], help = "Choose type(s) of plot(s) to generate: stem, box, violin or scatter. Duplicates will be ignored.")
-optional.add_argument("-L","--limit", dest="limit", action='store', default = None, type=int, help="Limit scatter plot ddg values to a maximum")
-optional.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="Minimum value to be plotted")
-optional.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="Maximum value to be plotted")
-optional.add_argument("-u","--topmuts", dest="topmuts", type=int, default=0, help="Number of extreme residues to be labeled (scatter plot only)")
+required.add_argument("-T","--type", dest="type", nargs = '+', required = True, choices = ["stem", "box", "violin", "single", "scatter"], help = "type of plot(s) to generate: stem, box, violin, scatter or single")
+optional.add_argument("-L","--limit", dest="limit", action='store', default = None, type=float, help="maximum DDG value to be plotted in scatter plots")
+optional.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="lower limit for the range of the y axis")
+optional.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="upper limit for the range of the y axis")
+optional.add_argument("-u","--topmuts", dest="topmuts", type=int, default=0, help="number of extreme residues to be labeled (scatter plot only)")
 
 optional = init_arguments(['title', 'labels', 'fonts', 'fontsize', 'splice'], optional)
-optional.add_argument("-c","--colormap", dest="colormap", type=str, default=None, help="Color map to be used for the plot")
+optional.add_argument("-c","--colormap", dest="colormap", type=str, default=None, help="color map to be used for the plot")
 
 optional.add_argument("-o","--output", dest="outfile", action='store', default='energies.pdf', help="output filename")
 
@@ -335,45 +361,45 @@ spliced_data = splice_data(data, labels, options.sv)
 #Plot the plots
 for i in range(len(spliced_data)):
     if("violin" in options.type):
-        plot_violin(spliced_data[i][0], 
-                    spliced_data[i][1], 
+        plot_violin(spliced_data[i][0],
+                    spliced_data[i][1],
                     options.vmin,
-                    options.vmax, 
+                    options.vmax,
                     title=options.title,
                     fontsize=options.fontsize,
                     cmap=colormaps['violin'])
         plt.savefig("violin_%d_%s" %(i, options.outfile))
         plt.clf()
-    
+
     if("box" in options.type):
         plot_box(spliced_data[i][0],
-                spliced_data[i][1], 
+                spliced_data[i][1],
                 options.vmin,
-                options.vmax, 
+                options.vmax,
                 title=options.title,
                 fontsize=options.fontsize,
                 cmap=colormaps['box'])
         plt.savefig("box_%d_%s" %(i, options.outfile))
         plt.clf()
-    
+
     if("single" in options.type):
-        plot_single(spliced_data[i][0], 
-                     spliced_data[i][1], 
-                     res_order, 
+        plot_single(spliced_data[i][0],
+                     spliced_data[i][1],
+                     res_order,
                      options.vmin,
-                     options.vmax, 
-                     title=options.title, 
+                     options.vmax,
+                     title=options.title,
                      fontsize=options.fontsize)
         plt.savefig("single_%d_%s" %(i, options.outfile))
         plt.clf()
 #def plot_scatter(mat, xlabels, vmin, vmax, title=None, fontsize=8, topmuts=0):
 
     if("scatter" in options.type):
-        plot_scatter(spliced_data[i][0], 
-                     spliced_data[i][1], 
+        plot_scatter(spliced_data[i][0],
+                     spliced_data[i][1],
                      options.vmin,
-                     options.vmax, 
-                     title=options.title, 
+                     options.vmax,
+                     title=options.title,
                      fontsize=options.fontsize,
                      topmuts=options.topmuts,
                      cmap=colormaps['scatter'])
@@ -382,9 +408,9 @@ for i in range(len(spliced_data)):
 
     if("stem" in options.type):
         plot_stemplot(spliced_data[i][0],
-            spliced_data[i][1], 
+            spliced_data[i][1],
             options.vmin,
-            options.vmax, 
+            options.vmax,
             title=options.title,
             fontsize=options.fontsize,
             cmap=colormaps['stemplot'])

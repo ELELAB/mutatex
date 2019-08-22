@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-#    ddg2logo: plot DDG MutateX stabilizing mutations as logo plots
-#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
+#    ddg2logo: plot MutateX DDGs as logo plots
+#    Copyright (C) 2019, Matteo Tiberti <matteo.tiberti@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -35,8 +35,26 @@ import numpy as np
 import logging as log
 import os
 
-description = 'ddg2logo: make logo plots for DDG values'
-epilog = ''
+description = 'ddg2logo: make logo plots for MutateX DDG values'
+epilog = """ddg2logo generates pseudo-logo plots from DDG values.  While actual logo
+plots are based on letter frequency, these are based on the provided MutateX
+scan and are designed to highlight the mutation sites which specifically feature
+a limited number of stabilizing or accepted mutations. For each site, the
+letters of the plot represent the stabilizing mutations and their height is
+proportional to the stabilizing effect (i.e. to the absolute value of the
+respective negative energy). If a certain site has more than a certain number of
+accepted mutations, the respective column can be replaced by a X - this is
+controlled by the -x option. Before plotting the following transformations are
+carried out on the data:
+
+* the DDG values >= than threshold (option -T) are brought down to the threshold
+* all the DDG values are modified by subtracting the threshold value,
+  so that that value becomes 0
+* the sign of all the DDGs is changed - so that it becomes more positive if
+  it's stabilizing
+
+This allows to obtain a 0-based positive-only plot in which the ratio between
+the energy values is the same as the original data."""
 
 def parse_letters_png(pngfile, letters="ACDEFGHIKLMNPQRSTVWXYypshzkmloef"):
     if type(pngfile) is tuple:
@@ -89,8 +107,8 @@ def plot_matrix(mat, reslist, letters, xlabels, max_range, title=None, fontsize=
 
         # if too many of them are allowed, use X and continue
         if len(s_pos_idx) >= options.degeneracy:
-            ax.imshow(letters['X'], 
-                      extent=(hgap + x*width + x*hgap, hgap + (x+1)*width + x*hgap, 0.0, max_y/4.0), 
+            ax.imshow(letters['X'],
+                      extent=(hgap + x*width + x*hgap, hgap + (x+1)*width + x*hgap, 0.0, max_y/4.0),
                       aspect='auto')
 
             continue
@@ -167,13 +185,13 @@ optional = init_arguments(['multimers'], optional)
 
 optional.add_argument("-L","--png-letter-map",dest='pngfile',action='store', default=letters, help="png file to be used for letters")
 
-optional.add_argument("-T","--threshold", dest="threshold", action='store', type=float, default=0.5, help="Do not consider mutations with absolute DDG lower than this value")
-optional.add_argument("-x","--maximum-degeneracy", dest="degeneracy", action='store', type=int, default=32, help="when the number of stabilizing mutations is higher than this threshold a pattern will be plotted instead")
+optional.add_argument("-T","--threshold", dest="threshold", action='store', type=float, default=0.5, help="DDG threshold values - mutations with DDG higher than this are not considered. Default is 0.5")
+optional.add_argument("-x","--maximum-degeneracy", dest="degeneracy", action='store', type=int, default=20, help="when the number of stabilizing mutations is higher than this threshold an X will be plotted instead")
 
 optional = init_arguments(['labels', 'fonts', 'fontsize', 'title', 'splice'], optional)
-optional.add_argument("-D","--dpi", dest="dpi", type=float, action='store', default=150, help="number of DPI for the output image. !!WARNING!! Saving the images at higher DPI (as 300) uses a lot of memory, therefore use with caution" )
+optional.add_argument("-D","--dpi", dest="dpi", type=float, action='store', default=150, help="number of DPI for the output image. Saving the images at higher DPI (as 300) uses a lot of memory, therefore use with caution" )
 
-optional.add_argument("-o","--output", dest="outfile", action='store', default='logo.pdf', help="output file names")
+optional.add_argument("-o","--output", dest="outfile", action='store', default='logo.pdf', help="logo plot file names")
 
 optional = init_arguments(['verbose'], optional)
 
@@ -192,7 +210,6 @@ if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)
 else:
     log.basicConfig(level=log.WARNING, format=LOGFMT)
-
 
 try:
     letters = parse_letters_png(options.pngfile)

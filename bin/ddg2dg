@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#    ddg2matrix: plot DDG MutateX results as heat maps.
+#    ddg2dg: apply linear correction to DDG values
 #    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@ from matplotlib import cm
 from Bio import PDB
 from mutatex.utils import *
 import numpy as np
-    
+
 def seq_to_res(seq):
     if options.multimers:
         return "_".join(seq)
@@ -35,8 +35,25 @@ LOGFMT = "%(levelname)s: %(message)s"
 
 cmaps_list = [m for m in cm.datad if not m.endswith("_r")]
 
-parser = argparse.ArgumentParser(
-description='Calculate folding DG from MutateX DDG and experimental DG, also applying a linear correction')
+description = 'ddg2dg: apply a linear correction to calculated DDG values'
+
+epilog = """ddg2dg applies a linear correction to each DDG value read from input.
+The modified values are calculated as:
+
+    DGmut = x + DDG * m + y
+
+where x, m and y can be selected with -x, -m and -y. The default values are 0.0,
+1.0 and 0.0 meaning the input values is not changed. x is typically specified as
+the experimental free energy of folding of the wild-type protein - in this case
+the output value will be the predicted free energy of folding of the mutatated
+variant, using the linearly-corrected DDG value.
+
+The output of this script is a directory with the same structure of the input
+MutateX results directory, in which each file contains the modified values. This
+directory can then be used as input of all the other post-processing scripts."""
+
+parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
+
 optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
 
@@ -44,10 +61,10 @@ required = init_arguments(['pdb', 'data'], required)
 optional = init_arguments(['multimers'], optional)
 
 optional.add_argument("-m", "--slope", dest="m", type=float, action='store', default=1.0, help="slope value for the correction of DDG values")
-optional.add_argument("-y", "--y-intercept", dest="b", type=float, action='store', default=0.0, help="Y-intercept value for the correction of DDG values")
-optional.add_argument("-x", "--experimental-dg", dest="dg", type=float, default=0, action='store', help="Experimental energy of folding")
+optional.add_argument("-y", "--y-intercept", dest="b", type=float, action='store', default=0.0, help="y-intercept value for the correction of DDG values")
+optional.add_argument("-x", "--experimental-dg", dest="dg", type=float, default=0, action='store', help="experimental energy of folding")
 
-optional.add_argument("-o","--output", dest="outdir", type=str, action='store', default='dgf')
+optional.add_argument("-o","--output", dest="outdir", type=str, action='store', default='dgf', help="name of the output directory for the modified energy values")
 
 parser._action_groups.append(optional)
 options = parser.parse_args()
@@ -58,7 +75,7 @@ import os
 from matplotlib import pyplot as plt
 
 log.basicConfig(level=log.WARNING, format=LOGFMT)
- 
+
 res_ids = []
 res_ids_str = []
 data = []
@@ -82,7 +99,7 @@ else:
 for res in foldx_sequence:
     resname = seq_to_res(res)
     out_fname = "%s/%s" % (options.outdir, resname)
-    
+
     try:
         this_data = parse_ddg_file("%s/%s" % (options.ddg_dir, resname), None)
     except (IOError, TypeError):

@@ -46,38 +46,70 @@ if foldx_binary_var is None:
 if foldx_rotabase_var is None:
     foldx_rotabase_var = ""
 
-parser = argparse.ArgumentParser(description='Setup and run in silico saturation mutagenesis with FoldX. Release %s' % mutatex_version)
+parser = argparse.ArgumentParser(description='mutatex: run in silico saturation mutagenesis with FoldX')
 
-parser.add_argument('pdb', metavar='PDBFILE', type=str, nargs='+',  )
-parser.add_argument('--skip-check', '-r', dest='skip_check', default=False, action='store_true', help="Skip PDB checking phase")
-parser.add_argument('--skip-mutate', dest='skip_mutate', default=False, action='store_true', help="Skip PDB mutation phase")
-parser.add_argument('--skip-report', dest='skip_report', default=False, action='store_true', help="Skip reporting phase")
-parser.add_argument('--reslist', '-s', dest='reslist', default=None, action='store', type=str, help="Mutation list file")
-parser.add_argument('--multiple-models', '-u', dest='multiple_models', default=False, action='store_true', help="Indipendently use mulitple models found in the PDB")
-parser.add_argument('--nruns', '-n', dest='nruns', default=5, action='store', type=int, help="number of FoldX mutation runs per mutation (default: 5)")
-parser.add_argument('--np', dest='np', default=1, type=int, help="Number of FoldX processes to be run at the same time")
-parser.add_argument('--mutlist','-m', dest="mutlist", default=None, type=str, help="File containing the residue types that each ")
-parser.add_argument('--self-mutate', dest="selfmutate", default=False, action="store_true", help="Ignore mutation list and perform mutation to the same residue")
-parser.add_argument('-x', '--foldx-binary', dest="foldx_binary", action='store', type=str, help="Location of the FoldX binary (default: content of the FOLDX_BINARY system variable", default=foldx_binary_var)
-parser.add_argument('--rotabase', dest="rotabase", action="store", type=str, help="Location of the FoldX rotabase.txt file (default: content of the FOLDX_ROTABASE system variable", default=foldx_rotabase_var)
-parser.add_argument('--foldx-version', dest="foldx_version", action='store', choices=list(supported_foldx_versions), default=list(supported_foldx_versions)[0], help="FoldX version to be used (possible options: %s" % ", ".join(list(supported_foldx_versions)))
-parser.add_argument('-v', '--verbose', dest="verbose", default=False, action='store_true', help="Verbose mode")
-parser.add_argument('--foldx-log', dest="write_log", default=False, action='store_true', help="Write FoldX standard output on file for each run")
-parser.add_argument('-l','--use-links', dest="use_links", default=False, action='store_true', help="Use links instead of copying files as much as possibile")
-parser.add_argument('--repair-runfile-template','--repair', dest="repair_runfile_template", type=str, default="repair_runfile_template.txt", help="Template runfile for repair runs (default: ./repair_runfile_template.txt)")
-parser.add_argument('--mutate-runfile-template','--mutate', dest="mutate_runfile_template", type=str, default="mutate_runfile_template.txt", help="Template runfile for mutation runs (default: ./mutate_runfile_template.txt)")
-parser.add_argument('--interface-runfile-template','--interface', dest="interface_runfile_template", type=str, default="interface_runfile_template.txt", help="Template runfile for mutation runs (default: ./interface_runfile_template.txt)")
-parser.add_argument('--binding-interface', dest="interface", action='store_true', default=False, help="Do calculate binding DDG with mutations")
-parser.add_argument('--clean', dest="clean", action='store', default='partial', choices=['partial','deep','none'], help="Clean output directories after calculation (partial, deep or none)")
-parser.add_argument('--compress', dest="compress", action='store_true', default=False, help="Compress mutations directory to .tar.gz file")
-parser.add_argument('-c','--no-multimers', dest='multimers', action='store_false', default=True, help="Whether to consider multimers")
+parser.add_argument('pdb', metavar='PDBFILE', type=str, nargs='+', help="One or more PDB file to run the mutational scan on")
+parser.add_argument('-a', '--multiple-models', 
+                        dest='multiple_models', default=False, action='store_true', 
+                        help="indipendently use multiple models found in the PDB")
+parser.add_argument('-u','--no-multimers', 
+                        dest='multimers', action='store_false', default=True, 
+                        help="don't consider multimers when running the mutational scan")
+parser.add_argument('-n', '--nruns', 
+                        dest='nruns', default=5, action='store', type=int, 
+                        help="number of FoldX mutation runs per mutation (default: 5)")
+parser.add_argument('-p', '--np', 
+                        dest='np', default=1, type=int, 
+                        help="number of FoldX processes to be run at the same time (default: 1)")
+parser.add_argument('-m', '--mutlist', 
+                        dest="mutlist", default=None, type=str, 
+                        help="file containing the residue types that each residue will be mutated to")
+parser.add_argument('-s', '--self-mutate', 
+                        dest="selfmutate", default=False, action="store_true", 
+                        help="ignore mutation list and perform mutation to the same residue")
+parser.add_argument('-x', '--foldx-binary', 
+                        dest="foldx_binary", action='store', type=str, default=foldx_binary_var,
+                        help="location of the FoldX binary (default: content of the FOLDX_BINARY system variable)")
+parser.add_argument('-b', '--rotabase', 
+                        dest="rotabase", action="store", type=str, default=foldx_rotabase_var,
+                        help="location of the FoldX rotabase.txt file (default: content of the FOLDX_ROTABASE system variable)")
+parser.add_argument('-f', '--foldx-version', 
+                        dest="foldx_version", action='store', choices=list(supported_foldx_versions), default=list(supported_foldx_versions)[0],
+                        help="FoldX version to be used (possible options: %s" % ", ".join(list(supported_foldx_versions)))
+parser.add_argument('-l', '--foldx-log', 
+                        dest="write_log", default=False, action='store_true', 
+                        help="write FoldX standard output on file for each run")
+parser.add_argument('-R', '--repair-runfile-template','--repair', 
+                        dest="repair_runfile_template", type=str, default="repair_runfile_template.txt", 
+                        help="template runfile for repair runs (default: ./repair_runfile_template.txt)")
+parser.add_argument('-M', '--mutate-runfile-template','--mutate', 
+                        dest="mutate_runfile_template", type=str, default="mutate_runfile_template.txt", 
+                        help="template runfile for mutation runs (default: ./mutate_runfile_template.txt)")
+parser.add_argument('-I', '--binding-runfile-template','--binding', 
+                        dest="interface_runfile_template", type=str, default="interface_runfile_template.txt", 
+                        help="template runfile for mutation runs (default: ./interface_runfile_template.txt)")
+parser.add_argument('-B', '--binding-energy', 
+                        dest="interface", action='store_true', default=False, 
+                        help="do calculate binding DDG with mutations")
+parser.add_argument('-C', '--clean', 
+                        dest="clean", action='store', default='partial', choices=['partial','deep','none'], 
+                        help="clean output directories after calculation (partial, deep or none)")
+parser.add_argument('-c', '--compress', 
+                        dest="compress", action='store_true', default=False, 
+                        help="compress mutations directory to .tar.gz file")
+parser.add_argument('-L','--use-links', 
+                        dest="use_links", default=False, action='store_true', 
+                        help="use links instead of copying files as much as possibile")
+parser.add_argument('-v', '--verbose', 
+                        dest="verbose", default=False, action='store_true', 
+                        help="toggle verbose mode")
 
-# XXX: remove default verbose mode
+
+args = parser.parse_args()
+
 log.basicConfig(level=log.INFO)
 log.info("MutateX logging started.")
 log.info("Running on Python %s, the interpreter is %s" % (platform.python_version(), sys.executable))
-
-args = parser.parse_args()
 
 # Whether current foldx version can generate a rotabase file
 foldx_can_generate_rotabase = supported_foldx_versions[args.foldx_version].can_generate_rotabase
@@ -130,7 +162,7 @@ default_mutlist = ('G','A','V','L','I','M','F','W','P','S','T','C','Y','N','Q','
 pdb_structures = []
 try:
     for pdb in args.pdb:
-        pdb_structures.append(load_structures(pdb, check_models = not args.skip_check))
+        pdb_structures.append(load_structures(pdb, check_models=True))
 except:
     log.error("Couldn't load PDB structure; exiting...")
     exit(1)
@@ -176,7 +208,7 @@ log.info("working directory will be: %s" % main_dir)
 pdbs_list = []
 
 for p in range(len(pdb_structures)):
-    pdbs_list.extend( split_pdb(args.pdb[p], pdb_structures[p], not args.skip_check) )
+    pdbs_list.extend( split_pdb(args.pdb[p], pdb_structures[p], True) )
 
 log.info("starting phase 2: REPAIR")
 
@@ -292,26 +324,22 @@ for r in unique_residues:
                                     clean = mutate_clean
                                     ))
 
-if not args.skip_mutate:
-    for r in mutation_runs:
-        log.info("Preparing for mutation run %s" % r.name)
-        r.prepare()
+for r in mutation_runs:
+    log.info("Preparing for mutation run %s" % r.name)
+    r.prepare()
 
-    log.info("Running mutate runs")
+log.info("Running mutate runs")
 
-    mutate_outcome = parallel_foldx_run(mutation_runs, np=args.np)
+mutate_outcome = parallel_foldx_run(mutation_runs, np=args.np)
 
-    for i,outcome in enumerate(mutate_outcome):
-        mutation_runs[i].finished = outcome
+for i,outcome in enumerate(mutate_outcome):
+    mutation_runs[i].finished = outcome
 
-    if False in list(zip(*mutate_outcome))[1]:
-        log.warning("The following mutation runs failed to complete. The corresponding positions in sequence will be skipped.")
-    for i in [x for x in mutate_outcome if x[1] == False]:
-        log.warning("\t%s" % i[0])
-        unique_residues.remove(i[0])
-
-else:
-    log.info("Mutation phase skipped, as requested")
+if False in list(zip(*mutate_outcome))[1]:
+    log.warning("The following mutation runs failed to complete. The corresponding positions in sequence will be skipped.")
+for i in [x for x in mutate_outcome if x[1] == False]:
+    log.warning("\t%s" % i[0])
+    unique_residues.remove(i[0])
 
 #working_directory = os.path.join(main_dir, results_dirname)
 log.info("Working directory is: %s" % working_directory)
@@ -336,143 +364,137 @@ if args.interface:
     if False in list(zip(*interface_outcome))[1]:
         log.warning("Some interface runs failed to complete.")
 
+if args.selfmutate:
+    report = EnergyReport()
 
-if not args.skip_report:
+energies = []
 
-    if args.selfmutate:
-        report = EnergyReport()
+working_directory = os.path.join(main_dir, results_dirname, mutations_results_dirname)
+try:
+    safe_makedirs(working_directory)
+except:
+    exit(1)
 
-    energies = []
-
-    working_directory = os.path.join(main_dir, results_dirname, mutations_results_dirname)
+for pdb in repaired_pdbs_list:
+    this_pdb_dir = working_directory+"/"+os.path.splitext(os.path.basename(pdb))[0]
     try:
-        safe_makedirs(working_directory)
+        safe_makedirs(this_pdb_dir)
     except:
         exit(1)
 
+try:
+    safe_makedirs(working_directory+"/"+averages_dirname)
+except:
+    exit(1)
+
+for res in unique_residues:
+    name = name_separator.join(res)
+    energies = []
+
+    #print "UQ", unique_residues
+    #for i in mutation_runs: print i.name
+    this_runs = [ x for x in mutation_runs if x.name == name ]
+    #print this_runs, "THIS_RUNS"
+    dobreak = False
+    for r in this_runs:
+        pdb = r.pdbs[0]
+        try:
+            energies.append(current_version.parse_mutations_fxout(r.working_directory, r.pdbs, r.mutlist))
+        except:
+            log.warning("Couldn't parse energy file for PDB %s; mutation site %s will be skipped." % (pdb, r.name))
+            dobreak=True
+            break
+        if args.selfmutate:
+            report.add_residue(pdb="".join(os.path.splitext(os.path.basename(pdb))[:-1]), res=r.name, energy=energies[-1])
+        else:
+            save_energy_file(working_directory+"/"+"".join(os.path.splitext(os.path.basename(pdb))[:-1])+"/"+r.name, energies[-1], do_avg=True, do_std=True, do_max=True, do_min=True)
+    if dobreak:
+        continue
+
+    if not args.selfmutate:
+        save_energy_file(working_directory+"/"+averages_dirname+"/"+r.name, np.average(energies, axis=2), axis=0, do_avg=True, do_std=True, do_max=True, do_min=True)
+if args.selfmutate:
+    report.save(working_directory)
+
+if args.interface:
+    working_directory = os.path.join(main_dir, results_dirname, interface_results_dirname)
+
     for pdb in repaired_pdbs_list:
-        this_pdb_dir = working_directory+"/"+os.path.splitext(os.path.basename(pdb))[0]
+        this_pdb_dir = os.path.join(working_directory, os.path.splitext(os.path.basename(pdb))[0])
         try:
             safe_makedirs(this_pdb_dir)
         except:
             exit(1)
 
     try:
-        safe_makedirs(working_directory+"/"+averages_dirname)
+        safe_makedirs(os.path.join(working_directory, averages_dirname))
     except:
         exit(1)
 
-    for res in unique_residues:
-        name = name_separator.join(res)
-        energies = []
+    unique_residues_str = [ "_".join(i) for i in unique_residues ]
+    for res in unique_residues_str:
+        energies = {}
+        this_runs = []
+        tmp_this_runs = [ x for x in interface_runs if x.name == res ]
+        original_pdbs = list(set([r.original_pdb for r in tmp_this_runs]))
+        for op in original_pdbs:
+            this_runs.append(next((r for r in tmp_this_runs if r.original_pdb == op)))
 
-        #print "UQ", unique_residues
-        #for i in mutation_runs: print i.name
-        this_runs = [ x for x in mutation_runs if x.name == name ]
-        #print this_runs, "THIS_RUNS"
-        dobreak = False
-        for r in this_runs:
-            pdb = r.pdbs[0]
+        #print "RUNNY", [r.name for r in this_runs]
+        for run in this_runs:
+                                #print "RUNNN", run, run.name, run.pdbs
             try:
-                energies.append(current_version.parse_mutations_fxout(r.working_directory, r.pdbs, r.mutlist))
+                this_energies = run.foldx_version.parse_interaction_energy_summary_fxout(    run.working_directory,
+                                                                                            run.pdbs,
+                                                                                            run.mutlist    )
             except:
                 log.warning("Couldn't parse energy file for PDB %s; mutation site %s will be skipped." % (pdb, r.name))
-                dobreak=True
-                break
-            if args.selfmutate:
-                report.add_residue(pdb="".join(os.path.splitext(os.path.basename(pdb))[:-1]), res=r.name, energy=energies[-1])
-            else:
-                save_energy_file(working_directory+"/"+"".join(os.path.splitext(os.path.basename(pdb))[:-1])+"/"+r.name, energies[-1], do_avg=True, do_std=True, do_max=True, do_min=True)
-        if dobreak:
-            continue
+                continue
 
-        if not args.selfmutate:
-            save_energy_file(working_directory+"/"+averages_dirname+"/"+r.name, np.average(energies, axis=2), axis=0, do_avg=True, do_std=True, do_max=True, do_min=True)
-    if args.selfmutate:
-        report.save(working_directory)
-
-    if args.interface:
-        working_directory = os.path.join(main_dir, results_dirname, interface_results_dirname)
-
-        for pdb in repaired_pdbs_list:
-            this_pdb_dir = os.path.join(working_directory, os.path.splitext(os.path.basename(pdb))[0])
-            try:
-                safe_makedirs(this_pdb_dir)
-            except:
-                exit(1)
-
-        try:
-            safe_makedirs(os.path.join(working_directory, averages_dirname))
-        except:
-            exit(1)
-
-        unique_residues_str = [ "_".join(i) for i in unique_residues ]
-        for res in unique_residues_str:
-            energies = {}
-            this_runs = []
-            tmp_this_runs = [ x for x in interface_runs if x.name == res ]
-            original_pdbs = list(set([r.original_pdb for r in tmp_this_runs]))
-            for op in original_pdbs:
-                this_runs.append(next((r for r in tmp_this_runs if r.original_pdb == op)))
-
-            #print "RUNNY", [r.name for r in this_runs]
-            for run in this_runs:
-                                    #print "RUNNN", run, run.name, run.pdbs
-                try:
-                    this_energies = run.foldx_version.parse_interaction_energy_summary_fxout(    run.working_directory,
-                                                                                                run.pdbs,
-                                                                                                run.mutlist    )
-                except:
-                    log.warning("Couldn't parse energy file for PDB %s; mutation site %s will be skipped." % (pdb, r.name))
-                    continue
-
-                for k in list(this_energies):
-                    labels = tuple(sorted(list(k)))
-                    this_wd = os.path.join(    working_directory,
-                                            "".join(os.path.splitext(os.path.basename(run.original_pdb))[:-1]),
-                                            "%s-%s" % labels)
-                    try:
-                        safe_makedirs(this_wd)
-                    except:
-                        exit(1)
-
-                    #print "KEYIN", k
-                    if k not in list(energies):
-                        energies[k] = [this_energies[k]]
-                        #print "NOVEL"
-                    else:
-                        #print "OLDEL"
-                        energies[k].append(this_energies[k])
-
-                    save_interaction_energy_file(os.path.join(this_wd, run.name),
-                                                    this_energies[k],
-                                                    axis=1,
-                                                    do_avg=True,
-                                                    do_std=True,
-                                                    do_max=True,
-                                                    do_min=True)
-
-            for k,e in iteritems(energies):
+            for k in list(this_energies):
                 labels = tuple(sorted(list(k)))
-                this_wd = os.path.join(working_directory, averages_dirname,
+                this_wd = os.path.join(    working_directory,
+                                        "".join(os.path.splitext(os.path.basename(run.original_pdb))[:-1]),
                                         "%s-%s" % labels)
                 try:
                     safe_makedirs(this_wd)
                 except:
                     exit(1)
 
+                #print "KEYIN", k
+                if k not in list(energies):
+                    energies[k] = [this_energies[k]]
+                    #print "NOVEL"
+                else:
+                    #print "OLDEL"
+                    energies[k].append(this_energies[k])
+
                 save_interaction_energy_file(os.path.join(this_wd, run.name),
-                        np.average(energies[k],axis=2),
-                        axis=0,
-                        do_avg=True,
-                        do_std=True,
-                        do_max=True,
-                        do_min=True)
+                                                this_energies[k],
+                                                axis=1,
+                                                do_avg=True,
+                                                do_std=True,
+                                                do_max=True,
+                                                do_min=True)
 
-else:
-    log.info("Reporting phase was skipped, as requested.")
+        for k,e in iteritems(energies):
+            labels = tuple(sorted(list(k)))
+            this_wd = os.path.join(working_directory, averages_dirname,
+                                    "%s-%s" % labels)
+            try:
+                safe_makedirs(this_wd)
+            except:
+                exit(1)
 
-if args.compress and not args.skip_mutate:
+            save_interaction_energy_file(os.path.join(this_wd, run.name),
+                    np.average(energies[k],axis=2),
+                    axis=0,
+                    do_avg=True,
+                    do_std=True,
+                    do_max=True,
+                    do_min=True)
+
+if args.compress:
     compress_mutations_dir(main_dir, mutations_dirname)
 
 log.info("All done!")
