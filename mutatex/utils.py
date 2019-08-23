@@ -21,9 +21,11 @@ import numpy as np
 import logging as log
 from six import iteritems
 from Bio import PDB
+from multiprocessing.pool import ThreadPool
 import matplotlib
 import sys
 import os
+import signal
 import argparse
 import multiprocessing as mp
 import logging as log
@@ -515,7 +517,7 @@ def parallel_foldx_run(foldx_runs, np):
     results : list of (str, bool) tuples
         whether each run has been complete successfully (name and status)
     """
-    pool = mp.Pool(np)
+    pool = ThreadPool(np)
 
     result = pool.imap_unordered(foldx_worker, foldx_runs)
 
@@ -698,3 +700,36 @@ def compress_mutations_dir(cwd, mutations_dirname, mutations_archive_fname='muta
     log.info("Removing mutations directory ...")
     shutil.rmtree(mutations_dir_path)
     return
+
+def kill_subprocess(pid):
+    """
+    kills a subprocess manually in case of disorderly exit
+    Parameters
+    ----------
+    pid : int or None
+        process ID or None
+    """
+
+    if pid is not None:
+        try:
+            os.kill(pid, signal.SIGKILL)
+            log.info("terminating FoldX subprocess %d" % pid)
+        except ProcessLookupError:
+            pass
+
+def termination_handler(signalnum, handler):
+    """
+    handle SIGTERM and SIGINT intelligently and exits. Calling exit() allows to
+    kill all the processes registered in atexit, which are all the foldx runs
+    currently undergoing
+    Parameters
+    ----------
+    signalnum : int
+        signal number
+    handler : instance of frame
+        frame object
+    """
+
+    log.info("Received termination signal - mutatex will be stopped")
+    log.shutdown()
+    sys.exit(-1)

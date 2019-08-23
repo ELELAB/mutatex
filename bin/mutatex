@@ -16,11 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-# Gather info about FoldX version
-
 import sys
 import os
+import signal
 import argparse
 import logging as log
 import numpy as np
@@ -29,6 +27,9 @@ from Bio import PDB
 from six import iteritems
 from mutatex.utils import *
 from mutatex.core import * 
+
+signal.signal(signal.SIGTERM, termination_handler)
+signal.signal(signal.SIGINT, termination_handler)
 
 mutatex_version = "0.8"
 
@@ -279,7 +280,6 @@ for pdb in repaired_pdbs_list:
             log.error("PDB %s will be ignored." % pdb)
             repaired_pdbs_list.remove(pdb)
             continue
-        print(pdb, 'XXX')
         try:
             residues_list.append(get_foldx_sequence(pdb, multimers=args.multimers))
         except IOError:
