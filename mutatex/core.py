@@ -18,6 +18,7 @@
 
 import sys
 import os
+import atexit
 import argparse
 import subprocess as sp
 import logging as log
@@ -896,18 +897,24 @@ class FoldXRun(object):
             this_stdout_str = os.devnull
 
         with open(this_stdout_str, 'w') as this_stdout:
-            returncode = sp.call(runline, cwd=self.working_directory, stderr=sp.STDOUT, stdout=this_stdout)
+            process = sp.Popen(runline, cwd=self.working_directory, stderr=sp.STDOUT, stdout=this_stdout)
+            atexit.register(kill_subprocess, process.pid)
 
-        if returncode == 0:
-            log.info("run %s has completed successfully" % self.name)
-            self.finished = True
+            returncode = process.wait()
 
-            self.process_output(**self.output_processing)
-            return True
-        else:
-            log.warning("FoldX exited with error for run %s!" % self.name)
+        if return_code < 0:
+            log.info("run %s was terminated before completing")
             return False
 
+        elif returncode == 0:
+            log.info("run %s has completed successfully" % self.name)
+            self.finished = True
+            self.process_output(**self.output_processing)
+            return True
+
+        else:
+            log.warning("FoldX exited with error for run %s! Return code %d" % (self.name, returncode))
+            return False
 
     def check_status(self):
         """
