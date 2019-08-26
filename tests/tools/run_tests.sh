@@ -1,11 +1,16 @@
 #!/bin/bash
 
-export BASEDIR="../foldxsuite5_run_py3/basic"
+export BASEDIR="../foldxsuite5/basic"
 export MUTLIST=$BASEDIR"/mutation_list.txt"
 export PDB=$BASEDIR"/2klz_1.pdb"
 export RESULTS=$BASEDIR"/results/mutation_ddgs/2klz_1_model0_checked_Repair/"
 
 export BASEOPT="-p $PDB"
+
+if [[ ! -d $BASEDIR/results ]]; then
+	echo "the results directory doesn't exist in the target directory; tests will not be performed"
+	exit
+fi
 
 export tools=(ddg2density ddg2dg ddg2distribution ddg2histo pdb2labels ddg2logo ddg2heatmap ddg2pdb ddg2summary ddg2excel)
 export options=("-l $MUTLIST -d $RESULTS"
