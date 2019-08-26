@@ -902,8 +902,8 @@ class FoldXRun(object):
 
             returncode = process.wait()
 
-        if return_code < 0:
-            log.info("run %s was terminated before completing")
+        if returncode < 0:
+            log.info("run %s was terminated before completing" % self.name)
             return False
 
         elif returncode == 0:
