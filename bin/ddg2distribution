@@ -102,7 +102,7 @@ def plot_violin(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys_r'
     plt.ylim(vmin, vmax)
 
     plt.xlabel("Residue id")
-    plt.ylabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
+    plt.ylabel(r'FoldX $\Delta\Delta{}$G (kcal/mol)')
     rotation_xt=90
     plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
     plt.xlim(0,mat.shape[1]+1)
@@ -162,7 +162,7 @@ def plot_single(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
             plt.annotate(res, (j + x_offset, y_coords[j-1][i]), fontsize = fontsize)
 
     plt.xlabel("Residue id")
-    plt.ylabel(r'FoldX $\Delta\Delta{}G (kcal/mol)$')
+    plt.ylabel(r'FoldX $\Delta\Delta{}$G (kcal/mol)')
     rotation_xt=90
     plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
     plt.xlim(0,mat.shape[0]+1)
@@ -184,7 +184,7 @@ def plot_stemplot(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys'
     sc = ax.scatter(xticks, mean_means, s=100, c=mean_means, marker='o', edgecolors='grey', cmap=cm, alpha=1)
     ax.errorbar(xticks, mean_means, yerr=ste, ls='None', color='grey')
     ax.set_xlabel('Wild-type Amino Acids')
-    ax.set_ylabel(r'Mean FoldX $\Delta\Delta{}G (kcal/mol)$')
+    ax.set_ylabel(r'Mean FoldX $\Delta\Delta{}$G (kcal/mol)')
     plt.xticks(xticks, xt, rotation='vertical', size=fontsize)
     plt.colorbar(sc)
     plt.ylim(vmin, vmax)
@@ -221,7 +221,7 @@ def plot_scatter(mat, xlabels, vmin, vmax, title=None, fontsize=8, topmuts=0, cm
     ax = plt.subplot(111)
     sc = ax.scatter(xs, mean_means, s=20, marker='o', c=mean_means_color, edgecolors='grey', cmap=cm, alpha=1)
     ax.set_xlabel('Wild-type Amino Acids')
-    ax.set_ylabel(r'Mean FoldX $\Delta\Delta{}G (kcal/mol)$')
+    ax.set_ylabel(r'Mean FoldX $\Delta\Delta{}$G (kcal/mol)')
     plt.xticks(xticks, xt)
     plt.xlim((0,len(xticks)+1))
 
