@@ -99,11 +99,16 @@ def set_default_font(font):
     matplotlib.rcParams['font.sans-serif'] = [ font ]
 
 def parse_label_file(csv_fname, fnames, default_labels):
+    if sys.version_info[0] <= 2:
+        read_format = 'rb'
+    else:
+        read_format = 'r'
+
     label_dict = {}
     labels = list(default_labels)
 
     try:
-        with open(csv_fname, 'rb') as csvfile:
+        with open(csv_fname, read_format) as csvfile:
             csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
             for row in csv_reader:
                 if row[0] == 'Residue_name':
