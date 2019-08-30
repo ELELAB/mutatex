@@ -359,7 +359,6 @@ def get_foldx_sequence(pdb, multimers=True):
 
     return tuple(residue_list)
 
-
 def safe_makedirs(dirname):
     """
     Safely creates directories and handle corner cases.
