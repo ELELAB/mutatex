@@ -283,7 +283,9 @@ def get_residue_list(infile, multimers=True, get_structure=False):
                     except:
                         log.warning("Residue %s couldn't be recognized; it will be skipped" % residue)
                         continue
-                    residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
+                    this_res = tuple(sorted([ "%s%s%d" % (res_code, c, resid) for c in cg ], key=lambda x: x[1]))
+                    residue_list.append(this_res)
+
 
     if get_structure:
         return residue_list, structure
@@ -352,10 +354,10 @@ def get_foldx_sequence(pdb, multimers=True):
                     except:
                         log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
                         continue
-                    residue_list.append(tuple([ "%s%s%d" % (res_code, c, resid) for c in cg ]))
+                    this_res = tuple(sorted([ "%s%s%d" % (res_code, c, resid) for c in cg ], key=lambda x: x[1]))
+                    residue_list.append(this_res)
 
     return tuple(residue_list)
-
 
 def safe_makedirs(dirname):
     """
