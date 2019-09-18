@@ -155,8 +155,9 @@ try:
         for residx, mutidx in mutation_list:
             resname = ",".join([ x + res_order[mutidx] for x in res_ids[residx] ] )
             fname = os.path.join(options.ddg_dir, "_".join(res_ids[residx]))
-            ddg = parse_ddg_file(fname, reslist=res_order, full=True).T
-            fh.write("%s\t" % resname)
-            fh.write("%.3f\t%.3f\t%.3f\t%.3f\n" % tuple(ddg[mutidx]))
+            ddg = parse_ddg_file(fname, reslist=res_order, full=True)
+            ddg_order = np.argsort(ddg[0])
+            this_pos = np.where(ddg_order == mutidx)[0][0]
+            fh.write("%s\t%.3f\t%.3f\t%.3f\t%.3f\t%d\n" % tuple([resname] + list(ddg.T[mutidx]) + [this_pos + 1]))
 except IOError:
     log.error("couldn't write output file, exiting...")
