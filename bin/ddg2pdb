@@ -25,7 +25,7 @@ import logging as log
 
 LOGFMT = "%(levelname)s: %(message)s"
 
-description='ddg2pdb: write MutateX DDGs in the B-factor field of PDB files',
+description='ddg2pdb: write MutateX DDGs in the B-factor field of PDB files'
 epilog='''ddg2pdb counts the number of mutants per mutation site that are within a
 given range of DDG, and writes this number in the B-factor field of the
 structure from the input PDB file. The range of accepted DDG values to be
@@ -68,7 +68,6 @@ optional.add_argument("-o","--output-pdb", dest="out_pdb", default="ddgs.pdb", h
 
 optional = init_arguments(['verbose'], optional)
 
-# parse ddg files
 parser._action_groups.append(optional)
 options = parser.parse_args()
 
