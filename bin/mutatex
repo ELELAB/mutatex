@@ -105,7 +105,6 @@ parser.add_argument('-v', '--verbose',
                         dest="verbose", default=False, action='store_true', 
                         help="toggle verbose mode")
 
-
 args = parser.parse_args()
 
 log.basicConfig(level=log.INFO)
@@ -149,6 +148,22 @@ current_version = supported_foldx_versions[args.foldx_version]( binary=args.fold
                                                                 rotabase=args.rotabase)
 
 log.info("FoldX version %s will be used" % current_version.version)
+
+try:
+    repair_runfile = load_runfile(args.repair_runfile_template)
+except:
+    exit(1)
+
+try:
+    mutate_runfile = load_runfile(args.mutate_runfile_template)
+except:
+    exit(1)
+
+if args.interface:
+    try:
+        binding_runfile = load_runfile(args.interface_runfile_template)
+    except:
+        exit(1)
 
 # defaults
 repair_dirname = "repair"
@@ -224,12 +239,13 @@ log.info("working dir: %s" %working_directory)
 
 repair_runs = []
 
+
 for pdb in pdbs_list:
     repair_runs.append(FoldXRepairRun(name = "repair_"+os.path.splitext(pdb)[0],
                                     foldx_version = current_version,
                                     base_directory = working_directory,
                                     pdbs = [pdb],
-                                    runfile_content=load_runfile(args.repair_runfile_template),
+                                    runfile_content=repair_runfile,
                                     link_files = args.use_links,
                                     write_log = args.write_log,
                                     clean = args.clean
@@ -316,7 +332,7 @@ for r in unique_residues:
                                     foldx_version = current_version,
                                     base_directory = this_workdir,
                                     pdbs = [pdb],
-                                    runfile_content = load_runfile(args.mutate_runfile_template),
+                                    runfile_content = mutate_runfile,
                                     link_files = args.use_links,
                                     write_log = args.write_log,
                                     runfile_processing = {"nruns":args.nruns},
@@ -355,7 +371,7 @@ if args.interface:
             #pdbs = pdbs[:-1]
         this_interaction_run = FoldXInterfaceRun(mr)
         this_interaction_run.do_clean = args.clean
-        this_interaction_run.runfile_content = load_runfile(args.interface_runfile_template)
+        this_interaction_run.runfile_content = binding_runfile
         this_interaction_run.runfile_name = "interaction_energy_runfile.txt"
         this_interaction_run.prepare()
         interface_runs.append(this_interaction_run)
