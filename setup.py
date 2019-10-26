@@ -31,21 +31,21 @@ setup(
               'bin/ddg2dg',
               'bin/ddg2histo',
               'bin/ddg2logo',
-              'bin/ddg2pdb',
-              'bin/ddg2summary' ],
+              'bin/ddg2pdb'],
+
     install_requires=[ 'biopython',
                        'matplotlib',
+		       'numpy',
                        'scipy',
                        'six',
                        'openpyxl'],
     package_data={
         '': ['LICENSE', '*.md'],
     },
-    # metadata to display on PyPI
-    author="Matteo Tiberti",
+    author="Matteo Tiberti, Thilde Terkelsen, Tycho Canter Cremers",
     author_email="matteo.tiberti@gmail.com",
     description="scripts and utilities to automate FoldX runs",
     keywords="foldx energy mutation",
-    url="https://github.com/ELELAB/mutatex",   # project home page, if any
+    url="https://github.com/ELELAB/mutatex",
 )
 
