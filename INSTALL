@@ -1,0 +1,43 @@
+INSTALLATION
+============
+
+Requirements
+------------
+
+MutateX is designed to run on Linux and MacOS. It requires Python 2.7 and >=3.7
+and the following Python packages:
+
+setuptools
+biopython
+matplotlib
+numpy
+scipy
+six
+openpyxl
+
+The most convenient way to install MutateX is by creating a Python virtual 
+environment in which all the requirements will be installed. In order to do
+this, you should have the virtualenv and pip packages installed in your system
+as well.
+
+1) if you have git, download the git codebase or clone the repository:
+
+	git clone https://github.com/ELELAB/mutatex.git
+
+2) First create the virtual environment using the virtualenv package and 
+activate it:
+
+	virtualenv mutatex-env
+	. mutatex-env/bin/activate
+
+3) install mutatex using the included setup file. All the requirements will
+will be automatically installed
+
+	cd mutatex
+	python setup.py install 
+
+4) The mutatex scripts should now be available to run
+
+MutateX also requires a version of FoldX to be present on your system. Please
+refer to http://foldxsuite.crg.eu to obtain one.
+
