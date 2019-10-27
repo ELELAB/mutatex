@@ -20,6 +20,12 @@ environment in which all the requirements will be installed. In order to do
 this, you should have the virtualenv and pip packages installed in your system
 as well.
 
+MutateX also requires a version of FoldX to be present on your system. Please
+refer to http://foldxsuite.crg.eu to obtain one.
+
+Installation steps
+------------------
+
 1) if you have git, download the git codebase or clone the repository:
 
 	git clone https://github.com/ELELAB/mutatex.git
@@ -38,6 +44,16 @@ will be automatically installed
 
 4) The mutatex scripts should now be available to run
 
-MutateX also requires a version of FoldX to be present on your system. Please
-refer to http://foldxsuite.crg.eu to obtain one.
+5) This step is optional, but strongly advised. MutateX needs to know the 
+location of the FoldX binary and rotabase.txt file in order to work. Depending
+on the version you are using, you might need to provide the binary file only.
+MutateX first tries to find these files looking at the content of the FOLDX_BINARY
+and FOLDX_ROTABASE system variables. Therefore, it is advisable to set these 
+system variables in the .profile or .bashrc file in your user's home, by adding
+the following lines:
 
+	export FOLDX_BINARY=/usr/local/foldx/foldx
+	export FOLDX_ROTABASE=/usr/local/foldx/rotabase.txt
+
+alternatively, the user can provide the location of such files directly on the
+command line of the mutatex script.
