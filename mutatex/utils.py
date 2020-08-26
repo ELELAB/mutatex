@@ -163,6 +163,43 @@ def parse_ddg_file(fname, reslist=None, full=False):
         return ddgs
     return ddgs[0]
 
+def parse_poslist_file(fname):
+    """
+    Parser function for position list files
+    Parameters
+    ----------
+    fname : str
+        name of the file to be read
+    Returns
+    -------
+    restypes : list of str
+        list of MutateX residue identifiers
+    """
+
+    out = []
+    re_position = '[A-Z][A-Z][0-9]+'
+    matcher = re.compile(re_position)
+
+    try:
+        fh = open(fname, 'r')
+    except IOError:
+        log.error("Couldn't open position list file %s" % fname)
+        raise IOError
+
+    for line in fh:
+        if (not line.startswith('#') or not line.strip()):
+            tmp = line.strip().split()
+            if len(tmp) != 1:
+                log.error("the position list file is not in the right format")
+                raise TypeError
+            res = tmp[0]
+            if matcher.match(res) is None:
+                log.error("the position list file is not in the right format")
+                raise TypeError
+            out.append(res)
+
+    return list(set(out))
+
 def parse_mutlist_file(fname):
     """
     Parser function for mutation list files
