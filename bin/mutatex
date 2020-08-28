@@ -319,19 +319,8 @@ if args.poslist is not None:
     except (IOError, TypeError):
         exit(1)
 
-    filtered_unique_residues = []
-    for p in poslist:
-        added = False
-        for u in unique_residues:
-            if p in u:
-                if not u in filtered_unique_residues:
-                    filtered_unique_residues.append(u)
-                added = True
-                break
-        if not added:
-            log.error("Position %s was not identified in the input PDB files. Exiting..." % p)
-            exit(1)
-    unique_residues = filtered_unique_residues
+    unique_residues = filter_reslist(unique_residues, poslist)
+
 else:
     log.info("All positions will be considered")
 

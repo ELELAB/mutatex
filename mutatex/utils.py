@@ -61,7 +61,9 @@ def init_arguments(arguments, parser):
         elif arg == 'data':
             parser.add_argument("-d","--data-directory", dest="ddg_dir", type=str, help="Input DDG data directory", required=True)
         elif arg == 'mutation_list':
-            parser.add_argument("-l","--mutation_list", dest="mutation_list",  help="MutateX mutation list file", required=True)
+            parser.add_argument("-l","--mutation-list", dest="mutation_list",  help="MutateX mutation list file", required=True)
+        elif arg == 'position_list':
+            parser.add_argument("-q","--position-list", dest="position_list",  help="MutateX position list file", default=None)
         elif arg == 'multimers':
             parser.add_argument("-M","--multimers", dest="multimers", default=True, action='store_false', help="Do not use multimers (default: yes)")
         elif arg == 'labels':
@@ -177,7 +179,7 @@ def parse_poslist_file(fname):
     """
 
     out = []
-    re_position = '[A-Z][A-Z][0-9]+'
+    re_position = '(([A-Z]?[A-Z][0-9]+)_?)+'
     matcher = re.compile(re_position)
 
     try:
@@ -187,18 +189,65 @@ def parse_poslist_file(fname):
         raise IOError
 
     for line in fh:
-        if (not line.startswith('#') or not line.strip()):
-            tmp = line.strip().split()
-            if len(tmp) != 1:
-                log.error("the position list file is not in the right format")
-                raise TypeError
-            res = tmp[0]
-            if matcher.match(res) is None:
-                log.error("the position list file is not in the right format")
-                raise TypeError
-            out.append(res)
+        if matcher.fullmatch(line.strip()) is None:
+            log.error("the position list file is not in the right format")
+            log.error("format error at %s" % line.strip())
+            raise TypeError
+
+        tmp = line.strip().split("_")
+
+        numbers = [ re.sub("[^0-9]", "", x) for x in tmp ]
+
+        if len(set([len(x) for x in tmp])) != 1 or\
+        len(set(tmp)) != len(tmp) or\
+        len(set(numbers)) != 1:
+            log.error("the position list file is not in the right format")
+            log.error("format error at %s" % line.strip())
+            raise TypeError
+
+        out.append(tuple(sorted([s if str.isdigit(s[1]) else s[1:] for s in tmp])))
 
     return list(set(out))
+
+def filter_reslist(reslist, ref):
+    """
+    Filters MutateX residue list so that only the residues matching the
+    reference list are kept
+    Parameters
+    ----------
+    reslist : list of tuples
+        list of residues in MutateX residue specification format
+        This is the list to be filtered
+    ref : list of tuples
+        list of residues. The format of these should be the one
+        produced by parse_poslist_file (i.e. similar to the standard
+        residue specification, just without the residue type as first
+        letter)
+
+    Returns
+    -------
+    filtered_reslist : list of str
+        filtered list of residues in MutateX residue specification format
+    """
+
+    filtered_reslist = []
+
+    edited_reslist = [ set([ x[1:] for x in r ]) for r in reslist ]
+
+    for p in ref:
+        added = False
+        for i,u in enumerate(reslist):
+            if set(p).issubset(edited_reslist[i]):
+                if not u in filtered_reslist:
+                    filtered_reslist.append(u)
+                added = True
+                break
+        if not added:
+            pos_str = '_'.join(p)
+            log.error("Position %s was not identified in the input PDB files. Exiting..." % pos_str)
+            raise TypeError
+
+    return sorted(filtered_reslist, key=lambda x: (x[0][1], int(x[0][2:])))
 
 def parse_mutlist_file(fname):
     """
@@ -258,6 +307,7 @@ def get_residue_list(infile, multimers=True, get_structure=False):
     get_structure : bool
         if True, return the ``Bio.PDB.Structure.Structure`` object of the
         input PDB file as well
+
     Returns
     -------
     residue_list : list of tuples
