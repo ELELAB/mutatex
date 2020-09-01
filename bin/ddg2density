@@ -109,7 +109,7 @@ optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
 
 required = init_arguments(['pdb', 'data', 'mutation_list'], required)
-optional = init_arguments(['multimers'], optional)
+optional = init_arguments(['multimers', 'position_list'], optional)
 
 optional.add_argument("-m","--vmin", dest="vmin", type=float, default=-5, help="minimum DDG value for density determination (default: -5.0)")
 optional.add_argument("-x","--vmax", dest="vmax", type=float, default=10, help="maximum DDG value for density determination (default:  10.0)")
@@ -141,6 +141,15 @@ try:
     residue_list = get_residue_list(options.in_pdb, multimers=options.multimers)
 except IOError:
     exit(1)
+
+if options.position_list is not None:
+    log.info("Positions will be read from file")
+    try:
+        poslist = parse_poslist_file(options.position_list)
+    except (IOError, TypeError):
+        exit(1)
+
+    residue_list = filter_reslist(residue_list, poslist)
 
 try:
     mutlist = parse_mutlist_file(options.mutation_list)
