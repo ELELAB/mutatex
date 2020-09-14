@@ -226,6 +226,8 @@ MutateX uses FoldX to systematically calculate the difference in free energy
  Similarly, if more than two protein chains are provided, MutateX can calculate
  the change of free energy of interaction upon mutation for all the tested
  mutations, if requested.
+ Note that MutateX also allows performing partial mutational scans, in which
+ only few positions at a time are considered.
  The protocol followed by MutateX can be summarized as follows:
 \end_layout
 
@@ -986,6 +988,86 @@ By default, if more than one protein chain is present, MutateX automatically
  be mutated independently.
 \end_layout
 
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+--poslist
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+MutateX supports partial mutational scans if requested.
+ This is possible by providing a list of desired positions in a text file,
+ one per line.
+ Positions are defined in a similar format as the output files under the
+ 
+\begin_inset Quotes eld
+\end_inset
+
+results
+\begin_inset Quotes erd
+\end_inset
+
+ folder, so [One-letter wild-type residue type][Chain ID][Residue number].
+ Residue types are optional.
+ If multimer mode is on, you just need to specificy one residue of a multi-chain
+ complex to select the corresponding set of residues in all the chains.
+ For instance, if you only specify AA35 and AB35 is also available, both
+ will be mutated.
+ Likewise, you can use the MutateX file name syntax and ask for AA35_AB35.
+ As mentioned, residue types are optional, meaning that A35_B35 will work
+ as well.
+ A position list file could look something like this:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+CA2
+\end_layout
+
+\begin_layout Plain Layout
+
+A4
+\end_layout
+
+\begin_layout Plain Layout
+
+B8
+\end_layout
+
+\begin_layout Plain Layout
+
+CA2_CB2
+\end_layout
+
+\begin_layout Plain Layout
+
+A6_B6
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Plotting tools (see below) also support partial scans through a specific
+ option.
+\end_layout
+
 \begin_layout Subsection
 Interrupting and restarting a MutateX run
 \end_layout
@@ -1535,6 +1617,12 @@ n.
 
  option to print a helpful description of their purpose and the supported
  options.
+\end_layout
+
+\begin_layout Standard
+By default, all plotting tools assume that a full mutational scan has been
+ performed; if only a partial one has been run, then you need to specify
+ the used position list as an additional input, with option -q.
 \end_layout
 
 \begin_layout Subsubsection
