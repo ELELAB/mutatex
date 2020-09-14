@@ -156,6 +156,9 @@ def parse_ddg_file(fname, reslist=None, full=False):
         log.error("Couldn't open energy file %s or file in the wrong format" % fname)
         raise IOError
 
+    if len(ddgs.shape) == 1:
+        ddgs = np.expand_dims(ddgs, 1)
+
     if reslist is not None:
         if ddgs.shape[1] != len(reslist):
             log.error("file %s has %d values, with %d required." % (fname, len(ddgs), len(reslist)))
@@ -373,11 +376,10 @@ def get_residue_list(infile, multimers=True, get_structure=False):
                     this_res = tuple(sorted([ "%s%s%d" % (res_code, c, resid) for c in cg ], key=lambda x: x[1]))
                     residue_list.append(this_res)
 
-
     if get_structure:
         return residue_list, structure
-    return residue_list
 
+    return residue_list
 
 ########################################
 # Helper functions for the main script #
