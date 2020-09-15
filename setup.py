@@ -31,7 +31,8 @@ setup(
               'bin/ddg2dg',
               'bin/ddg2histo',
               'bin/ddg2logo',
-              'bin/ddg2pdb'],
+              'bin/ddg2pdb',
+              'bin/ddg2summary'],
 
     install_requires=[ 'biopython',
                        'matplotlib',
