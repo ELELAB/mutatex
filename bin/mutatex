@@ -65,6 +65,9 @@ parser.add_argument('-p', '--np',
 parser.add_argument('-m', '--mutlist', 
                         dest="mutlist", default=None, type=str, 
                         help="file containing the residue types that each residue will be mutated to")
+parser.add_argument('-q', '--poslist',
+                        dest="poslist", default=None, type=str,
+                        help="file containing the list of positions to be considered (default is all)")
 parser.add_argument('-s', '--self-mutate', 
                         dest="selfmutate", default=False, action="store_true", 
                         help="ignore mutation list and perform mutation to the same residue")
@@ -308,6 +311,18 @@ if len(unique_residues) != 1:
     exit(1)
 
 unique_residues = list(unique_residues[0])
+
+if args.poslist is not None:
+    log.info("Positions will be read from file")
+    try:
+        poslist = parse_poslist_file(args.poslist)
+    except (IOError, TypeError):
+        exit(1)
+
+    unique_residues = filter_reslist(unique_residues, poslist)
+
+else:
+    log.info("All positions will be considered")
 
 str_unique_residues = ""
 for res in unique_residues:

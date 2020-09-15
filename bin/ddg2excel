@@ -38,15 +38,13 @@ optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
 
 required = init_arguments(['pdb', 'data', 'mutation_list'], required)
-optional = init_arguments(['multimers'], optional)
+optional = init_arguments(['multimers', 'position_list'], optional)
 
 optional.add_argument("-T","--transpose", dest='transpose', action="store_true", default=False, help="swap rows and columns")
 
 optional.add_argument("-o","--output", dest="outfile", action='store', default='energies.xlsx', help="output excel file")
 
-optional = init_arguments(['labels'], optional)
-
-optional = init_arguments(['verbose'], optional)
+optional = init_arguments(['labels', 'verbose'], optional)
 
 parser._action_groups.append(optional)
 options = parser.parse_args()
@@ -61,7 +59,7 @@ try:
 except (IOError, TypeError):
     exit(1)
 
-log.info("Residues list is:")
+log.info("Mutation list is:")
 for i,r in enumerate(res_order):
     log.info("%d\t%s" % (i,r))
 
@@ -69,6 +67,15 @@ try:
     res_ids_str = get_residue_list(options.in_pdb, multimers=options.multimers)
 except IOError:
     exit(1)
+
+if options.position_list is not None:
+    log.info("Positions will be read from file")
+    try:
+        poslist = parse_poslist_file(options.position_list)
+    except (IOError, TypeError):
+        exit(1)
+
+    res_ids_str = filter_reslist(res_ids_str, poslist)
 
 max_len_res_ids = np.max([len(r) for r in res_ids_str])
 if options.multimers:
