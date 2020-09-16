@@ -157,6 +157,7 @@ class EnergyReport:
         energy : float
             energy value
         """
+
         assert(energy.shape[0] == 1)
         energy = energy[0]
 
@@ -197,9 +198,9 @@ class EnergyReport:
         if do_max:
             header_cols.append("max")
 
-        dtype = [('res', 'U8')] + [(i, 'f') for i in header_cols]
+        dtype = [('res', 'U15')] + [(i, 'f') for i in header_cols]
         header = "\t".join(header_cols)
-        fmt=["%8s"] + ["%10f" for f in header_cols]
+        fmt=["%15s"] + ["%10f" for f in header_cols]
 
         for pdb,energies in iteritems(self.energies):
 
@@ -215,11 +216,14 @@ class EnergyReport:
                 out.append(np.max(energies, axis=1))
 
             out = np.array(list(zip(*out)), dtype=dtype)
+            outfile = os.path.join(directory, pdb, fname)
 
             try:
-                np.savetxt(os.path.join(directory, pdb, fname), out, fmt=fmt, header=header)
+                log.info("Writing report %s" % outfile)
+                np.savetxt(outfile, out, fmt=fmt, header=header)
             except:
                 log.error("Couldn't write file %s" % fname)
+                raise IOError
 
 class FoldXVersion:
     """
