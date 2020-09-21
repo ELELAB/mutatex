@@ -3,8 +3,8 @@
 export FOLDX_BINARY=/usr/local/foldx4_2020/foldx
 export FOLDX_ROTABASE=/usr/local/foldx4_2020/rotabase.txt
 export FOLDX_VERSION=suite4
-export NP=4
-export tests=(basic basic_deepclean basic_multimers basic_multimodel basic_noclean basic_nomultimers basic_ptms basic_targz interaction interaction_deepclean interaction_multimers interaction_multimodel interaction_noclean interaction_nomultimers selfmutate selfmutate_multimers selfmutate_multimodel selfmutate_nomultimers basic_poslist basic_multimers_poslist interaction_multimers_poslist)
+export NP=8
+export tests=(basic basic_deepclean basic_multimers basic_multimodel basic_noclean basic_nomultimers basic_ptms basic_targz interaction interaction_deepclean interaction_multimers interaction_multimodel interaction_noclean interaction_nomultimers selfmutate selfmutate_multimers selfmutate_multimodel selfmutate_nomultimers basic_poslist basic_multimers_poslist interaction_multimers_poslist selfmutate_interaction selfmutate_poslist)
 
 runnables=()
 
