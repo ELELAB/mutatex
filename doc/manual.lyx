@@ -1068,6 +1068,39 @@ Plotting tools (see below) also support partial scans through a specific
  option.
 \end_layout
 
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+--self-mutate
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Turns on self-mutation mode.
+ When this option is used, the mutation list (either provided by the user
+ or the default one) is ignored.
+ Instead, each residue is mutated to the type it already has, using templates
+ and options as per a normal mutational scan.
+ This is intended as a sanity check fo the original repaired structure -
+ if the free energy differences are significant when mutating a residue
+ to itself, it's possible it hasn't been properly optimized during repair
+ and we should be careful in interpreting the results for that residue.
+ The runs are performed in a folder called selfmutations, while results
+ are available in the selfmutation_results folder.
+ The results are available as a table in which, for each residue, the maximum,
+ minimum, average and standard deviation of self-mutation free energy difference
+ are reported, calculated over FoldX multiple runs.
+ This is performed both for stability and interaction energy, if requested.
+\end_layout
+
 \begin_layout Subsection
 Interrupting and restarting a MutateX run
 \end_layout

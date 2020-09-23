@@ -176,6 +176,11 @@ mutations_results_dirname = "mutation_ddgs"
 interface_results_dirname = "interface_ddgs"
 averages_dirname = "final_averages"
 DEVNULL = open(os.devnull, 'w')
+
+if args.selfmutate:
+    mutations_dirname = "selfmutations"
+    results_dirname = "results_selfmutation"
+
 default_mutlist = ('G','A','V','L','I','M','F','W','P','S','T','C','Y','N','Q','D','E','K','R','H')
 
 pdb_structures = []
@@ -201,7 +206,7 @@ for p in range(len(pdb_structures)):
 
 # Prepare mutation list
 if args.selfmutate:
-    log.info("Mutation to self will be performed; mutlist will be ignored")
+    log.info("Mutation to self will be performed; mutation list will be ignored")
     mutation_reslist = None
 elif args.mutlist:
     log.info("File %s will be used as mutation list" % args.mutlist)
@@ -276,9 +281,6 @@ repaired_pdbs_list = [repair_runs[i].working_directory+"/"+current_version.repai
 log.info("list of PDBs to be used: %s" % ", ".join(repaired_pdbs_list))
 
 # create working directory
-if args.selfmutate:
-    mutations_dirname = "selfmutations"
-
 working_directory = main_dir+"/"+mutations_dirname
 log.info("Working directory is: %s" % working_directory)
 
@@ -372,18 +374,12 @@ for i in [x for x in mutate_outcome if x[1] == False]:
     log.warning("\t%s" % i[0])
     unique_residues.remove(i[0])
 
-#working_directory = os.path.join(main_dir, results_dirname)
 log.info("Working directory is: %s" % working_directory)
 
 if args.interface:
     log.debug("Calculating interfaces")
     interface_runs = []
     for mr in mutation_runs:
-        #this_pdbs = zip(*current_version.get_mutation_pdb_fnames(mr.working_directory, mr.pdbs, mr, include_original=True))
-        #print "pdbs:", this_pdbs
-        #for i,pdbs in enumerate(this_pdbs):
-            #original_pdb = pdbs[-1]
-            #pdbs = pdbs[:-1]
         this_interaction_run = FoldXInterfaceRun(mr)
         this_interaction_run.do_clean = args.clean
         this_interaction_run.runfile_content = binding_runfile
@@ -397,6 +393,8 @@ if args.interface:
 
 if args.selfmutate:
     report = EnergyReport()
+    if args.interface:
+        interface_reports = {}
 
 energies = []
 
@@ -413,10 +411,11 @@ for pdb in repaired_pdbs_list:
     except:
         exit(1)
 
-try:
-    safe_makedirs(working_directory+"/"+averages_dirname)
-except:
-    exit(1)
+if not args.selfmutate:
+    try:
+        safe_makedirs(working_directory+"/"+averages_dirname)
+    except:
+        exit(1)
 
 for res in unique_residues:
     name = name_separator.join(res)
@@ -444,6 +443,7 @@ for res in unique_residues:
 
     if not args.selfmutate:
         save_energy_file(working_directory+"/"+averages_dirname+"/"+r.name, np.average(energies, axis=2), axis=0, do_avg=True, do_std=True, do_max=True, do_min=True)
+
 if args.selfmutate:
     report.save(working_directory)
 
@@ -457,12 +457,14 @@ if args.interface:
         except:
             exit(1)
 
-    try:
-        safe_makedirs(os.path.join(working_directory, averages_dirname))
-    except:
-        exit(1)
+    if not args.selfmutate:
+        try:
+            safe_makedirs(os.path.join(working_directory, averages_dirname))
+        except:
+            exit(1)
 
     unique_residues_str = [ "_".join(i) for i in unique_residues ]
+
     for res in unique_residues_str:
         energies = {}
         this_runs = []
@@ -471,9 +473,8 @@ if args.interface:
         for op in original_pdbs:
             this_runs.append(next((r for r in tmp_this_runs if r.original_pdb == op)))
 
-        #print "RUNNY", [r.name for r in this_runs]
         for run in this_runs:
-                                #print "RUNNN", run, run.name, run.pdbs
+
             try:
                 this_energies = run.foldx_version.parse_interaction_energy_summary_fxout(    run.working_directory,
                                                                                             run.pdbs,
@@ -483,47 +484,61 @@ if args.interface:
                 continue
 
             for k in list(this_energies):
+
                 labels = tuple(sorted(list(k)))
-                this_wd = os.path.join(    working_directory,
-                                        "".join(os.path.splitext(os.path.basename(run.original_pdb))[:-1]),
+
+                if k not in list(energies):
+                    energies[k] = [this_energies[k]]
+                else:
+                    energies[k].append(this_energies[k])
+
+                if args.selfmutate:
+                    if not labels in interface_reports:
+                        interface_reports[labels] = EnergyReport()
+
+                    interface_reports[labels].add_residue(pdb="".join(os.path.splitext(os.path.basename(run.original_pdb))[:-1]), 
+                                                          res=run.name, energy=energies[k][-1])
+                else:
+                    this_wd = os.path.join(    working_directory,
+                                            "".join(os.path.splitext(os.path.basename(run.original_pdb))[:-1]),
+                                            "%s-%s" % labels)
+                    try:
+                        safe_makedirs(this_wd)
+                    except:
+                        exit(1)
+
+                    save_interaction_energy_file(os.path.join(this_wd, run.name),
+                                                    this_energies[k],
+                                                    axis=1,
+                                                    do_avg=True,
+                                                    do_std=True,
+                                                    do_max=True,
+                                                    do_min=True)
+
+        if not args.selfmutate:
+            for k,e in iteritems(energies):
+                labels = tuple(sorted(list(k)))
+                this_wd = os.path.join(working_directory, averages_dirname,
                                         "%s-%s" % labels)
                 try:
                     safe_makedirs(this_wd)
                 except:
                     exit(1)
 
-                #print "KEYIN", k
-                if k not in list(energies):
-                    energies[k] = [this_energies[k]]
-                    #print "NOVEL"
-                else:
-                    #print "OLDEL"
-                    energies[k].append(this_energies[k])
-
                 save_interaction_energy_file(os.path.join(this_wd, run.name),
-                                                this_energies[k],
-                                                axis=1,
-                                                do_avg=True,
-                                                do_std=True,
-                                                do_max=True,
-                                                do_min=True)
+                        np.average(energies[k],axis=2),
+                        axis=0,
+                        do_avg=True,
+                        do_std=True,
+                        do_max=True,
+                        do_min=True)
 
-        for k,e in iteritems(energies):
-            labels = tuple(sorted(list(k)))
-            this_wd = os.path.join(working_directory, averages_dirname,
-                                    "%s-%s" % labels)
+    if args.selfmutate:
+        for label, report in interface_reports.items():
             try:
-                safe_makedirs(this_wd)
-            except:
+                report.save(working_directory, fname="selfmutation_energies_%s-%s.dat" % (label[0], label[1]))
+            except IOError:
                 exit(1)
-
-            save_interaction_energy_file(os.path.join(this_wd, run.name),
-                    np.average(energies[k],axis=2),
-                    axis=0,
-                    do_avg=True,
-                    do_std=True,
-                    do_max=True,
-                    do_min=True)
 
 if args.compress:
     compress_mutations_dir(main_dir, mutations_dirname)
