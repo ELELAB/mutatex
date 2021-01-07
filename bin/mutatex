@@ -228,11 +228,10 @@ main_dir = os.getcwd()
 
 log.info("working directory will be: %s" % main_dir)
 
-
 pdbs_list = []
 
 for p in range(len(pdb_structures)):
-    pdbs_list.extend( split_pdb(args.pdb[p], pdb_structures[p], True) )
+    pdbs_list.extend( split_pdb(args.pdb[p], pdb_structures[p], True, main_dir) )
 
 log.info("starting phase 2: REPAIR")
 

@@ -86,6 +86,7 @@ def init_arguments(arguments, parser):
     return parser
 
 def get_font_list(str=True):
+
     flist = matplotlib.font_manager.get_fontconfig_fonts()
     names = [ matplotlib.font_manager.FontProperties(fname=fname).get_name() for fname in flist ]
     if not str:
@@ -623,7 +624,7 @@ def parallel_foldx_run(foldx_runs, np):
     return list(result)
 
 
-def split_pdb(filename, structure, checked):
+def split_pdb(filename, structure, checked, workdir):
     """
     split models in a ``PDB.Structure`` object into a file each, which
     is written to disk.
@@ -635,6 +636,8 @@ def split_pdb(filename, structure, checked):
         structure object from which models will be extracted
     checked : bool
         whether append "_checked" to the filename
+    workdir : str
+        directory where the file will be saved
     Returns
     ----------
     pdb_list : list of (str)
@@ -654,8 +657,8 @@ def split_pdb(filename, structure, checked):
             checked_str = "_checked"
         else:
             checked_str = ""
-        writer.save("%s_model%d%s.pdb" % (os.path.splitext(filename)[0], model.id, checked_str))
-        pdb_list.append("%s_model%d%s.pdb" % (os.path.splitext(filename)[0], model.id, checked_str))
+        writer.save(os.path.join(workdir, "%s_model%d%s.pdb" % (os.path.splitext(os.path.basename(filename))[0], model.id, checked_str)))
+        pdb_list.append("%s_model%d%s.pdb" % (os.path.splitext(os.path.basename(filename))[0], model.id, checked_str))
 
     return pdb_list
 
