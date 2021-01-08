@@ -68,9 +68,13 @@ parser.add_argument('-m', '--mutlist',
 parser.add_argument('-q', '--poslist',
                         dest="poslist", default=None, type=str,
                         help="file containing the list of positions to be considered (default is all)")
+parser.add_argument('-S', '--skip-repair',
+                        dest="skip_repair", default=False, action="store_true",
+                        help="skip the repair phase and just use input PDBs for calculation")
 parser.add_argument('-s', '--self-mutate', 
                         dest="selfmutate", default=False, action="store_true", 
                         help="ignore mutation list and perform mutation to the same residue")
+
 parser.add_argument('-x', '--foldx-binary', 
                         dest="foldx_binary", action='store', type=str, default=foldx_binary_var,
                         help="location of the FoldX binary (default: content of the FOLDX_BINARY system variable)")
