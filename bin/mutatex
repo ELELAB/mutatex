@@ -74,7 +74,6 @@ parser.add_argument('-S', '--skip-repair',
 parser.add_argument('-s', '--self-mutate', 
                         dest="selfmutate", default=False, action="store_true", 
                         help="ignore mutation list and perform mutation to the same residue")
-
 parser.add_argument('-x', '--foldx-binary', 
                         dest="foldx_binary", action='store', type=str, default=foldx_binary_var,
                         help="location of the FoldX binary (default: content of the FOLDX_BINARY system variable)")
@@ -156,10 +155,12 @@ current_version = supported_foldx_versions[args.foldx_version]( binary=args.fold
 
 log.info("FoldX version %s will be used" % current_version.version)
 
-try:
-    repair_runfile = load_runfile(args.repair_runfile_template)
-except:
-    exit(1)
+
+if not args.skip_repair:
+    try:
+        repair_runfile = load_runfile(args.repair_runfile_template)
+    except:
+        exit(1)
 
 try:
     mutate_runfile = load_runfile(args.mutate_runfile_template)
@@ -237,52 +238,58 @@ pdbs_list = []
 for p in range(len(pdb_structures)):
     pdbs_list.extend( split_pdb(args.pdb[p], pdb_structures[p], True, main_dir) )
 
-log.info("starting phase 2: REPAIR")
 
-working_directory = main_dir+"/"+repair_dirname
+if args.skip_repair:
+    log.info("Repair phase was skipped as requested. Input models will be used as they are.")
+    repaired_pdbs_list = [ os.path.join(main_dir, pdb) for pdb in pdbs_list ]
 
-try:
-    safe_makedirs(working_directory)
-except:
-    exit(1)
+else:
+    log.info("starting phase 2: REPAIR")
 
-log.info("working dir: %s" %working_directory)
+    working_directory = main_dir+"/"+repair_dirname
 
-repair_runs = []
+    try:
+        safe_makedirs(working_directory)
+    except:
+        exit(1)
 
+    log.info("working dir: %s" %working_directory)
 
-for pdb in pdbs_list:
-    pdb_path = os.path.join(main_dir, pdb)
-    repair_runs.append(FoldXRepairRun(name = "repair_"+os.path.splitext(pdb)[0],
-                                    foldx_version = current_version,
-                                    base_directory = working_directory,
-                                    pdbs = [pdb_path],
-                                    runfile_content=repair_runfile,
-                                    link_files = args.use_links,
-                                    write_log = args.write_log,
-                                    clean = args.clean
-                                    ))
+    repair_runs = []
 
-# Prepare repair runs
-for r in repair_runs:
-    log.info("Preparing for repair run %s" % (r.name))
-    r.prepare()
+    for pdb in pdbs_list:
+        repair_runs.append(FoldXRepairRun(name = "repair_"+os.path.splitext(pdb)[0],
+                                        foldx_version = current_version,
+                                        base_directory = working_directory,
+                                        pdbs = [pdb],
+                                        runfile_content=repair_runfile,
+                                        link_files = args.use_links,
+                                        write_log = args.write_log,
+                                        clean = args.clean
+                                        ))
 
-# Run repair runs
-log.info("Running repair runs")
-repair_outcome = parallel_foldx_run(repair_runs, np=args.np)
+    # Prepare repair runs
+    for r in repair_runs:
+        log.info("Preparing for repair run %s" % (r.name))
+        r.prepare()
 
-if False in list(zip(*repair_outcome))[1]:
-    log.error("The following repair runs failed to complete. Exiting...")
-for i in [x for x in repair_outcome if x[1] == False]:
-    log.error("\t%s" % i[0])
-    exit(1)
+    # Run repair runs
+    log.info("Running repair runs")
+    repair_outcome = parallel_foldx_run(repair_runs, np=args.np)
+
+    if False in list(zip(*repair_outcome))[1]:
+        log.error("The following repair runs failed to complete. Exiting...")
+    for i in [x for x in repair_outcome if x[1] == False]:
+        log.error("\t%s" % i[0])
+        exit(1)
+
+    # Select PDB(s) to be used
+    repaired_pdbs_list = [repair_runs[i].working_directory+"/"+current_version.repair_pdb_output_fname(pdbs_list[i]) for i in range(len(pdbs_list))]
+    log.info("list of PDBs to be used: %s" % ", ".join(repaired_pdbs_list))
+
 
 # PHASE TWO: mutate + energy
 
-# Select PDB(s) to be used
-repaired_pdbs_list = [repair_runs[i].working_directory+"/"+current_version.repair_pdb_output_fname(pdbs_list[i]) for i in range(len(pdbs_list))]
-log.info("list of PDBs to be used: %s" % ", ".join(repaired_pdbs_list))
 
 # create working directory
 working_directory = main_dir+"/"+mutations_dirname
