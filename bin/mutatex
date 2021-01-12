@@ -228,11 +228,10 @@ main_dir = os.getcwd()
 
 log.info("working directory will be: %s" % main_dir)
 
-
 pdbs_list = []
 
 for p in range(len(pdb_structures)):
-    pdbs_list.extend( split_pdb(args.pdb[p], pdb_structures[p], True) )
+    pdbs_list.extend( split_pdb(args.pdb[p], pdb_structures[p], True, main_dir) )
 
 log.info("starting phase 2: REPAIR")
 
@@ -249,10 +248,11 @@ repair_runs = []
 
 
 for pdb in pdbs_list:
+    pdb_path = os.path.join(main_dir, pdb)
     repair_runs.append(FoldXRepairRun(name = "repair_"+os.path.splitext(pdb)[0],
                                     foldx_version = current_version,
                                     base_directory = working_directory,
-                                    pdbs = [pdb],
+                                    pdbs = [pdb_path],
                                     runfile_content=repair_runfile,
                                     link_files = args.use_links,
                                     write_log = args.write_log,
