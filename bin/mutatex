@@ -238,7 +238,6 @@ pdbs_list = []
 for p in range(len(pdb_structures)):
     pdbs_list.extend( split_pdb(args.pdb[p], pdb_structures[p], True, main_dir) )
 
-
 if args.skip_repair:
     log.info("Repair phase was skipped as requested. Input models will be used as they are.")
     repaired_pdbs_list = [ os.path.join(main_dir, pdb) for pdb in pdbs_list ]
