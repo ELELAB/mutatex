@@ -155,7 +155,6 @@ current_version = supported_foldx_versions[args.foldx_version]( binary=args.fold
 
 log.info("FoldX version %s will be used" % current_version.version)
 
-
 if not args.skip_repair:
     try:
         repair_runfile = load_runfile(args.repair_runfile_template)
