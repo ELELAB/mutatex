@@ -1101,6 +1101,27 @@ Turns on self-mutation mode.
  This is performed both for stability and interaction energy, if requested.
 \end_layout
 
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+--skip-repair
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+When this option is used, the repair phase is not performed on the input
+ models and the original PDB files are used instead.
+ The calculation proceeds are requested fo the rest.
+\end_layout
+
 \begin_layout Subsection
 Interrupting and restarting a MutateX run
 \end_layout
