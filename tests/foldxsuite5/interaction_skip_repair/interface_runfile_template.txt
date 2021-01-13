@@ -1,0 +1,1 @@
+../../../templates/foldxsuite4/interface_runfile_template.txt
