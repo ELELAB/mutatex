@@ -325,8 +325,6 @@ for i,r in enumerate(res_order):
 res_ids_str = []
 data = []
 
-
-
 try:
     res_ids_str = get_residue_list(options.in_pdb, multimers=options.multimers)
 except IOError:
