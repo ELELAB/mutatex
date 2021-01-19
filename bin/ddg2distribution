@@ -270,7 +270,7 @@ optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
 
 required = init_arguments(['pdb', 'data', 'mutation_list'], required)
-optional = init_arguments(['multimers'], optional)
+optional = init_arguments(['multimers', 'position_list'], optional)
 
 required.add_argument("-T","--type", dest="type", nargs = '+', required = True, choices = ["stem", "box", "violin", "single", "scatter"], help = "type of plot(s) to generate: stem, box, violin, scatter or single")
 optional.add_argument("-L","--limit", dest="limit", action='store', default = None, type=float, help="maximum DDG value to be plotted in scatter plots")
@@ -324,10 +324,20 @@ for i,r in enumerate(res_order):
 
 res_ids_str = []
 data = []
+
 try:
     res_ids_str = get_residue_list(options.in_pdb, multimers=options.multimers)
 except IOError:
     exit(1)
+
+if options.position_list is not None:
+    log.info("Positions will be read from file")
+    try:
+        poslist = parse_poslist_file(options.position_list)
+    except (IOError, TypeError):
+        exit(1)
+
+    res_ids_str = filter_reslist(res_ids_str, poslist)
 
 if options.multimers:
     fnames = ["_".join(r) for r in res_ids_str]
