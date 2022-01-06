@@ -234,8 +234,17 @@ MutateX uses FoldX to systematically calculate the difference in free energy
 \begin_layout Enumerate
 Load and check the structure(s).
  One (or more) PDB file containing one (or more) models may be employed.
- Here, each model from each file is checked for consistence in the context
- of FoldX mutagenesis.
+ See 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:Phase-0:-Preliminary"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ for details.
 \end_layout
 
 \begin_layout Enumerate
@@ -351,24 +360,13 @@ One (or more) PDB file, containing one (or more) models of the protein to
 \begin_deeper
 \begin_layout Itemize
 The models should all have the same sequence.
- If this not the case, MutateX will detect the problem and ignore residues
- which are not in common among all the models supplied.
- 
+ If this not the case, MutateX will detect the problem and exit after repair
 \end_layout
 
 \begin_layout Itemize
-The chain identifier should be provided for all the models.
- If this is not the case, MutateX will assign a default 
-\begin_inset Quotes eld
-\end_inset
-
-A
-\begin_inset Quotes erd
-\end_inset
-
- chain identifiers to all the residues wihtout it.
- Therefore, this is especially important if the supplied models have more
- than one chain.
+The chain identifier should be provided for all the chains of all the models.
+ This is especially important if the supplied models have more than one
+ chain
 \end_layout
 
 \begin_layout Itemize
@@ -1224,17 +1222,17 @@ name "subsec:Phase-0:-Preliminary"
 \end_layout
 
 \begin_layout Standard
-MutateX first reads the PDB file(s) it will work on and adds the default
- chain name 
-\begin_inset Quotes eld
-\end_inset
-
-A
-\begin_inset Quotes erd
-\end_inset
-
- is added to every residue which is without one.
- MutateX then writes each model in a separate PDB file.
+MutateX first reads the PDB file(s) it will work on and checks it can be
+ read correctly.
+ If this is the case, and if the PDB file contains a single model, it is
+ used as such, while the program exits with an error if the PDB contains
+ multiple models.
+ If option -a is provided, however, any multi-model PDB file is split into
+ one PDB file per model and all models are considered.
+ This is done to ensure that the user is fully aware of the fact that they
+ are using multiple models.
+ A further check is performed after phase 2 (Repair) to ensure that all
+ the PDB files under consideration have exactly the same primary sequence.
 \end_layout
 
 \begin_layout Subsection
