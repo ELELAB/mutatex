@@ -2526,7 +2526,7 @@ name "fig:stemplot"
 
 \end_inset
 
-Stemplot generated from ddg2stemplot.
+Stemplot generated from ddg2distribution.
 \end_layout
 
 \end_inset
@@ -2591,7 +2591,7 @@ name "fig:boxplot"
 
 \end_inset
 
-Boxplot generated from ddg2stemplot.
+Boxplot generated from ddg2distribution.
 \end_layout
 
 \end_inset
@@ -2721,7 +2721,7 @@ name "fig:scatterplot"
 
 \end_inset
 
-Scatterplot generated from ddg2stemplot.
+Scatterplot generated from ddg2distribution.
 \end_layout
 
 \end_inset
@@ -2786,7 +2786,7 @@ name "fig:single"
 
 \end_inset
 
-Scatterplot generated from ddg2stemplot.
+Scatterplot generated from ddg2distribution.
 \end_layout
 
 \end_inset
