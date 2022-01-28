@@ -1,0 +1,6 @@
+command=RepairPDB
+pdb=3kmd_model0.pdb
+
+temperature=298
+water=-CRYSTAL
+complexWithDNA=true
