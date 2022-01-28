@@ -1,0 +1,6 @@
+command=BuildModel
+pdb=$PDBS$
+mutant-file=individual_list.txt
+water=-CRYSTAL
+numberOfRuns=$NRUNS$
+complexWithDNA=true
