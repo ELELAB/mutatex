@@ -1,0 +1,7 @@
+This folder contains examples to run and perform calculations with MutateX.
+These were included in our published paper. Every folder contains:
+    * one or more mutatex runs; in each of them, the run.sh file contains the
+      necessary command(s) to rerun the calculation if need be
+    * one or more analysis folders; these contains the analysis plots produced
+      with MutateX and a script do.sh that contains the commands used to generate
+      them
