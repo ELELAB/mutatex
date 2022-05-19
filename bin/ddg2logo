@@ -185,15 +185,15 @@ parser = argparse.ArgumentParser(
 description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
 optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
-group = parser.add_mutually_exclusive_group(required=True)
+thresholds = parser.add_mutually_exclusive_group(required=True)
 
 required = init_arguments(['pdb', 'data', 'mutation_list'], required)
 optional = init_arguments(['multimers', 'position_list'], optional)
 
 optional.add_argument("-L","--png-letter-map",dest='pngfile',action='store', default=letters, help="png file to be used for letters")
 
-group.add_argument("-T","--stabthreshold", dest="threshold", action='store', type=float, help="DDG threshold values for stabilizing mutations - mutations with DDG higher than this are not considered. A suggested value could be 0.5")
-group.add_argument("-t","--destabthreshold", dest="threshold2", action='store', type=float, help="DDG threshold values for destabilizing mutations - mutations with DDG lower than this are not considered. A suggested value could be -0.5")
+thresholds.add_argument("-T","--stab-threshold", dest="threshold_stab", action='store', type=float, help="DDG threshold values for stabilizing mutations - mutations with DDG higher than this are not considered.")
+thresholds.add_argument("-t","--destab-threshold", dest="threshold_destab", action='store', type=float, help="DDG threshold values for destabilizing mutations - mutations with DDG lower than this are not considered.")
 optional.add_argument("-x","--maximum-degeneracy", dest="degeneracy", action='store', type=int, default=20, help="when the number of stabilizing/destabilizing mutations is higher than this threshold an X will be plotted instead")
 
 optional = init_arguments(['labels', 'fonts', 'fontsize', 'title', 'splice'], optional)
@@ -294,18 +294,12 @@ data = np.vstack(tuple(data))
 # move the whole range of values, so that values at maximum
 # (stabilizing) or at minimum (destabilizing)  become 0
 # In the case of stabilizing mutations, invert sign so that higher values are more stabilizing
-if options.threshold:
-    try:
-        data[ data >= options.threshold ] = options.threshold
-        data = (data - options.threshold) * (-1)
-    except:
-        exit(1)
-elif options.threshold2:
-    try:
-        data[ data <= options.threshold2 ] = options.threshold2
-        data = (data - options.threshold2)
-    except:
-        exit(1)
+if options.threshold_stab:
+    data[ data >= options.threshold_stab ] = options.threshold_stab
+    data = (data - options.threshold_stab) * (-1)
+elif options.threshold_destab:
+     data[ data <= options.threshold_destab ] = options.threshold_destab
+     data = (data - options.threshold_destab)
 
 # get the number of values that would be plotted for each line, and check against
 # degeneracy value. Set the max_range according to these values only
