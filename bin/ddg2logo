@@ -48,16 +48,12 @@ controlled by the -x option. Before plotting the following transformations are
 carried out on the data:
 
 STABILIZING MUTATIONS    
-* the DDG values >= than the stabilizing threshold (option -T) are brought down to the threshold
-* all the DDG values are modified by subtracting the threshold value,
-  so that that value becomes 0
+* the DDG values >= than the stabilizing threshold (option -T) are set equal to 0 
 * the sign of all the DDGs is changed - so that it becomes more positive if
   it's stabilizing
 
 DESTABILIZING MUTATIONS
-* the DDG values <= than the destabilizing threshold (option -t) are brought up to the threshold
-* all the DDG values are modified by subtracting the threshold value,
-  so that that value becomes 0
+* the DDG values <= than the destabilizing threshold (option -t) are set equal to 0
 
 This allows to obtain a 0-based positive-only plot in which the ratio between
 the energy values is the same as the original data."""
@@ -290,16 +286,15 @@ for fname in fnames:
 data = np.vstack(tuple(data))
 
 # set values above the threshold (for stabilizing mutations) or below
-# it (for the destabilizing ones) to the threshold value
-# move the whole range of values, so that values at maximum
-# (stabilizing) or at minimum (destabilizing)  become 0
+# it (for the destabilizing ones) equal to 0
 # In the case of stabilizing mutations, invert sign so that higher values are more stabilizing
-if options.threshold_stab:
-    data[ data >= options.threshold_stab ] = options.threshold_stab
-    data = (data - options.threshold_stab) * (-1)
-elif options.threshold_destab:
-     data[ data <= options.threshold_destab ] = options.threshold_destab
-     data = (data - options.threshold_destab)
+
+if options.threshold_stab or options.threshold_stab == 0.0:
+    data[data >= options.threshold_stab] = 0 
+    data = (data) * (-1)
+
+elif options.threshold_destab or options.threshold_destab == 0.0:
+    data[ data <= options.threshold_destab ] = 0
 
 # get the number of values that would be plotted for each line, and check against
 # degeneracy value. Set the max_range according to these values only
