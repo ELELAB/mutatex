@@ -289,12 +289,12 @@ data = np.vstack(tuple(data))
 # it (for the destabilizing ones) equal to 0
 # In the case of stabilizing mutations, invert sign so that higher values are more stabilizing
 
-if options.threshold_stab or options.threshold_stab == 0.0:
+if options.threshold_stab is not None:
     data[data >= options.threshold_stab] = 0 
     data = (data) * (-1)
 
-elif options.threshold_destab or options.threshold_destab == 0.0:
-    data[ data <= options.threshold_destab ] = 0
+elif options.threshold_destab is not None:
+   data[ data <= options.threshold_destab ] = 0
 
 # get the number of values that would be plotted for each line, and check against
 # degeneracy value. Set the max_range according to these values only
