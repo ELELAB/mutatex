@@ -191,7 +191,6 @@ def parse_poslist_file(fname,pdb):
     except IOError:
         log.error("Couldn't open position list file %s" % fname)
         raise IOError
-    print(pdb, type(pdb))
     res_pdb=set((get_residue_list(pdb[0], True, False)))
     for line in fh:
         residue=tuple([line.strip("\n")],)
