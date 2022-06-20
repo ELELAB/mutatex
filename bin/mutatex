@@ -326,7 +326,7 @@ unique_residues = list(unique_residues[0])
 if args.poslist is not None:
     log.info("Positions will be read from file")
     try:
-        poslist = parse_poslist_file(args.poslist)
+        poslist = parse_poslist_file(args.poslist,args.pdb)
     except (IOError, TypeError):
         exit(1)
 
