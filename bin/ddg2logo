@@ -290,10 +290,17 @@ data = np.vstack(tuple(data))
 # In the case of stabilizing mutations, invert sign so that higher values are more stabilizing
 
 if options.threshold_stab is not None:
+    if options.threshold_stab >= 0:
+        log.error("the DDG threshold provided in option -T must be <= 0. Exiting...")
+        exit(1)
+
     data[data >= options.threshold_stab] = 0 
     data = (data) * (-1)
 
 elif options.threshold_destab is not None:
+   if options.threshold_destab <= 0:
+       log.error("the DDG threshold provided in option -t must be >= 0. Exiting...")
+       exit(1)
    data[ data <= options.threshold_destab ] = 0
 
 # get the number of values that would be plotted for each line, and check against
