@@ -39,19 +39,21 @@ description = 'ddg2logo: make logo plots for MutateX DDG values'
 epilog = """ddg2logo generates pseudo-logo plots from DDG values.  While actual logo
 plots are based on letter frequency, these are based on the provided MutateX
 scan and are designed to highlight the mutation sites which specifically feature
-a limited number of stabilizing or accepted mutations. For each site, the
-letters of the plot represent the stabilizing mutations and their height is
-proportional to the stabilizing effect (i.e. to the absolute value of the
-respective negative energy). If a certain site has more than a certain number of
-accepted mutations, the respective column can be replaced by a X - this is
+a limited number of stabilizing (accepted) or destabilizing mutations (not accepted). For each site, the
+letters of the plot represent the stabilizing (or destabilizing) mutations and their height is
+proportional to the stabilizing (or destabilizing)  effect (i.e. to the absolute value of the
+respective energy). If a certain site has more than a certain number of
+accepted (or not accepted) mutations, the respective column can be replaced by a X - this is
 controlled by the -x option. Before plotting the following transformations are
 carried out on the data:
 
-* the DDG values >= than threshold (option -T) are brought down to the threshold
-* all the DDG values are modified by subtracting the threshold value,
-  so that that value becomes 0
+STABILIZING MUTATIONS    
+* the DDG values >= than the stabilizing threshold (option -T) are set equal to 0 
 * the sign of all the DDGs is changed - so that it becomes more positive if
   it's stabilizing
+
+DESTABILIZING MUTATIONS
+* the DDG values <= than the destabilizing threshold (option -t) are set equal to 0
 
 This allows to obtain a 0-based positive-only plot in which the ratio between
 the energy values is the same as the original data."""
@@ -179,14 +181,16 @@ parser = argparse.ArgumentParser(
 description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
 optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
+thresholds = parser.add_mutually_exclusive_group(required=True)
 
 required = init_arguments(['pdb', 'data', 'mutation_list'], required)
 optional = init_arguments(['multimers', 'position_list'], optional)
 
 optional.add_argument("-L","--png-letter-map",dest='pngfile',action='store', default=letters, help="png file to be used for letters")
 
-optional.add_argument("-T","--threshold", dest="threshold", action='store', type=float, default=0.5, help="DDG threshold values - mutations with DDG higher than this are not considered. Default is 0.5")
-optional.add_argument("-x","--maximum-degeneracy", dest="degeneracy", action='store', type=int, default=20, help="when the number of stabilizing mutations is higher than this threshold an X will be plotted instead")
+thresholds.add_argument("-T","--stab-threshold", dest="threshold_stab", action='store', type=float, help="DDG threshold values for stabilizing mutations - mutations with DDG higher than this are not considered.")
+thresholds.add_argument("-t","--destab-threshold", dest="threshold_destab", action='store', type=float, help="DDG threshold values for destabilizing mutations - mutations with DDG lower than this are not considered.")
+optional.add_argument("-x","--maximum-degeneracy", dest="degeneracy", action='store', type=int, default=20, help="when the number of stabilizing/destabilizing mutations is higher than this threshold an X will be plotted instead")
 
 optional = init_arguments(['labels', 'fonts', 'fontsize', 'title', 'splice'], optional)
 optional.add_argument("-D","--dpi", dest="dpi", type=float, action='store', default=150, help="number of DPI for the output image. Saving the images at higher DPI (as 300) uses a lot of memory, therefore use with caution" )
@@ -281,11 +285,23 @@ for fname in fnames:
 
 data = np.vstack(tuple(data))
 
-# set values above the maximum value to the maximum
-# move the whole range of values, so that values at maximum become 0
-# and invert sign so that higher values are more stabilizing
-data[ data >= options.threshold ] = options.threshold
-data = (data - options.threshold) * (-1)
+# set values above the threshold (for stabilizing mutations) or below
+# it (for the destabilizing ones) equal to 0
+# In the case of stabilizing mutations, invert sign so that higher values are more stabilizing
+
+if options.threshold_stab is not None:
+    if options.threshold_stab >= 0:
+        log.error("the DDG threshold provided in option -T must be <= 0. Exiting...")
+        exit(1)
+
+    data[data >= options.threshold_stab] = 0 
+    data = (data) * (-1)
+
+elif options.threshold_destab is not None:
+   if options.threshold_destab <= 0:
+       log.error("the DDG threshold provided in option -t must be >= 0. Exiting...")
+       exit(1)
+   data[ data <= options.threshold_destab ] = 0
 
 # get the number of values that would be plotted for each line, and check against
 # degeneracy value. Set the max_range according to these values only

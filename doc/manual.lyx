@@ -796,7 +796,7 @@ p
 \begin_inset Text
 
 \begin_layout Plain Layout
-PTR
+TPO
 \end_layout
 
 \end_inset
@@ -825,7 +825,7 @@ y
 \begin_inset Text
 
 \begin_layout Plain Layout
-TPO
+PTR
 \end_layout
 
 \end_inset
@@ -3020,34 +3020,50 @@ Logo plot
 \end_layout
 
 \begin_layout Standard
-ddg2logo generates pseudo-logo plots from DDG values.
+ddg2logo generates pseudo-logo plots from ∆∆G values.
  While actual logo plots are based on letter frequency, these are based
  on the provided MutateX scan and are designed to highlight the mutation
- sites which specifically feature a limited number of stabilizing or accepted
- mutations.
- For each site, the letters of the plot represent the stabilizing mutations
- and their height is proportional to the stabilizing effect (i.e.
- to the absolute value of the respective negative energy).
- If a certain site has more than a certain number of accepted mutations,
- the respective column can be replaced by a X - this is controlled by the
- -x option.
- Before plotting the following transformations are carried out on the data:
+ sites which specifically feature a limited number of stabilizing or destabilizi
+ng mutations, as chosen by the user (see below).
+ For each site, the letters of the plot represent the (de)stabilizing mutations
+ and their height is proportional to the (de)stabilizing effect (i.e.
+ the absolute value of the respective change in free energy).
+ If a certain site has more than a certain number of selected mutations,
+ the respective column can be replaced by a X - this threshold value is
+ controlled by the -x option.
+ The behaviour of the tool is slightly different if stabilizing or destabilizing
+ mutations are being plotted:
 \end_layout
 
 \begin_layout Itemize
-the DDG values >= than threshold (option -T) are brought down to the threshold
+To plot stabilizing mutations, the user needs to provide option -T with
+ a free energy threshold in kcal/mol which must be zero or negative.
+ If option -T is provided, before plotting:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+all the ∆∆G values ≥ threshold are set to 0
 \end_layout
 
 \begin_layout Itemize
-all the DDG values are modified by subtracting the threshold value, so that
- that value becomes 0
+the sign of all the ∆∆G values is changed (i.e.
+ they are made positive)
 \end_layout
 
+\end_deeper
 \begin_layout Itemize
-the sign of all the DDGs is changed - so that it becomes more positive if
- it's stabilizing
+To plot destabilizing mutations, the user needs to provide option -t with
+ a free energy threshold in kcal/mol which must be zero or positive.
+ If option -t is provided, before plotting:
 \end_layout
 
+\begin_deeper
+\begin_layout Itemize
+all the ∆∆G values ≤ threshold are set to 0
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 This allows to obtain a 0-based positive-only plot in which the ratio between
  the energy values is the same as the original data.
@@ -3080,6 +3096,11 @@ ddg2logo -p 1D5R_clean_model0_checked.pdb
 \begin_layout Plain Layout
 
 -s 25 -D 300   
+\end_layout
+
+\begin_layout Plain Layout
+
+-t 1.2
 \end_layout
 
 \end_inset
