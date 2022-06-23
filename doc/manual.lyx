@@ -3047,7 +3047,8 @@ all the ∆∆G values ≥ threshold are set to 0
 \end_layout
 
 \begin_layout Itemize
-the sign of all the ∆∆G is changed
+the sign of all the ∆∆G values is changed (i.e.
+ they are made positive)
 \end_layout
 
 \end_deeper
