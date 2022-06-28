@@ -26,10 +26,10 @@ from mutatex.utils import *
 
 LOGFMT = "%(levelname)s: %(message)s"
 
-description = 'ddg2tabel: writes the average values from a MutateX DDG scan as tables either in excel or in a csv file format'
-epilog = """ddg2tabel writes the average values from a MutateX DDG scan as a 
+description = 'ddg2excel: writes the average values from a MutateX DDG scan as tables either in excel or in a csv file format'
+epilog = """ddg2excel writes the average values from a MutateX DDG scan as a 
 excel compatible file. Optional Option -F, --format chooses the output file 
-format, csv or xlsx, by default xlsx is choosen. Option -T swaps rows and 
+format, csv or xlsx, by default xlsx is chosen. Option -T swaps rows and 
 columns of the output file. By default, residue type, number and chain 
 identifier are written in separate columns/rows to make the data easily 
 explorable, however one column/row is used when the label file is provided 
