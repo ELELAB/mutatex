@@ -3383,10 +3383,11 @@ Excel Sheet
 \end_layout
 
 \begin_layout Standard
-ddg2excel is a tool for writing out results in an excel sheet as a table.
- The table has the same basic structure as the ddg2heatmap tool, however
- the values are written in a Excel file to be further explored.
- A typical command line for this tool is:
+ddg2excel is a tool for exporting results as a table in either an excel 
+ sheet or a comma-separated file. The excel file is the default format
+ but can be changed by optionally adding -F csv. 
+ The table has the same basic structure as the ddg2heatmap tool. 
+ To get the table, a typical command line for this tool is:
 \end_layout
 
 \begin_layout Standard
