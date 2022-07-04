@@ -169,7 +169,7 @@ def parse_ddg_file(fname, reslist=None, full=False):
         return ddgs
     return ddgs[0]
 
-def parse_poslist_file(fname,pdb):
+def parse_poslist_file(fname,unique_residues):
     """
     Parser function for position list files
     Parameters
@@ -191,9 +191,12 @@ def parse_poslist_file(fname,pdb):
     except IOError:
         log.error("Couldn't open position list file %s" % fname)
         raise IOError
-    res_pdb=set((get_residue_list(pdb[0], True, False)))
     for line in fh:
-        residue=tuple([line.strip("\n")],)
+        residue=()
+        if "_" in line:
+            residue=tuple(sorted(line.strip("\n").split("_")))    
+        else:
+            residue=tuple([line.strip("\n")],)
         if matcher.fullmatch(line.strip()) is None:
             log.error("the position list file is not in the right format")
             log.error("format error at %s" % line.strip())
@@ -209,9 +212,10 @@ def parse_poslist_file(fname,pdb):
             log.error("the position list file is not in the right format")
             log.error("format error at %s" % line.strip())
             raise TypeError
-        if residue not in res_pdb:
-            log.error( "%s residue is not written in the right format or it is not contained in pdbfile" % line.strip())
-            raise TypeError
+        if residue not in unique_residues:
+            if line.strip("\n") not in str(unique_residues):
+                log.error( "%s residue is not written in the right format or it is not contained in pdbfile" % line.strip())
+                raise TypeError
 
         out.append(tuple(sorted([s if str.isdigit(s[1]) else s[1:] for s in tmp])))
 
