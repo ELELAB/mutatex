@@ -2332,17 +2332,17 @@ Distribution plots
 The ddg2distribution tool can be used to generate a number of different
  tpyes of plots each visualizing the distribution of the mean protein ∆∆G
  for any mutated wildtype amino acid.
- It can generate a stem plot, a box plot, a violin plot, scatter plot and
- single value plot.
+ It can generate a stem plot, a box plot, a violin plot, average plot and
+ scatter plot.
  The stem plot just plots the average ∆∆G for all the mutations of a given
  site, and the stems are set to the standard deviation of the mean.
  The boxplot shows the general distribution and outliers of the mean ∆∆G
  values for every mutation.
- The violinplot is similar to the boxplot but also shows a continuues vertical
+ The violinplot is similar to the boxplot but also shows a continue vertical
  probability density plot of the data on each side of the figures.
- The scatter plot shows the average per-site ∆∆G as a dot for each position,
+ The average plot shows the average per-site ∆∆G as a dot for each position,
  allowing to identify the outliers for the whole protein.
- The single plot shows the ∆∆G value for every single mutation, instead
+ The scatter plot shows the ∆∆G value for every single mutation, instead
  of a distribution.
 \end_layout
 
@@ -2388,7 +2388,7 @@ status open
 
 \begin_layout Plain Layout
 
--T {stem,box,violin,single,scatter}
+-T {stem,box,violin,average,scatter}
 \end_layout
 
 \end_inset
@@ -2422,14 +2422,14 @@ reference "fig:violinplot"
 , 
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "fig:scatterplot"
+reference "fig:averageplot"
 
 \end_inset
 
  and 
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "fig:single"
+reference "fig:scatterplot"
 plural "false"
 caps "false"
 noprefix "false"
@@ -2526,7 +2526,7 @@ name "fig:stemplot"
 
 \end_inset
 
-Stemplot generated from ddg2distribution.
+Stem plot generated from ddg2distribution.
 \end_layout
 
 \end_inset
@@ -2656,7 +2656,7 @@ name "fig:violinplot"
 
 \end_inset
 
-Violinplot generated from ddg2distribution.
+Violin plot generated from ddg2distribution.
 \end_layout
 
 \end_inset
@@ -2697,7 +2697,72 @@ status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
-	filename scatter_0_energies.png
+	filename average_0_energies.png
+	lyxscale 60
+	scale 55
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:averageplot"
+
+\end_inset
+
+Average plot generated from ddg2distribution.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename scatter_1_energies.png
 	lyxscale 60
 	scale 55
 
@@ -2721,72 +2786,7 @@ name "fig:scatterplot"
 
 \end_inset
 
-Scatterplot generated from ddg2distribution.
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Float figure
-placement H
-wide false
-sideways false
-status open
-
-\begin_layout Plain Layout
-\begin_inset Box Frameless
-position "t"
-hor_pos "c"
-has_inner_box 1
-inner_pos "t"
-use_parbox 0
-use_makebox 0
-width "100col%"
-special "none"
-height "1in"
-height_special "totalheight"
-thickness "0.4pt"
-separation "3pt"
-shadowsize "4pt"
-framecolor "black"
-backgroundcolor "none"
-status open
-
-\begin_layout Plain Layout
-\begin_inset Graphics
-	filename single_1_energies.png
-	lyxscale 60
-	scale 55
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset Caption Standard
-
-\begin_layout Plain Layout
-\begin_inset CommandInset label
-LatexCommand label
-name "fig:single"
-
-\end_inset
-
-Scatterplot generated from ddg2distribution.
+Scatter plot generated from ddg2distribution.
 \end_layout
 
 \end_inset
@@ -3404,11 +3404,12 @@ Excel Sheet
 \end_layout
 
 \begin_layout Standard
-ddg2excel is a tool for exporting results as a table in either an excel 
- sheet or a comma-separated file. The excel file is the default format
- but can be changed by optionally adding -F csv. 
- The table has the same basic structure as the ddg2heatmap tool. 
- To get the table, a typical command line for this tool is:
+ddg2excel is a tool for exporting results as a table in either an excel
+  sheet or a comma-separated file.
+ The excel file is the default format but can be changed by optionally adding
+ -F csv.
+  The table has the same basic structure as the ddg2heatmap tool.
+  To get the table, a typical command line for this tool is:
 \end_layout
 
 \begin_layout Standard
