@@ -34,7 +34,7 @@ mutation site. For instance, the user can request a box plot, which means that
 one box plot will be generated from the DDG values of each site. This allows to
 understand both the general effect of mutating certain sites, and to understand
 which of them are generally more sensitive to mutation. The user can choose the
-plot type with option -T, among stem, box, violin, single and scatter. Each plot
+plot type with option -T, among stem, box, violin, average and scatter. Each plot
 type has mutation sites (i.e. residue labels) on the X axis. Different type of
 plots correspond to different representations of the DDG values, namely
 
@@ -46,14 +46,14 @@ plots correspond to different representations of the DDG values, namely
       the whiskers. This is default behaviour of matplotlib.pyplot.boxplot
       (see https://matplotlib.org/3.1.1/api/_as_genmatplotlib.pyplot.boxplot.html)
     * violin: violin plot
-    * single: scatter plot in which each point is a different mutation. Useful
+    * average: scatter plot of mean values. Useful when wanting to keep many
+      values (i.e. many mutation sites) in the same plot.
+    * scatter: scatter plot in which each point is a different mutation. Useful
       to show all the mutations at a glance
-    * scatter: scatter plot of mean values. Useful when wanting to keep many
-    values (i.e. many mutation sites) in the same plot.
 
 Options -n and -x control the range of the y axis.
 
-Type scatter has two special options: option -w adds the label with the mutation site
+Type average has two special options: option -u adds the label with the mutation site
 on top of the n most destabilizing mutations, option -L sets a limit for the DDG values
 - values higher than this will be reduced to the threshold value."""
 
@@ -108,7 +108,7 @@ def plot_violin(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys_r'
     plt.xlim(0,mat.shape[1]+1)
     plt.tight_layout()
 
-def plot_single(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
+def plot_scatter(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
     xt = xlabels
     xticks = np.arange(1,mat.shape[1]+1)
     if title is None:
@@ -191,7 +191,7 @@ def plot_stemplot(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys'
     plt.tight_layout()
 
 
-def plot_scatter(mat, xlabels, vmin, vmax, title=None, fontsize=8, topmuts=0, cmap='Greys'):
+def plot_average(mat, xlabels, vmin, vmax, title=None, fontsize=8, topmuts=0, cmap='Greys'):
     plt.tick_params(
     axis='x',
     which='both',
@@ -272,11 +272,11 @@ required = parser.add_argument_group('required arguments')
 required = init_arguments(['pdb', 'data', 'mutation_list'], required)
 optional = init_arguments(['multimers', 'position_list'], optional)
 
-required.add_argument("-T","--type", dest="type", nargs = '+', required = True, choices = ["stem", "box", "violin", "single", "scatter"], help = "type of plot(s) to generate: stem, box, violin, scatter or single")
+required.add_argument("-T","--type", dest="type", nargs = '+', required = True, choices = ["stem", "box", "violin", "average", "scatter"], help = "type of plot(s) to generate: stem, box, violin, average or scatter")
 optional.add_argument("-L","--limit", dest="limit", action='store', default = None, type=float, help="maximum DDG value to be plotted in scatter plots")
 optional.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="lower limit for the range of the y axis")
 optional.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="upper limit for the range of the y axis")
-optional.add_argument("-u","--topmuts", dest="topmuts", type=int, default=0, help="number of extreme residues to be labeled (scatter plot only)")
+optional.add_argument("-u","--topmuts", dest="topmuts", type=int, default=0, help="number of extreme residues to be labeled (average plot only)")
 
 optional = init_arguments(['title', 'labels', 'fonts', 'fontsize', 'splice'], optional)
 optional.add_argument("-c","--colormap", dest="colormap", type=str, default=None, help="color map to be used for the plot")
@@ -301,10 +301,10 @@ if options.verbose:
 else:
     log.basicConfig(level=log.WARNING, format=LOGFMT)
 
-colormaps = {'box':    'Greys_r',
-             'violin': 'Greys_r',
+colormaps = {'box':     'Greys_r',
+             'violin':  'Greys_r',
              'stemplot':'Greys',
-             'scatter':'Greys'}
+             'average': 'Greys'}
 
 if options.colormap is not None:
     if not options.colormap in plt.colormaps():
@@ -398,28 +398,27 @@ for i in range(len(spliced_data)):
         plt.savefig("box_%d_%s" %(i, options.outfile))
         plt.clf()
 
-    if("single" in options.type):
-        plot_single(spliced_data[i][0],
+    if("scatter" in options.type):
+        plot_scatter(spliced_data[i][0],
                      spliced_data[i][1],
                      res_order,
                      options.vmin,
                      options.vmax,
                      title=options.title,
                      fontsize=options.fontsize)
-        plt.savefig("single_%d_%s" %(i, options.outfile))
+        plt.savefig("scatter_%d_%s" %(i, options.outfile))
         plt.clf()
-#def plot_scatter(mat, xlabels, vmin, vmax, title=None, fontsize=8, topmuts=0):
 
-    if("scatter" in options.type):
-        plot_scatter(spliced_data[i][0],
+    if("average" in options.type):
+        plot_average(spliced_data[i][0],
                      spliced_data[i][1],
                      options.vmin,
                      options.vmax,
                      title=options.title,
                      fontsize=options.fontsize,
                      topmuts=options.topmuts,
-                     cmap=colormaps['scatter'])
-        plt.savefig("scatter_%d_%s" %(i, options.outfile))
+                     cmap=colormaps['average'])
+        plt.savefig("average_%d_%s" %(i, options.outfile))
         plt.clf()
 
     if("stem" in options.type):
