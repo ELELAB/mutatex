@@ -7,4 +7,4 @@ ddg2distribution -p $PDB -l $MUTLIST -d $RESULTS -T box -F Arial -s 50 -n -3 -x 
 
 export PDB=../1D5R_noheatm.pdb
 
-ddg2distribution -p $PDB -l $MUTLIST -d $RESULTS -T scatter -F Arial -s 500 -n -3 -x 22 -c viridis -u 10 -b labels_1D5R_clean.csv
+ddg2distribution -p $PDB -l $MUTLIST -d $RESULTS -T average -F Arial -s 500 -n -3 -x 22 -c viridis -u 10 -b labels_1D5R_clean.csv
