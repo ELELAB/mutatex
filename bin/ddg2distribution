@@ -273,7 +273,7 @@ required = init_arguments(['pdb', 'data', 'mutation_list'], required)
 optional = init_arguments(['multimers', 'position_list'], optional)
 
 required.add_argument("-T","--type", dest="type", nargs = '+', required = True, choices = ["stem", "box", "violin", "average", "scatter"], help = "type of plot(s) to generate: stem, box, violin, average or scatter")
-optional.add_argument("-L","--limit", dest="limit", action='store', default = None, type=float, help="maximum DDG value to be plotted in scatter plots")
+optional.add_argument("-L","--limit", dest="limit", action='store', default = None, type=float, help="maximum DDG value to be plotted in average plots")
 optional.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="lower limit for the range of the y axis")
 optional.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="upper limit for the range of the y axis")
 optional.add_argument("-u","--topmuts", dest="topmuts", type=int, default=0, help="number of extreme residues to be labeled (average plot only)")
