@@ -18,7 +18,6 @@
 
 import argparse
 import matplotlib
-from six import iteritems
 matplotlib.use('PDF')
 from matplotlib import cm
 from Bio import PDB
