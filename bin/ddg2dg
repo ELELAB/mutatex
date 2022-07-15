@@ -58,7 +58,7 @@ optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
 
 required = init_arguments(['pdb', 'data'], required)
-optional = init_arguments(['multimers'], optional)
+optional = init_arguments(['multimers', 'position_list'], optional)
 
 optional.add_argument("-m", "--slope", dest="m", type=float, action='store', default=1.0, help="slope value for the correction of DDG values")
 optional.add_argument("-y", "--y-intercept", dest="b", type=float, action='store', default=0.0, help="y-intercept value for the correction of DDG values")
@@ -84,6 +84,15 @@ try:
     foldx_sequence = get_residue_list(options.in_pdb, multimers=options.multimers)
 except IOError:
     exit(1)
+
+if options.position_list is not None:
+    log.info("Positions will be read from file")
+    try:
+        poslist = parse_poslist_file(options.position_list)
+    except (IOError, TypeError):
+        exit(1)
+
+    foldx_sequence = filter_reslist(foldx_sequence, poslist)
 
 header="# dgf"
 
