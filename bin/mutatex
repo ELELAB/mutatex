@@ -281,13 +281,19 @@ else:
         log.error("\t%s" % i[0])
         exit(1)
 
+    # Detect unrecognized molecule files.
+    for r in repair_runs:
+        if os.path.exists("%s/%s/Unrecognized_molecules.txt" % (working_directory, r.name)): 
+            log.info("unrecognized molecles in the pdb structure after repair run of %s" % (r.name))
+            log.info("MutateX terminated due to unrecognized molecules")
+            sys.exit()
+
     # Select PDB(s) to be used
     repaired_pdbs_list = [repair_runs[i].working_directory+"/"+current_version.repair_pdb_output_fname(pdbs_list[i]) for i in range(len(pdbs_list))]
     log.info("list of PDBs to be used: %s" % ", ".join(repaired_pdbs_list))
 
 
 # PHASE TWO: mutate + energy
-
 
 # create working directory
 working_directory = main_dir+"/"+mutations_dirname
