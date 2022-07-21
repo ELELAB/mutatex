@@ -23,10 +23,11 @@ import argparse
 import logging as log
 import numpy as np
 import platform
+import shutil
 from Bio import PDB
 from six import iteritems
 from mutatex.utils import *
-from mutatex.core import * 
+from mutatex.core import *
 
 signal.signal(signal.SIGTERM, termination_handler)
 signal.signal(signal.SIGINT, termination_handler)
@@ -89,6 +90,9 @@ parser.add_argument('-l', '--foldx-log',
 parser.add_argument('-R', '--repair-runfile-template','--repair', 
                         dest="repair_runfile_template", type=str, default="repair_runfile_template.txt", 
                         help="template runfile for repair runs (default: ./repair_runfile_template.txt)")
+parser.add_argument('-r', '--ignore_unrecognized_molecules',
+                        dest="force_run_repair", action='store_true',
+                        help="Force repair of PDB even if there is unrecognized molecules")
 parser.add_argument('-M', '--mutate-runfile-template','--mutate', 
                         dest="mutate_runfile_template", type=str, default="mutate_runfile_template.txt", 
                         help="template runfile for mutation runs (default: ./mutate_runfile_template.txt)")
@@ -269,6 +273,9 @@ else:
     # Prepare repair runs
     for r in repair_runs:
         log.info("Preparing for repair run %s" % (r.name))
+        if os.path.exists("%s/%s/Unrecognized_molecules.txt" % (working_directory, r.name)):
+            log.info("Files from existing repair run in %s removed" % (r.name))
+            shutil.rmtree("%s/%s/" % (working_directory, r.name))
         r.prepare()
 
     # Run repair runs
@@ -281,12 +288,16 @@ else:
         log.error("\t%s" % i[0])
         exit(1)
 
+#TEHI
     # Detect unrecognized molecule files.
-    for r in repair_runs:
-        if os.path.exists("%s/%s/Unrecognized_molecules.txt" % (working_directory, r.name)): 
-            log.info("unrecognized molecles in the pdb structure after repair run of %s" % (r.name))
-            log.info("MutateX terminated due to unrecognized molecules")
-            sys.exit()
+    if args.force_run_repair:
+        pass
+    else:
+        for r in repair_runs:
+            if os.path.exists("%s/%s/Unrecognized_molecules.txt" % (working_directory, r.name)): 
+                log.info("unrecognized molecles in the pdb structure after repair run of %s" % (r.name)) 
+                log.info("MutateX terminated due to unrecognized molecules") 
+                sys.exit()
 
     # Select PDB(s) to be used
     repaired_pdbs_list = [repair_runs[i].working_directory+"/"+current_version.repair_pdb_output_fname(pdbs_list[i]) for i in range(len(pdbs_list))]
