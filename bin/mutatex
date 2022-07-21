@@ -288,7 +288,6 @@ else:
         log.error("\t%s" % i[0])
         exit(1)
 
-#TEHI
     # Detect unrecognized molecule files.
     if args.force_run_repair:
         pass
