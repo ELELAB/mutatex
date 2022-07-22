@@ -2112,10 +2112,41 @@ n.
  options.
 \end_layout
 
+\begin_layout Subsubsection
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:position-list"
+
+\end_inset
+
+Using a position list
+\end_layout
+
 \begin_layout Standard
 By default, all plotting tools assume that a full mutational scan has been
- performed; if only a partial one has been run, then you need to specify
- the used position list as an additional input, with option -q.
+ performed.
+ If only a partial one has been performed by using a position list file
+ (option -q), the same position list file has to be provided to the plotting
+ tools as an additional input, again with option -q.
+ All our tools support position list files except for ddg2pdb, which expect
+ a full mutational scan, ddg2histo and ddg2summary, both which support different
+ mechanisms to select mutation sites or mutations (see below).
+\end_layout
+
+\begin_layout Standard
+Providing a mutation list can also be useful to limit plotting and reporting
+ to a certain set of residues, even though a larger a scan has been performed.
+ You can see an example in section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:Heatmap"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Subsubsection
@@ -2194,6 +2225,13 @@ Labels are optional.
 
 \begin_layout Subsubsection
 Heatmap
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:Heatmap"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -2267,7 +2305,22 @@ ddg2heatmap -p 1D5R_clean_model0_checked.pdb
 \end_layout
 
 \begin_layout Standard
+The resulting plot is shown in figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:heatmap"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
 \begin_inset Float figure
+placement H
 wide false
 sideways false
 status open
@@ -2311,7 +2364,195 @@ status open
 \begin_inset Caption Standard
 
 \begin_layout Plain Layout
-Heatmap generated using ddg2heatmap .
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:heatmap"
+
+\end_inset
+
+Heatmap generated using ddg2heatmap.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+It is also possible to provide a custom position list to this and other
+ tools (see section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:position-list"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+ In this case we provide a poslist file with the following content, therefore
+ including 8 custom residues:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+AA39
+\end_layout
+
+\begin_layout Plain Layout
+
+GA44
+\end_layout
+
+\begin_layout Plain Layout
+
+YA46
+\end_layout
+
+\begin_layout Plain Layout
+
+NA48
+\end_layout
+
+\begin_layout Plain Layout
+
+NA49
+\end_layout
+
+\begin_layout Plain Layout
+
+NA50
+\end_layout
+
+\begin_layout Plain Layout
+
+FA56
+\end_layout
+
+\begin_layout Plain Layout
+
+LA57
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+we then run ddg2heatmap providing the poslist file with option -q, obtaining
+ the plot in figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:heatmap-poslist"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2heatmap -p 1D5R_clean_model0_checked.pdb
+\end_layout
+
+\begin_layout Plain Layout
+
+-l mutation_list.txt 
+\end_layout
+
+\begin_layout Plain Layout
+
+-d results/mutation_ddgs/1D5R_clean_model0_checked_Repair 
+\end_layout
+
+\begin_layout Plain Layout
+
+-n -3.0 -x 5.0
+\end_layout
+
+\begin_layout Plain Layout
+
+-q poslist.txt
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename 1_heatmap_poslist.png
+	lyxscale 30
+	scale 70
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:heatmap-poslist"
+
+\end_inset
+
+Heatmap generated using ddg2heatmap and poslist file.
 \end_layout
 
 \end_inset
