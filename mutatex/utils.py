@@ -203,6 +203,7 @@ def parse_poslist_file(fname,unique_residues):
             raise TypeError
 
         tmp = line.strip().split("_")
+        residue=tuple(tmp)
 
         numbers = [ re.sub("[^0-9]", "", x) for x in tmp ]
 
@@ -213,7 +214,11 @@ def parse_poslist_file(fname,unique_residues):
             log.error("format error at %s" % line.strip())
             raise TypeError
         if residue not in unique_residues:
-            if line.strip("\n") not in str(unique_residues):
+            pdb_residues_list=[]
+            for i in unique_residues:
+                single_set=set(i)
+                pdb_residues_list.append(set(residue).issubset(single_set))
+            if True not in pdb_residues_list:
                 log.error( "%s residue is not written in the right format or it is not contained in pdbfile" % line.strip())
                 raise TypeError
 
