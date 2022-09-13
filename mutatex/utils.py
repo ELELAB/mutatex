@@ -192,16 +192,10 @@ def parse_poslist_file(fname,unique_residues):
         log.error("Couldn't open position list file %s" % fname)
         raise IOError
     for line in fh:
-        residue=()
-        if "_" in line:
-            residue=tuple(sorted(line.strip("\n").split("_")))    
-        else:
-            residue=tuple([line.strip("\n")],)
         if matcher.fullmatch(line.strip()) is None:
             log.error("the position list file is not in the right format")
             log.error("format error at %s" % line.strip())
             raise TypeError
-
         tmp = line.strip().split("_")
         residue=tuple(tmp)
 
