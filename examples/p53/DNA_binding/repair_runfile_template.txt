@@ -1,0 +1,5 @@
+command=RepairPDB
+pdb=$PDBS$
+
+temperature=298
+water=-CRYSTAL

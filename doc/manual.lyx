@@ -424,7 +424,7 @@ $NRUNS$
 \end_inset
 
  of interaction needs to be calculated, a third template file needs to be
- provided.
+ provided, either for protein complex or complex with DNA.
  Examples for template files are available with the MutateX distribution.
 \end_layout
 
@@ -2010,14 +2010,47 @@ _averages.
 
 \begin_layout Subsubsection
 Optional: Free energy of interaction
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:Optional:-Free-energy"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
-If the calculation of free energy of interaction has been requested, the
+MutateX supports calculating changes of free energy of interaction either
+ between every protein chain in the input PDB file or between every protein
+ chain and DNA.
+ Switching between the two modes is done by using different template files,
+ 
+\begin_inset Quotes eld
+\end_inset
+
+interface_runfile_template.txt
+\begin_inset Quotes erd
+\end_inset
+
+ for protein-protein interaction and 
+\begin_inset Quotes eld
+\end_inset
+
+interface_DNA_runfile_template.txt
+\begin_inset Quotes erd
+\end_inset
+
+ for protein-DNA interaction.
+ Both of them are available in the template folder.
+ If the calculation of free energy of interaction has been requested, the
  corresponding changes in free energy are stored similarly as in the mutations
  results directory, however in a different position.
- Keep in mind that in this case the interaction energies are calculated
- for pairs of chains (chains A and B in this case):
+ If the interaction is between two protein chains, the interaction energies
+ are calculated for pairs of chains (chains A and  B in the below example).
+ If a DNA complex is analyzed, the interaction will be based on the chain
+ names in the PDB file considering both chains of DNA together (e,g, considering
+ A-BC, if BC is the  two strands of DNA).
+ Here follows an example of the output directory structure.
 \end_layout
 
 \begin_layout Standard
@@ -2052,6 +2085,65 @@ _ddgs.
 \begin_layout Plain Layout
 
  .4 A-B.
+\end_layout
+
+\begin_layout Plain Layout
+
+ .5 structure
+\backslash
+_model0
+\backslash
+_checked
+\backslash
+_Repair.
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+ .5 final
+\backslash
+_averages.
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+dirtree{% 
+\end_layout
+
+\begin_layout Plain Layout
+
+ .1 CWD.
+\end_layout
+
+\begin_layout Plain Layout
+
+ .2 results.
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+ .3 interface
+\backslash
+_ddgs.
+\end_layout
+
+\begin_layout Plain Layout
+
+ .4 A-BC.
 \end_layout
 
 \begin_layout Plain Layout
@@ -3794,6 +3886,27 @@ Q: Is it possible to include non-standard (for instance, phosphorilated)
 \begin_layout Standard
 A: Yes it is! See the following web page for the list of supported residues:
  http://foldxsuite.crg.eu/allowed-residues
+\end_layout
+
+\begin_layout Subsubsection*
+Q: Is it possible to calculate changes of free energy of interaction between
+ protein of DNA?
+\end_layout
+
+\begin_layout Standard
+A: Yes, simpling by changing template files when calculating interaction
+ energy.
+ See section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:Optional:-Free-energy"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
 \end_layout
 
 \end_body
