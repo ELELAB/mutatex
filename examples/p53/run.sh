@@ -11,6 +11,7 @@ mutatex 3kmd.pdb \
 	-R repair_runfile_template.txt \
 	-M mutate_runfile_template.txt \
 	-I interface_runfile_template.txt \
+        -C deep \
 	--binding-energy \
 	--foldx-log
 
