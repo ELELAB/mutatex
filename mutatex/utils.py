@@ -196,13 +196,12 @@ def parse_poslist_file(fname,unique_residues):
             log.error("the position list file is not in the right format")
             log.error("format error at %s" % line.strip())
             raise TypeError
-        tmp = line.strip().split("_")
-        residue=tuple(tmp)
+        residue=tuple(line.strip().split("_"))
 
-        numbers = [ re.sub("[^0-9]", "", x) for x in tmp ]
+        numbers = [ re.sub("[^0-9]", "", x) for x in residue ]
 
-        if len(set([len(x) for x in tmp])) != 1 or\
-        len(set(tmp)) != len(tmp) or\
+        if len(set([len(x) for x in residue])) != 1 or\
+        len(set(residue)) != len(residue) or\
         len(set(numbers)) != 1:
             log.error("the position list file is not in the right format")
             log.error("format error at %s" % line.strip())
@@ -210,13 +209,12 @@ def parse_poslist_file(fname,unique_residues):
         if residue not in unique_residues:
             pdb_residues_list=[]
             for i in unique_residues:
-                single_set=set(i)
-                pdb_residues_list.append(set(residue).issubset(single_set))
-            if True not in pdb_residues_list:
+                pdb_residues_list.append(set(residue).issubset(set(i)))
+            if pdb_residues_list.count(True) != 1:
                 log.error( "%s residue is not written in the right format or it is not contained in pdbfile" % line.strip())
                 raise TypeError
 
-        out.append(tuple(sorted([s if str.isdigit(s[1]) else s[1:] for s in tmp])))
+        out.append(tuple(sorted([s if str.isdigit(s[1]) else s[1:] for s in residue])))
 
     return list(set(out))
 
