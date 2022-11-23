@@ -176,6 +176,9 @@ def parse_poslist_file(fname,unique_residues):
     ----------
     fname : str
         name of the file to be read
+    unique_residues : list collecting the 
+        unique residues contained in the input 
+        pdb file
     Returns
     -------
     restypes : list of str
