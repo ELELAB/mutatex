@@ -26,6 +26,7 @@ import platform
 from Bio import PDB
 from six import iteritems
 from mutatex.utils import *
+from mutatex.core import *
 
 signal.signal(signal.SIGTERM, termination_handler)
 signal.signal(signal.SIGINT, termination_handler)
@@ -286,6 +287,7 @@ else:
 
 
 # PHASE TWO: mutate + energy
+
 
 # create working directory
 working_directory = main_dir+"/"+mutations_dirname
