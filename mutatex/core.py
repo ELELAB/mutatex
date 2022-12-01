@@ -987,7 +987,7 @@ class FoldXRun(object):
 
         """
         ftypes = [".pdb", ".fxout", ".log"]
-        individual_files = ["individual_list.txt", "rotabase.txt", "runfile.txt"]
+        individual_files = ["individual_list.txt", "rotabase.txt", "runfile.txt", 'Unrecognized_molecules.txt']
         for f in os.listdir(self.working_directory):
             if os.path.splitext(f)[-1] in ftypes:
                 try:
@@ -1019,20 +1019,30 @@ class FoldXRepairRun(FoldXRun):
     def check_status(self):
         """
         checks status of the repair run. Since we are just interested in the
-        repaired PDB, two statuses are possible: either the output PDB is
-        present and the run was thus sucessful or not.
+        repaired PDB, tree statuses are possible: 1) the output PDB is
+        present and the run was thus sucessful, 2) the output PDB was generated
+        with unrezognized molecules, or 3) the run was not sucessful.
         Returns
         ----------
         str
-           either "already_done", if the output PDB is present, or "not_done"
-           otherwise
+           either "already_done", if the output PDB is present, "broken" if 
+           unrecognized molecules found or "not_done" otherwise
         """
         if os.path.exists(self.working_directory):
             log.warning("working directory %s already exists." % self.working_directory)
             if self.foldx_version.repair_pdb_output_fname(self.pdbs[0]) in os.listdir(self.working_directory):
-                log.warning("PDB output file already present; run %s will be skipped" % self.name)
-                return "already_done"
-        return "not_done"
+               if 'Unrecognized_molecules.txt' in os.listdir(self.working_directory): 
+                   log.warning("A previous PDB repair was run with unrecognized molecules for %s." % self.name)
+                   log.warning("IT IS BROKEN")
+                   return "broken"
+               else: 
+                   log.warning("PDB output file already present; run %s will be skipped" % self.name)
+                   log.warning("IT IS ALREADY DONE")
+                   return "already_done" 
+                #self.ready = False 
+        else:
+            log.warning("LETS GO")
+            return "not_done"
 
     def process_runfile(self, **kwargs):
         """
@@ -1045,10 +1055,17 @@ class FoldXRepairRun(FoldXRun):
 
     def clean(self):
         """
-        no cleaning is expected for Repair runs, so this function is left
-        undefined
+        process of cleaning the repair directory when unrecognized molecules are found. 
         """
-        pass
+ #       if os.path.exists(self.working_directory):
+ #           if 'Unrecognized_molecules.txt' in os.listdir(self.working_directory):
+ #               log.info("Cleaning working directory %s" % self.working_directory)
+ #               for f in os.listdir(self.working_directory):
+ #                   fname = os.path.join(self.working_directory, f)
+ #                   if os.path.isfile(fname) and not fname.endswith(".fxout") and not fname.endswith(".log") and not fname == os.path.basename(fname):
+ #                       log.info("removing %s" % fname)
+ #                       os.remove(fname)
+ #       return
 
     def partial_clean(self):
         """
@@ -1058,15 +1075,34 @@ class FoldXRepairRun(FoldXRun):
 
     def reset_working_directory(self):
         """
-        no directory reset needs to performed for for Repair runs, so this
-        function will always return False
+        Performs complete reset of the working directory. This function
+        removes all the input and output files from the previous run. 
+        This is done in case of unrecognized molecules.
+        
         Returns
         ----------
-        False
-            return values that signals the prepare function that the directory
-            hasn't ben reset
+        True
+            signals that the working directory has been reset
+
         """
-        return False
+        ftypes = [".pdb", ".fxout", ".log"]
+        individual_files = ["individual_list.txt", "rotabase.txt", "runfile.txt", 'Unrecognized_molecules.txt']
+        for f in os.listdir(self.working_directory):
+            if os.path.splitext(f)[-1] in ftypes:
+                try:
+                    os.remove(os.path.join(self.working_directory, f))
+                except:
+                    pass
+        for f in individual_files:
+            full_path = os.path.join(self.working_directory, f)
+            if os.path.isfile(full_path):
+                log.info("removing %s" % os.path.join(self.working_directory, f))
+                try:
+                    os.remove(full_path)
+                except:
+                    pass
+        return True
+
 
 class FoldXMutateRun(FoldXRun):
     """
