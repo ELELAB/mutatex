@@ -759,6 +759,7 @@ class FoldXRun(object):
                 output_processing={},
                 link_files=False,
                 write_log=False,
+                values_check={},
                 clean='partial'):
 
         self.name = name
@@ -776,6 +777,7 @@ class FoldXRun(object):
             self.output_processing = output_processing
         self.link_files = link_files
         self.write_log = write_log
+        self.values_check = values_check
         self.do_clean = clean
         self.finished = False
         self.ready = False
@@ -894,7 +896,7 @@ class FoldXRun(object):
         runline = [self.foldx_version.binary, self.foldx_version.runfile_string, self.runfile_name]
         log.info("now running: %s" % self.name)
         log.info("command is %s" % " ".join(runline))
-
+        
         if self.write_log:
             this_stdout_str = self.working_directory+"/"+self.logfile_name
         else:
@@ -911,10 +913,15 @@ class FoldXRun(object):
             return False
 
         elif returncode == 0:
-            log.info("run %s has completed successfully" % self.name)
-            self.finished = True
-            self.process_output(**self.output_processing)
-            return True
+            i = self.check_values(**self.values_check)
+            if i == True:
+                log.info("run %s was terminated before completing due to unrecognized molecules" % self.name)
+                return False
+            else: 
+                log.info("run %s has completed successfully" % self.name)
+                self.finished = True
+                self.process_output(**self.output_processing)
+                return True
 
         else:
             log.warning("FoldX exited with error for run %s! Return code %d" % (self.name, returncode))
@@ -937,6 +944,13 @@ class FoldXRun(object):
         dummy finalize_prepare function - to be overridden by derived classes
         """
         pass
+    
+    def check_values(self):
+        
+        if 'Unrecognized_molecules.txt' in os.listdir(self.working_directory): 
+            return True
+        else:
+            return False
 
     def process_output(self, **kwargs):
         """
@@ -1004,6 +1018,7 @@ class FoldXRun(object):
                     pass
         return True
 
+
 class FoldXRepairRun(FoldXRun):
     """
     FoldX repair run - runs a complete repair on a set of PDB files. Prepares
@@ -1033,15 +1048,11 @@ class FoldXRepairRun(FoldXRun):
             if self.foldx_version.repair_pdb_output_fname(self.pdbs[0]) in os.listdir(self.working_directory):
                if 'Unrecognized_molecules.txt' in os.listdir(self.working_directory): 
                    log.warning("A previous PDB repair was run with unrecognized molecules for %s." % self.name)
-                   log.warning("IT IS BROKEN")
                    return "broken"
                else: 
                    log.warning("PDB output file already present; run %s will be skipped" % self.name)
-                   log.warning("IT IS ALREADY DONE")
                    return "already_done" 
-                #self.ready = False 
         else:
-            log.warning("LETS GO")
             return "not_done"
 
     def process_runfile(self, **kwargs):
@@ -1055,17 +1066,9 @@ class FoldXRepairRun(FoldXRun):
 
     def clean(self):
         """
-        process of cleaning the repair directory when unrecognized molecules are found. 
+        no cleaning is expected for Repair runs, so this function is left
+        undefined
         """
- #       if os.path.exists(self.working_directory):
- #           if 'Unrecognized_molecules.txt' in os.listdir(self.working_directory):
- #               log.info("Cleaning working directory %s" % self.working_directory)
- #               for f in os.listdir(self.working_directory):
- #                   fname = os.path.join(self.working_directory, f)
- #                   if os.path.isfile(fname) and not fname.endswith(".fxout") and not fname.endswith(".log") and not fname == os.path.basename(fname):
- #                       log.info("removing %s" % fname)
- #                       os.remove(fname)
- #       return
 
     def partial_clean(self):
         """
@@ -1102,6 +1105,7 @@ class FoldXRepairRun(FoldXRun):
                 except:
                     pass
         return True
+        
 
 
 class FoldXMutateRun(FoldXRun):
@@ -1242,6 +1246,7 @@ class FoldXInterfaceRun(FoldXRun):
         self.prepare_finalization = mr.prepare_finalization
         self.foldx_version = mr.foldx_version
         self.output_processing = {}
+        self.values_check = {}
         self.link_files = mr.link_files
         self.write_log = mr.write_log
         self.ready = False
