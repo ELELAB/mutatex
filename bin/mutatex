@@ -274,10 +274,9 @@ else:
     # Run repair runs
     log.info("Running repair runs")
     repair_outcome = parallel_foldx_run(repair_runs, np=args.np)
-    log.info(f"{repair_outcome}")
 
     if False in list(zip(*repair_outcome))[1]:
-        #this needs to be te case when unrecognized molecules are found.
+        #applicable when unrecognized molecules are found.
         log.error("The following repair runs failed to complete. Exiting...")
     for i in [x for x in repair_outcome if x[1] == False]:
         log.error("\t%s" % i[0])

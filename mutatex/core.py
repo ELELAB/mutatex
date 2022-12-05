@@ -759,7 +759,7 @@ class FoldXRun(object):
                 output_processing={},
                 link_files=False,
                 write_log=False,
-                values_check={},
+                output_check={},
                 clean='partial'):
 
         self.name = name
@@ -777,7 +777,7 @@ class FoldXRun(object):
             self.output_processing = output_processing
         self.link_files = link_files
         self.write_log = write_log
-        self.values_check = values_check
+        self.output_check = output_check
         self.do_clean = clean
         self.finished = False
         self.ready = False
@@ -913,9 +913,8 @@ class FoldXRun(object):
             return False
 
         elif returncode == 0:
-            i = self.check_values(**self.values_check)
-            if i == True:
-                log.info("run %s was terminated before completing due to unrecognized molecules" % self.name)
+            if self.check_output(**self.output_check): 
+                log.info("run %s was terminated after the repair step, since FoldX found unrecognized molecules." % self.name)
                 return False
             else: 
                 log.info("run %s has completed successfully" % self.name)
@@ -945,7 +944,11 @@ class FoldXRun(object):
         """
         pass
     
-    def check_values(self):
+    def check_output(self):
+        """
+        Processes the output of a FoldX repair run to assess the need
+        to halt the process if the file contains unrecognized molecules.
+        """
         
         if 'Unrecognized_molecules.txt' in os.listdir(self.working_directory): 
             return True
@@ -1034,8 +1037,8 @@ class FoldXRepairRun(FoldXRun):
     def check_status(self):
         """
         checks status of the repair run. Since we are just interested in the
-        repaired PDB, tree statuses are possible: 1) the output PDB is
-        present and the run was thus sucessful, 2) the output PDB was generated
+        repaired PDB, three statuses are possible: 1) the output PDB is
+        present and the run was thus successful, 2) the output PDB was generated
         with unrezognized molecules, or 3) the run was not sucessful.
         Returns
         ----------
@@ -1047,7 +1050,7 @@ class FoldXRepairRun(FoldXRun):
             log.warning("working directory %s already exists." % self.working_directory)
             if self.foldx_version.repair_pdb_output_fname(self.pdbs[0]) in os.listdir(self.working_directory):
                if 'Unrecognized_molecules.txt' in os.listdir(self.working_directory): 
-                   log.warning("A previous PDB repair was run with unrecognized molecules for %s." % self.name)
+                   log.warning("A previous PDB repair was run with unrecognized molecules for %s; it will be rerun." % self.name)
                    return "broken"
                else: 
                    log.warning("PDB output file already present; run %s will be skipped" % self.name)
@@ -1084,8 +1087,8 @@ class FoldXRepairRun(FoldXRun):
         
         Returns
         ----------
-        True
-            signals that the working directory has been reset
+        True or False: bool 
+            signals if the working directory has been reset
 
         """
         ftypes = [".pdb", ".fxout", ".log"]
@@ -1246,7 +1249,7 @@ class FoldXInterfaceRun(FoldXRun):
         self.prepare_finalization = mr.prepare_finalization
         self.foldx_version = mr.foldx_version
         self.output_processing = {}
-        self.values_check = {}
+        self.output_check = {}
         self.link_files = mr.link_files
         self.write_log = mr.write_log
         self.ready = False
