@@ -914,7 +914,7 @@ class FoldXRun(object):
 
         elif returncode == 0:
             if self.check_output(**self.output_check): 
-                log.info("run %s was terminated after the repair step, since FoldX found unrecognized molecules." % self.name)
+                log.warning("run %s was terminated after the repair step, since FoldX found unrecognized molecules." % self.name)
                 return False
             else: 
                 log.info("run %s has completed successfully" % self.name)
@@ -1039,7 +1039,7 @@ class FoldXRepairRun(FoldXRun):
         checks status of the repair run. Since we are just interested in the
         repaired PDB, three statuses are possible: 1) the output PDB is
         present and the run was thus successful, 2) the output PDB was generated
-        with unrezognized molecules, or 3) the run was not sucessful.
+        with unrecognized molecules, or 3) the run was not sucessful.
         Returns
         ----------
         str
@@ -1087,8 +1087,8 @@ class FoldXRepairRun(FoldXRun):
         
         Returns
         ----------
-        True or False: bool 
-            signals if the working directory has been reset
+        bool:
+            True if the working directory has been reset, otherwise False
 
         """
         ftypes = [".pdb", ".fxout", ".log"]
