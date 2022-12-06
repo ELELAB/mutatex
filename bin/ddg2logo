@@ -34,6 +34,8 @@ from mutatex.letters import letters
 import numpy as np
 import logging as log
 import os
+import yaml
+from yaml.loader import SafeLoader
 
 description = 'ddg2logo: make logo plots for MutateX DDG values'
 epilog = """ddg2logo generates pseudo-logo plots from DDG values.  While actual logo
@@ -78,7 +80,20 @@ def parse_letters_png(pngfile, letters="ACDEFGHIKLMNPQRSTVWXYypshzkmloef"):
 
     return out
 
-def plot_matrix(mat, reslist, letters, xlabels, max_range, title=None, fontsize=8, hgap=0.5):
+# function to change the color of a specific residue
+def color_letter(letter, color, out): 
+
+    color = color.split(" ")
+    out = out[letter]
+    for i in range(len(out[:,:,0])):
+        out[:,:,0][i][np.where(out[:,:,0][i] != 1.0)] = color[0]
+    for i in range(len(out[:,:,0])):
+        out[:,:,1][i][np.where(out[:,:,1][i] != 1.0)] = color[1]
+    for i in range(len(out[:,:,0])):
+        out[:,:,2][i][np.where(out[:,:,2][i] != 1.0)] = color[2]
+    return out
+
+def plot_matrix(mat, reslist, letters, xlabels, max_range, title=None, fontsize=8, config_file=None, hgap=0.5):
 
 	# initialize values
     width = 1.0
@@ -106,6 +121,76 @@ def plot_matrix(mat, reslist, letters, xlabels, max_range, title=None, fontsize=
 
         # AA mutations sorted by energy
         s_pos_idx = pos_idx[0][local_pos_idx]
+
+        
+
+        #if the config file is provided, load the config 
+        if config_file is not None:
+            with open(options.config_file) as f:
+                config = yaml.load(f, Loader=SafeLoader)
+
+            #initialize dictionary with residues indeces from mutlist as 
+            #keys and color as values
+            pos_dic={}
+
+            #initialize list with residues indeces cluster by color from
+            #config
+            color_list=[]
+
+            #build the pos_dic with residues indeces from mutlist as 
+            #keys and color as values
+            for dic in config:
+                for key, value in dic.items():
+                    for aa in reslist:
+                        if aa in value:
+                            pos_dic[reslist.index(aa)]=key
+
+            #build the color_list with residues indeces cluster by 
+            #color from config
+            for dic in config:
+                for key in dic:
+                    tmp=[]
+                    for position in pos_dic:
+                        if pos_dic[position]==key:
+                            tmp.append(position)
+                    color_list.append(tmp)
+            
+            #initialize list sorted by color and list with residues 
+            #not in the config
+            sorted_list=[]
+            no_config_res=[]
+
+            #color_list flattend 
+            flat_list=[item for sublist in color_list for item in sublist]
+
+            #parse the s_pos_idx and append entries if found in the 
+            #color_list
+            for lista in color_list:
+                tmp=[]
+
+                #check if residues are not in the config and add them to
+                #list of residues not in the config only once
+                for i in s_pos_idx:
+                    if i in lista:
+                        tmp.append(i)
+                    else:
+                        if i not in flat_list:
+                            no_config_res.append(i)
+                #if the list is not empty, add it to the sorted list
+                if tmp:
+                    sorted_list.append(tmp)
+
+            #append list of unique residues not in the config 
+            sorted_list.append(list(set(no_config_res)))
+
+            #remove empty lists
+            for lista in sorted_list:
+                if not lista:
+                    sorted_list.remove(lista)
+
+            #create numpy array from the sorted list 
+            if sorted_list:
+                s_pos_idx = np.hstack(sorted_list)
 
         # if too many of them are allowed, use X and continue
         if len(s_pos_idx) >= options.degeneracy:
@@ -191,7 +276,7 @@ optional.add_argument("-L","--png-letter-map",dest='pngfile',action='store', def
 thresholds.add_argument("-T","--stab-threshold", dest="threshold_stab", action='store', type=float, help="DDG threshold values for stabilizing mutations - mutations with DDG higher than this are not considered.")
 thresholds.add_argument("-t","--destab-threshold", dest="threshold_destab", action='store', type=float, help="DDG threshold values for destabilizing mutations - mutations with DDG lower than this are not considered.")
 optional.add_argument("-x","--maximum-degeneracy", dest="degeneracy", action='store', type=int, default=20, help="when the number of stabilizing/destabilizing mutations is higher than this threshold an X will be plotted instead")
-
+optional.add_argument("-c","--config", dest="config_file", action='store', help="configuration file with which the user can set the colour of subsets of residues")
 optional = init_arguments(['labels', 'fonts', 'fontsize', 'title', 'splice'], optional)
 optional.add_argument("-D","--dpi", dest="dpi", type=float, action='store', default=150, help="number of DPI for the output image. Saving the images at higher DPI (as 300) uses a lot of memory, therefore use with caution" )
 
@@ -224,6 +309,7 @@ except:
 # parse mutation list
 try:
     res_order = parse_mutlist_file(options.mutation_list)
+    print(res_order)
 except IOError:
     exit(1)
 
@@ -273,6 +359,15 @@ if options.labels:
 else:
     labels = res_id_labels
 
+# use custom colour for residues subsets if a config file is provided
+if options.config_file:
+    with open(options.config_file) as f:
+        config = yaml.load(f, Loader=SafeLoader)
+    for key in config:
+        for color, residues in key.items():
+            for residue in residues:
+                color_letter(residue, color, letters)
+
 # parse DDG files
 data = []
 for fname in fnames:
@@ -319,6 +414,7 @@ for i in range(len(spliced_data)):
                         max_range,
                         title=options.title,
                         fontsize=options.fontsize,
+                        config_file=options.config_file
                     )
     plt.show()
     fig.savefig("%d_%s" %(i, options.outfile), dpi=options.dpi)
