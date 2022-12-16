@@ -26,7 +26,7 @@ import platform
 from Bio import PDB
 from six import iteritems
 from mutatex.utils import *
-from mutatex.core import * 
+from mutatex.core import *
 
 signal.signal(signal.SIGTERM, termination_handler)
 signal.signal(signal.SIGINT, termination_handler)
@@ -276,6 +276,7 @@ else:
     repair_outcome = parallel_foldx_run(repair_runs, np=args.np)
 
     if False in list(zip(*repair_outcome))[1]:
+        #applicable when unrecognized molecules are found.
         log.error("The following repair runs failed to complete. Exiting...")
     for i in [x for x in repair_outcome if x[1] == False]:
         log.error("\t%s" % i[0])
