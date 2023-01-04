@@ -3,6 +3,8 @@
 #    utils.py: miscellaneous utilities for MutateX plotting scripts
 #    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
 #                        Thilde Bagger Terkelsen <ThildeBT@gmail.com>
+#    Copyright (C) 2022, Matteo Tiberti, Thilde Bagger Therkelsen,
+#                        Matteo Arnaudi - Danish Cancer Society
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
