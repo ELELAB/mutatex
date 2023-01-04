@@ -1494,7 +1494,7 @@ CA2_CB2
 
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Standard
 Plotting tools (see below) also support partial scans through a specific
  option.
 \end_layout
