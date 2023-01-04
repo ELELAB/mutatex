@@ -796,7 +796,7 @@ p
 \begin_inset Text
 
 \begin_layout Plain Layout
-PTR
+TPO
 \end_layout
 
 \end_inset
@@ -825,7 +825,7 @@ y
 \begin_inset Text
 
 \begin_layout Plain Layout
-TPO
+PTR
 \end_layout
 
 \end_inset
@@ -2324,17 +2324,17 @@ Distribution plots
 The ddg2distribution tool can be used to generate a number of different
  tpyes of plots each visualizing the distribution of the mean protein ∆∆G
  for any mutated wildtype amino acid.
- It can generate a stem plot, a box plot, a violin plot, scatter plot and
- single value plot.
+ It can generate a stem plot, a box plot, a violin plot, average plot and
+ scatter plot.
  The stem plot just plots the average ∆∆G for all the mutations of a given
  site, and the stems are set to the standard deviation of the mean.
  The boxplot shows the general distribution and outliers of the mean ∆∆G
  values for every mutation.
- The violinplot is similar to the boxplot but also shows a continuues vertical
+ The violinplot is similar to the boxplot but also shows a continue vertical
  probability density plot of the data on each side of the figures.
- The scatter plot shows the average per-site ∆∆G as a dot for each position,
+ The average plot shows the average per-site ∆∆G as a dot for each position,
  allowing to identify the outliers for the whole protein.
- The single plot shows the ∆∆G value for every single mutation, instead
+ The scatter plot shows the ∆∆G value for every single mutation, instead
  of a distribution.
 \end_layout
 
@@ -2380,7 +2380,7 @@ status open
 
 \begin_layout Plain Layout
 
--T {stem,box,violin,single,scatter}
+-T {stem,box,violin,average,scatter}
 \end_layout
 
 \end_inset
@@ -2414,14 +2414,14 @@ reference "fig:violinplot"
 , 
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "fig:scatterplot"
+reference "fig:averageplot"
 
 \end_inset
 
  and 
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "fig:single"
+reference "fig:scatterplot"
 plural "false"
 caps "false"
 noprefix "false"
@@ -2518,7 +2518,7 @@ name "fig:stemplot"
 
 \end_inset
 
-Stemplot generated from ddg2distribution.
+Stem plot generated from ddg2distribution.
 \end_layout
 
 \end_inset
@@ -2648,7 +2648,7 @@ name "fig:violinplot"
 
 \end_inset
 
-Violinplot generated from ddg2distribution.
+Violin plot generated from ddg2distribution.
 \end_layout
 
 \end_inset
@@ -2689,7 +2689,72 @@ status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
-	filename scatter_0_energies.png
+	filename average_0_energies.png
+	lyxscale 60
+	scale 55
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:averageplot"
+
+\end_inset
+
+Average plot generated from ddg2distribution.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename scatter_1_energies.png
 	lyxscale 60
 	scale 55
 
@@ -2713,72 +2778,7 @@ name "fig:scatterplot"
 
 \end_inset
 
-Scatterplot generated from ddg2distribution.
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Float figure
-placement H
-wide false
-sideways false
-status open
-
-\begin_layout Plain Layout
-\begin_inset Box Frameless
-position "t"
-hor_pos "c"
-has_inner_box 1
-inner_pos "t"
-use_parbox 0
-use_makebox 0
-width "100col%"
-special "none"
-height "1in"
-height_special "totalheight"
-thickness "0.4pt"
-separation "3pt"
-shadowsize "4pt"
-framecolor "black"
-backgroundcolor "none"
-status open
-
-\begin_layout Plain Layout
-\begin_inset Graphics
-	filename single_1_energies.png
-	lyxscale 60
-	scale 55
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset Caption Standard
-
-\begin_layout Plain Layout
-\begin_inset CommandInset label
-LatexCommand label
-name "fig:single"
-
-\end_inset
-
-Scatterplot generated from ddg2distribution.
+Scatter plot generated from ddg2distribution.
 \end_layout
 
 \end_inset
@@ -3012,34 +3012,50 @@ Logo plot
 \end_layout
 
 \begin_layout Standard
-ddg2logo generates pseudo-logo plots from DDG values.
+ddg2logo generates pseudo-logo plots from ∆∆G values.
  While actual logo plots are based on letter frequency, these are based
  on the provided MutateX scan and are designed to highlight the mutation
- sites which specifically feature a limited number of stabilizing or accepted
- mutations.
- For each site, the letters of the plot represent the stabilizing mutations
- and their height is proportional to the stabilizing effect (i.e.
- to the absolute value of the respective negative energy).
- If a certain site has more than a certain number of accepted mutations,
- the respective column can be replaced by a X - this is controlled by the
- -x option.
- Before plotting the following transformations are carried out on the data:
+ sites which specifically feature a limited number of stabilizing or destabilizi
+ng mutations, as chosen by the user (see below).
+ For each site, the letters of the plot represent the (de)stabilizing mutations
+ and their height is proportional to the (de)stabilizing effect (i.e.
+ the absolute value of the respective change in free energy).
+ If a certain site has more than a certain number of selected mutations,
+ the respective column can be replaced by a X - this threshold value is
+ controlled by the -x option.
+ The behaviour of the tool is slightly different if stabilizing or destabilizing
+ mutations are being plotted:
 \end_layout
 
 \begin_layout Itemize
-the DDG values >= than threshold (option -T) are brought down to the threshold
+To plot stabilizing mutations, the user needs to provide option -T with
+ a free energy threshold in kcal/mol which must be zero or negative.
+ If option -T is provided, before plotting:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+all the ∆∆G values ≥ threshold are set to 0
 \end_layout
 
 \begin_layout Itemize
-all the DDG values are modified by subtracting the threshold value, so that
- that value becomes 0
+the sign of all the ∆∆G values is changed (i.e.
+ they are made positive)
 \end_layout
 
+\end_deeper
 \begin_layout Itemize
-the sign of all the DDGs is changed - so that it becomes more positive if
- it's stabilizing
+To plot destabilizing mutations, the user needs to provide option -t with
+ a free energy threshold in kcal/mol which must be zero or positive.
+ If option -t is provided, before plotting:
 \end_layout
 
+\begin_deeper
+\begin_layout Itemize
+all the ∆∆G values ≤ threshold are set to 0
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 This allows to obtain a 0-based positive-only plot in which the ratio between
  the energy values is the same as the original data.
@@ -3072,6 +3088,11 @@ ddg2logo -p 1D5R_clean_model0_checked.pdb
 \begin_layout Plain Layout
 
 -s 25 -D 300   
+\end_layout
+
+\begin_layout Plain Layout
+
+-t 1.2
 \end_layout
 
 \end_inset
@@ -3375,10 +3396,12 @@ Excel Sheet
 \end_layout
 
 \begin_layout Standard
-ddg2excel is a tool for writing out results in an excel sheet as a table.
- The table has the same basic structure as the ddg2heatmap tool, however
- the values are written in a Excel file to be further explored.
- A typical command line for this tool is:
+ddg2excel is a tool for exporting results as a table in either an excel
+  sheet or a comma-separated file.
+ The excel file is the default format but can be changed by optionally adding
+ -F csv.
+  The table has the same basic structure as the ddg2heatmap tool.
+  To get the table, a typical command line for this tool is:
 \end_layout
 
 \begin_layout Standard

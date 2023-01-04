@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 #    ddg2excel: write DDG MutateX results in the xlsx format
-#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
+#    Copyright (C) 2015, 2022, Matteo Tiberti <matteo.tiberti@gmail.com> 
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -26,12 +26,14 @@ from mutatex.utils import *
 
 LOGFMT = "%(levelname)s: %(message)s"
 
-description = 'ddg2excel: write the average values from a MutateX DDG scan as Excel tables'
-epilog = """ddg2excel writes the average values from a MutateX DDG scan as an Excel table
-file (.xlsx). Option -T swaps rows and columns of the output file. By default,
-residue type, number and chain identifier are written in separate columns/rows
-to make the data easily explorable, however one column/row is used when the
-label file is provided (option -b)"""
+description = 'ddg2excel: writes the average values from a MutateX DDG scan as tables either in excel or in a csv file format'
+epilog = """ddg2excel writes the average values from a MutateX DDG scan as a 
+excel compatible file. Optional Option -F, --format chooses the output file 
+format, csv or xlsx, by default xlsx is chosen. Option -T swaps rows and 
+columns of the output file. By default, residue type, number and chain 
+identifier are written in separate columns/rows to make the data easily 
+explorable, however one column/row is used when the label file is provided 
+(option -b)."""
 
 parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
 optional = parser._action_groups.pop()
@@ -41,8 +43,8 @@ required = init_arguments(['pdb', 'data', 'mutation_list'], required)
 optional = init_arguments(['multimers', 'position_list'], optional)
 
 optional.add_argument("-T","--transpose", dest='transpose', action="store_true", default=False, help="swap rows and columns")
-
-optional.add_argument("-o","--output", dest="outfile", action='store', default='energies.xlsx', help="output excel file")
+optional.add_argument("-o","--output", dest="name_outfile", action='store', default='energies', help="output name without file format")
+optional.add_argument("-F", "--format", dest="format_outfile", action="store", default="xlsx", help="file format of output name, xlsx or csv")
 
 optional = init_arguments(['labels', 'verbose'], optional)
 
@@ -103,59 +105,90 @@ for i,f in enumerate(fnames):
     except (IOError, TypeError):
         exit(1)
 
-wb = pyxl.Workbook()
-ws = wb['Sheet']
-ws.title = 'FoldX mutations DDG'
+if options.format_outfile == "xlsx":
 
-#prepare header
-if labels:
-    ws.cell(row=1, column=1).value = "Residue"
-
-    offset = 0
-    for i,l in enumerate(labels):
-        if options.transpose:
-            ws.cell(row=1, column=1+i+1).value = l
-        else:
-            ws.cell(row=1+i+1,column=1).value = l
-    offset = 1
-
-else:
-    for i in range(max_len_res_ids):
-        offset=i*3
-        if options.transpose:
-            ws.cell(row=1+offset, column=1).value = "WT Residue type"
-            ws.cell(row=1+offset+1, column=1).value = "Chain ID"
-            ws.cell(row=1+offset+2, column=1).value = "Residue #"
-        else:
-            ws.cell(row=1, column=1+offset).value = "WT Residue type"
-            ws.cell(row=1, column=1+offset+1).value = "Chain ID"
-            ws.cell(row=1, column=1+offset+2).value = "Residue #"
-
-    offset = 0
-    for i,resset in enumerate(res_ids_str):
-        for j,res in enumerate(resset):
-            offset = j*3
+    wb = pyxl.Workbook()
+    ws = wb['Sheet']
+    ws.title = 'FoldX mutations DDG'
+    
+    #prepare header
+    if labels:
+        ws.cell(row=1, column=1).value = "Residue"
+    
+        offset = 0
+        for i,l in enumerate(labels):
             if options.transpose:
-                ws.cell(row=1+offset,  column=1+i+1).value = str(res[0])
-                ws.cell(row=1+offset+1,column=1+i+1).value = str(res[1])
-                ws.cell(row=1+offset+2,column=1+i+1).value = res[2:]
+                ws.cell(row=1, column=1+i+1).value = l
             else:
-                ws.cell(row=1+i+1,column=1+offset  ).value = str(res[0])
-                ws.cell(row=1+i+1,column=1+offset+1).value = str(res[1])
-                ws.cell(row=1+i+1,column=1+offset+2).value = res[2:]
-    offset += 3
-
-for i,mut in enumerate(res_order):
-    if options.transpose:
-        ws.cell(row=1+i+offset,column=1).value = mut
+                ws.cell(row=1+i+1,column=1).value = l
+        offset = 1
+    
     else:
-        ws.cell(row=1,column=1+i+offset).value = mut
-
-for i,res in enumerate(res_ids_str):
-    for j,ddg in enumerate(data[i]):
+        for i in range(max_len_res_ids):
+            offset=i*3
+            if options.transpose:
+                ws.cell(row=1+offset, column=1).value = "WT Residue type"
+                ws.cell(row=1+offset+1, column=1).value = "Chain ID"
+                ws.cell(row=1+offset+2, column=1).value = "Residue #"
+            else:
+                ws.cell(row=1, column=1+offset).value = "WT Residue type"
+                ws.cell(row=1, column=1+offset+1).value = "Chain ID"
+                ws.cell(row=1, column=1+offset+2).value = "Residue #"
+    
+        offset = 0
+        for i,resset in enumerate(res_ids_str):
+            for j,res in enumerate(resset):
+                offset = j*3
+                if options.transpose:
+                    ws.cell(row=1+offset,  column=1+i+1).value = str(res[0])
+                    ws.cell(row=1+offset+1,column=1+i+1).value = str(res[1])
+                    ws.cell(row=1+offset+2,column=1+i+1).value = res[2:]
+                else:
+                    ws.cell(row=1+i+1,column=1+offset  ).value = str(res[0])
+                    ws.cell(row=1+i+1,column=1+offset+1).value = str(res[1])
+                    ws.cell(row=1+i+1,column=1+offset+2).value = res[2:]
+        offset += 3
+    
+    for i,mut in enumerate(res_order):
         if options.transpose:
-            ws.cell(row=1+j+offset, column=1+i+1).value = ddg
+            ws.cell(row=1+i+offset,column=1).value = mut
         else:
-            ws.cell(row=1+i+1, column=1+j+offset).value = ddg
+            ws.cell(row=1,column=1+i+offset).value = mut
+    
+    for i,res in enumerate(res_ids_str):
+        for j,ddg in enumerate(data[i]):
+            if options.transpose:
+                ws.cell(row=1+j+offset, column=1+i+1).value = ddg
+            else:
+                ws.cell(row=1+i+1, column=1+j+offset).value = ddg
+    
+    wb.save(f"{options.name_outfile}.{options.format_outfile}")
 
-wb.save(options.outfile)
+elif options.format_outfile == "csv":
+    
+    if labels:
+        csv_table = np.asarray(["Residue"])
+        
+        for i,r in enumerate(res_order):
+            csv_table = np.append(csv_table, r)
+        
+        for i in range(len(labels)):                                   
+            lines = np.append(labels[i], data[i]) 
+            csv_table = np.vstack((csv_table, lines))
+        
+    else:
+        csv_table = np.asarray(["WT residue type", "chain ID", "Residue #"])
+    
+        for i,r in enumerate(res_order):
+            csv_table = np.append(csv_table, r)
+                
+        for i in range(len(fnames)):                                   
+            lines = np.append(fnames[i][2:], data[i]) 
+            lines = np.append(fnames[i][1], lines) 
+            lines = np.append(fnames[i][0], lines) 
+            csv_table = np.vstack((csv_table, lines))
+    
+    if options.transpose:
+        csv_table = csv_table.T
+            
+    np.savetxt(f"{options.name_outfile}.{options.format_outfile}", csv_table, delimiter=",", fmt='%s')  
