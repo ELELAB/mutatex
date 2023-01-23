@@ -81,17 +81,14 @@ def parse_letters_png(pngfile, letters="ACDEFGHIKLMNPQRSTVWXYypshzkmloef"):
     return out
 
 # function to change the color of a specific residue
-def color_letter(letter, color, out): 
+def color_letter(letter, color): 
+    new_array = np.copy(letter)
+    
+    new_array[:,:,0][np.where(new_array[:,:,0] != 1.0)] = color[0]
+    new_array[:,:,1][np.where(new_array[:,:,1] != 1.0)] = color[1]
+    new_array[:,:,2][np.where(new_array[:,:,2] != 1.0)] = color[2]
 
-    color = color.split(" ")
-    out = out[letter]
-    for i in range(len(out[:,:,0])):
-        out[:,:,0][i][np.where(out[:,:,0][i] != 1.0)] = color[0]
-    for i in range(len(out[:,:,0])):
-        out[:,:,1][i][np.where(out[:,:,1][i] != 1.0)] = color[1]
-    for i in range(len(out[:,:,0])):
-        out[:,:,2][i][np.where(out[:,:,2][i] != 1.0)] = color[2]
-    return out
+    return new_array
 
 def plot_matrix(mat, reslist, letters, xlabels, max_range, title=None, fontsize=8, config_file=None, hgap=0.5):
 
@@ -126,9 +123,7 @@ def plot_matrix(mat, reslist, letters, xlabels, max_range, title=None, fontsize=
 
         #if the config file is provided, load the config 
         if config_file is not None:
-            with open(options.config_file) as f:
-                config = yaml.load(f, Loader=SafeLoader)
-
+        
             #initialize dictionary with residues indeces from mutlist as 
             #keys and color as values
             pos_dic={}
@@ -139,21 +134,19 @@ def plot_matrix(mat, reslist, letters, xlabels, max_range, title=None, fontsize=
 
             #build the pos_dic with residues indeces from mutlist as 
             #keys and color as values
-            for dic in config:
-                for key, value in dic.items():
-                    for aa in reslist:
-                        if aa in value:
-                            pos_dic[reslist.index(aa)]=key
+            for key in config:
+                for aa in reslist:
+                    if aa in config[key]['residues']:
+                        pos_dic[reslist.index(aa)]=config[key]['color']
 
             #build the color_list with residues indeces cluster by 
             #color from config
-            for dic in config:
-                for key in dic:
-                    tmp=[]
-                    for position in pos_dic:
-                        if pos_dic[position]==key:
-                            tmp.append(position)
-                    color_list.append(tmp)
+            for key in config:
+                tmp=[]
+                for position in pos_dic:
+                    if pos_dic[position]==config[key]['color']:
+                        tmp.append(position)
+                color_list.append(tmp)
             
             #initialize list sorted by color and list with residues 
             #not in the config
@@ -223,7 +216,6 @@ def plot_matrix(mat, reslist, letters, xlabels, max_range, title=None, fontsize=
     ax.set_ylabel(r'modified FoldX $\Delta\Delta{}$G (kcal/mol)')
 
     ax.set_xlim((0, mat.shape[0]*width +hgap*mat.shape[0] + hgap))
-    #print(max_range)
     ax.set_ylim((0, max_y))
 
     ax.set_xticks(xticks)
@@ -276,7 +268,7 @@ optional.add_argument("-L","--png-letter-map",dest='pngfile',action='store', def
 thresholds.add_argument("-T","--stab-threshold", dest="threshold_stab", action='store', type=float, help="DDG threshold values for stabilizing mutations - mutations with DDG higher than this are not considered.")
 thresholds.add_argument("-t","--destab-threshold", dest="threshold_destab", action='store', type=float, help="DDG threshold values for destabilizing mutations - mutations with DDG lower than this are not considered.")
 optional.add_argument("-x","--maximum-degeneracy", dest="degeneracy", action='store', type=int, default=20, help="when the number of stabilizing/destabilizing mutations is higher than this threshold an X will be plotted instead")
-optional.add_argument("-c","--config", dest="config_file", action='store', help="configuration file with which the user can set the colour of subsets of residues")
+optional.add_argument("-c","--config", dest="config_file", action='store', default=None, help="configuration file with which the user can set the colour of subsets of residues")
 optional = init_arguments(['labels', 'fonts', 'fontsize', 'title', 'splice'], optional)
 optional.add_argument("-D","--dpi", dest="dpi", type=float, action='store', default=150, help="number of DPI for the output image. Saving the images at higher DPI (as 300) uses a lot of memory, therefore use with caution" )
 
@@ -309,7 +301,6 @@ except:
 # parse mutation list
 try:
     res_order = parse_mutlist_file(options.mutation_list)
-    print(res_order)
 except IOError:
     exit(1)
 
@@ -361,12 +352,24 @@ else:
 
 # use custom colour for residues subsets if a config file is provided
 if options.config_file:
-    with open(options.config_file) as f:
-        config = yaml.load(f, Loader=SafeLoader)
+    try:
+        with open(options.config_file) as f:
+            config = yaml.load(f, Loader=SafeLoader)
+    except:
+        log.error("Couldn't open or parse config file. Exiting...")
+        exit(1)
+
+    new_letters = letters.copy()
+
     for key in config:
-        for color, residues in key.items():
-            for residue in residues:
-                color_letter(residue, color, letters)
+        for aa in config[key]['residues']:
+            new_letters[aa] = color_letter(new_letters[aa], config[key]['color'])
+
+    letters = new_letters
+    
+
+
+
 
 # parse DDG files
 data = []
@@ -418,3 +421,4 @@ for i in range(len(spliced_data)):
                     )
     plt.show()
     fig.savefig("%d_%s" %(i, options.outfile), dpi=options.dpi)
+
