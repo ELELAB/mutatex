@@ -251,7 +251,7 @@ except IOError:
 if options.position_list is not None:
     log.info("Positions will be read from file")
     try:
-        poslist = parse_poslist_file(options.position_list)
+        poslist = parse_poslist_file(options.position_list, res_ids_str)
     except (IOError, TypeError):
         exit(1)
 
