@@ -90,7 +90,7 @@ def color_letter(letter, color):
 
     return new_array
 
-def plot_matrix(mat, reslist, letters, xlabels, max_range, title=None, fontsize=8, config_file=None, hgap=0.5):
+def plot_matrix(mat, reslist, letters, xlabels, max_range, title=None, fontsize=8, config=None, hgap=0.5):
 
 	# initialize values
     width = 1.0
@@ -122,7 +122,7 @@ def plot_matrix(mat, reslist, letters, xlabels, max_range, title=None, fontsize=
         
 
         #if the config file is provided, load the config 
-        if config_file is not None:
+        if config is not None:
         
             #initialize dictionary with residues indeces from mutlist as 
             #keys and color as values
@@ -358,18 +358,11 @@ if options.config_file:
     except:
         log.error("Couldn't open or parse config file. Exiting...")
         exit(1)
-
     new_letters = letters.copy()
-
     for key in config:
         for aa in config[key]['residues']:
             new_letters[aa] = color_letter(new_letters[aa], config[key]['color'])
-
     letters = new_letters
-    
-
-
-
 
 # parse DDG files
 data = []
@@ -417,8 +410,7 @@ for i in range(len(spliced_data)):
                         max_range,
                         title=options.title,
                         fontsize=options.fontsize,
-                        config_file=options.config_file
+                        config=config
                     )
-    plt.show()
     fig.savefig("%d_%s" %(i, options.outfile), dpi=options.dpi)
 
