@@ -39,8 +39,12 @@ if sys.version_info[0] <= 2:
 else:
     write_format = 'w'
 
-def names_to_labels(csv_fh):
-    csv_writer = csv.writer(csv_fh, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+def names_to_labels(csv_fh, fnames):
+    csv_writer = csv.writer(csv_fh,
+                            delimiter=',',
+                            quotechar='|',
+                            lineterminator=os.linesep,
+                            quoting=csv.QUOTE_MINIMAL)
     csv_writer.writerow(['Residue_name', 'Label'])
     for fname in fnames:
         csv_writer.writerow([fname, ""])
@@ -81,15 +85,9 @@ else:
     res_id_labels = res_ids_str
 
 try:
-    csvfh = open(options.outfile, write_format)
-except:
+    with open(options.outfile, write_format) as csvfh:
+        names_to_labels(csvfh, fnames)
+except IOError:
     log.error("couldn't open output file for writing; exiting...")
     exit(1)
-
-names_to_labels(csvfh)
-
-csvfh.close()
-
-
-
 
