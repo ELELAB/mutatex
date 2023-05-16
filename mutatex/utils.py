@@ -171,7 +171,7 @@ def parse_ddg_file(fname, reslist=None, full=False):
         return ddgs
     return ddgs[0]
 
-def parse_poslist_file(fname,unique_residues):
+def parse_poslist_file(fname, unique_residues):
     """
     Parser function for position list files
     Parameters
@@ -362,7 +362,7 @@ def get_residue_list(infile, multimers=True, get_structure=False):
                 log.warning("Residue %s couldn't be recognized; it will be skipped" % residue )
                 continue
             if not multimers:
-                residue_list.append(("%s%s%d") % (res_code, chain.get_id(), residue.get_id()[1]))
+                residue_list.append(tuple(["%s%s%d" % (res_code, chain.get_id(), residue.get_id()[1])]) )
             else:
                 sequences[chain_name] += res_code
 

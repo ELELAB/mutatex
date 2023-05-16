@@ -43,8 +43,8 @@ required = init_arguments(['pdb', 'data', 'mutation_list'], required)
 optional = init_arguments(['multimers', 'position_list'], optional)
 
 optional.add_argument("-T","--transpose", dest='transpose', action="store_true", default=False, help="swap rows and columns")
-optional.add_argument("-o","--output", dest="name_outfile", action='store', default='energies', help="output name without file format")
-optional.add_argument("-F", "--format", dest="format_outfile", action="store", default="xlsx", help="file format of output name, xlsx or csv")
+optional.add_argument("-o","--output", dest="name_outfile", action='store', default='energies', help="output file name (default: energies.xlsx/csv)")
+optional.add_argument("-F", "--format", dest="format_outfile", action="store", default="xlsx", help="file format of output name, xlsx or csv (default: xlsx)")
 
 optional = init_arguments(['labels', 'verbose'], optional)
 
@@ -60,6 +60,9 @@ try:
     res_order = parse_mutlist_file(options.mutation_list)
 except (IOError, TypeError):
     exit(1)
+
+if not options.name_outfile.endswith(f".{options.format_outfile}"):
+    options.name_outfile += f".{options.format_outfile}"
 
 log.info("Mutation list is:")
 for i,r in enumerate(res_order):
@@ -79,13 +82,8 @@ if options.position_list is not None:
 
     res_ids_str = filter_reslist(res_ids_str, poslist)
 
-max_len_res_ids = np.max([len(r) for r in res_ids_str])
-if options.multimers:
-    fnames = ["_".join(r) for r in res_ids_str]
-    res_id_labels = [", ".join(r) for r in res_ids_str]
-else:
-    fnames = res_ids_str
-    res_id_labels = res_ids_str
+fnames = ["_".join(r) for r in res_ids_str]
+res_id_labels = [" ".join(r) for r in res_ids_str]
 
 if options.labels:
     try:
@@ -103,6 +101,7 @@ for i,f in enumerate(fnames):
     try:
         data.append(np.array(parse_ddg_file("%s/%s" % (options.ddg_dir, f), reslist=res_order, )))
     except (IOError, TypeError):
+        log.error("Failed to read input file %s/%s" % (options.ddg_dir, f))
         exit(1)
 
 if options.format_outfile == "xlsx":
@@ -112,10 +111,12 @@ if options.format_outfile == "xlsx":
     ws.title = 'FoldX mutations DDG'
     
     #prepare header
+
+    offset = 0
+
     if labels:
         ws.cell(row=1, column=1).value = "Residue"
     
-        offset = 0
         for i,l in enumerate(labels):
             if options.transpose:
                 ws.cell(row=1, column=1+i+1).value = l
@@ -124,37 +125,33 @@ if options.format_outfile == "xlsx":
         offset = 1
     
     else:
-        for i in range(max_len_res_ids):
-            offset=i*3
-            if options.transpose:
-                ws.cell(row=1+offset, column=1).value = "WT Residue type"
-                ws.cell(row=1+offset+1, column=1).value = "Chain ID"
-                ws.cell(row=1+offset+2, column=1).value = "Residue #"
-            else:
-                ws.cell(row=1, column=1+offset).value = "WT Residue type"
-                ws.cell(row=1, column=1+offset+1).value = "Chain ID"
-                ws.cell(row=1, column=1+offset+2).value = "Residue #"
-    
-        offset = 0
+        if options.transpose:
+            ws.cell(row=1+offset, column=1).value = "WT Residue type"
+            ws.cell(row=1+offset+1, column=1).value = "Chain ID"
+            ws.cell(row=1+offset+2, column=1).value = "Residue #"
+        else:
+            ws.cell(row=1, column=1+offset).value = "WT Residue type"
+            ws.cell(row=1, column=1+offset+1).value = "Chain ID"
+            ws.cell(row=1, column=1+offset+2).value = "Residue #"
+
         for i,resset in enumerate(res_ids_str):
-            for j,res in enumerate(resset):
-                offset = j*3
-                if options.transpose:
-                    ws.cell(row=1+offset,  column=1+i+1).value = str(res[0])
-                    ws.cell(row=1+offset+1,column=1+i+1).value = str(res[1])
-                    ws.cell(row=1+offset+2,column=1+i+1).value = res[2:]
-                else:
-                    ws.cell(row=1+i+1,column=1+offset  ).value = str(res[0])
-                    ws.cell(row=1+i+1,column=1+offset+1).value = str(res[1])
-                    ws.cell(row=1+i+1,column=1+offset+2).value = res[2:]
-        offset += 3
-    
+            chain = "".join([res[1] for res in resset])
+            if options.transpose:
+                ws.cell(row=1+offset,  column=1+i+1).value = resset[0][0]
+                ws.cell(row=1+offset+1,column=1+i+1).value = chain
+                ws.cell(row=1+offset+2,column=1+i+1).value = resset[0][2:]
+            else:
+                ws.cell(row=1+i+1,column=1+offset  ).value = resset[0][0]
+                ws.cell(row=1+i+1,column=1+offset+1).value = chain
+                ws.cell(row=1+i+1,column=1+offset+2).value = resset[0][2:]
+        offset = 3
+
     for i,mut in enumerate(res_order):
         if options.transpose:
             ws.cell(row=1+i+offset,column=1).value = mut
         else:
             ws.cell(row=1,column=1+i+offset).value = mut
-    
+
     for i,res in enumerate(res_ids_str):
         for j,ddg in enumerate(data[i]):
             if options.transpose:
@@ -162,7 +159,7 @@ if options.format_outfile == "xlsx":
             else:
                 ws.cell(row=1+i+1, column=1+j+offset).value = ddg
     
-    wb.save(f"{options.name_outfile}.{options.format_outfile}")
+    wb.save(f"{options.name_outfile}")
 
 elif options.format_outfile == "csv":
     
@@ -182,13 +179,15 @@ elif options.format_outfile == "csv":
         for i,r in enumerate(res_order):
             csv_table = np.append(csv_table, r)
                 
-        for i in range(len(fnames)):                                   
-            lines = np.append(fnames[i][2:], data[i]) 
-            lines = np.append(fnames[i][1], lines) 
-            lines = np.append(fnames[i][0], lines) 
+        for i, resset in enumerate(res_ids_str):
+            chain = ["".join([res[1] for res in resset])]
+
+            lines = np.append(resset[0][2:], data[i])
+            lines = np.append(chain, lines)
+            lines = np.append(resset[0][0], lines)
             csv_table = np.vstack((csv_table, lines))
     
     if options.transpose:
         csv_table = csv_table.T
             
-    np.savetxt(f"{options.name_outfile}.{options.format_outfile}", csv_table, delimiter=",", fmt='%s')  
+    np.savetxt(f"{options.name_outfile}", csv_table, delimiter=",", fmt='%s')  
