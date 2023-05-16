@@ -43,8 +43,8 @@ required = init_arguments(['pdb', 'data', 'mutation_list'], required)
 optional = init_arguments(['multimers', 'position_list'], optional)
 
 optional.add_argument("-T","--transpose", dest='transpose', action="store_true", default=False, help="swap rows and columns")
-optional.add_argument("-o","--output", dest="name_outfile", action='store', default='energies', help="output name without file format")
-optional.add_argument("-F", "--format", dest="format_outfile", action="store", default="xlsx", help="file format of output name, xlsx or csv")
+optional.add_argument("-o","--output", dest="name_outfile", action='store', default='energies', help="output file name (default: energies.xlsx/csv)")
+optional.add_argument("-F", "--format", dest="format_outfile", action="store", default="xlsx", help="file format of output name, xlsx or csv (default: xlsx)")
 
 optional = init_arguments(['labels', 'verbose'], optional)
 
@@ -60,6 +60,9 @@ try:
     res_order = parse_mutlist_file(options.mutation_list)
 except (IOError, TypeError):
     exit(1)
+
+if not options.name_outfile.endswith(f".{options.format_outfile}"):
+    options.name_outfile += f".{options.format_outfile}"
 
 log.info("Mutation list is:")
 for i,r in enumerate(res_order):
