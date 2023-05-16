@@ -213,8 +213,6 @@ def parse_poslist_file(fname, unique_residues):
             raise TypeError
         if residue not in unique_residues:
             pdb_residues_list=[]
-            print(residue)
-            print(unique_residues)
             for i in unique_residues:
                 pdb_residues_list.append(set(residue).issubset(set(i)))
             if pdb_residues_list.count(True) != 1:
