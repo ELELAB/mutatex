@@ -389,7 +389,6 @@ def get_residue_list(infile, multimers=True, get_structure=False):
 
     if get_structure:
         return residue_list, structure
-    print(residue_list)
 
     return residue_list
 
