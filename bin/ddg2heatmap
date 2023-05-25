@@ -39,8 +39,7 @@ in the average column of the DDG files is used. Options -n and -x allow to set
 the minumum and maximum plottable values, meaning that any value below/above the
 thresold is set to the threshold in the plot. Option -t allows to  select the
 orientation of the heatmap (by default, the mutation sites are on the x axis).
-The script writes a pdf output file with the plot (-o) as well as the raw data
-as a text table (-r)."""
+The script writes a pdf output file with the plot (-o)."""
 
 def plot_matrix(mat, xlabels, ylabels, cmap, title=None, vmin=None, vmax=None, transpose=False, fontsize=8):
 
@@ -84,25 +83,6 @@ def plot_matrix(mat, xlabels, ylabels, cmap, title=None, vmin=None, vmax=None, t
 
     plt.tight_layout()
 
-def save_matrix(mat, horizontal_header, vertical_header, fname):
-
-    this_mat = np.array(mat, copy=True)
-
-    str_mat = np.char.mod("%.2f", this_mat)
-
-    str_mat[str_mat == 'nan'] = '-'
-
-    vertical_header = ['%s.%s'%(i[2:],i[0]) for i in vertical_header]
-    out = np.zeros((mat.shape[0]+1, mat.shape[1]+1), dtype="|S10")
-    out[0,0] = ''
-    out[1:,1:] = str_mat
-    out[0,1:] = np.array(horizontal_header)
-    out[1:,0] = np.array(vertical_header)
-
-    justified_out = np.core.defchararray.rjust(out, 7)
-
-    np.savetxt(justified_out, fname)
-
 def splice_data(data, labels, sv):
 
     out = []
@@ -124,8 +104,6 @@ def splice_data(data, labels, sv):
 
     return out
 
-
-
 LOGFMT = "%(levelname)s: %(message)s"
 
 cmaps_list = plt.colormaps()
@@ -145,7 +123,6 @@ optional = init_arguments(['labels', 'fonts', 'fontsize', 'title', 'splice'], op
 optional.add_argument("-c","--color-map",dest='cmap',action='store', type=str, default='jet', help="color map used to plot the DDG values (choose from: %s)" % ", ".join(cmaps_list))
 
 optional.add_argument("-o","--output", dest="outfile", action='store', default='heatmap.pdf')
-optional.add_argument("-r","--output-raw-data", dest="raw", action='store', default=None, help="save raw data file")
 
 optional = init_arguments(['verbose'], optional)
 
@@ -190,7 +167,7 @@ except IOError:
 if options.position_list is not None:
     log.info("Positions will be read from file")
     try:
-        poslist = parse_poslist_file(options.position_list)
+        poslist = parse_poslist_file(options.position_list, res_ids_str)
     except (IOError, TypeError):
         exit(1)
 
@@ -232,9 +209,6 @@ if not options.vmin:
 
 #splice data into blocks for plotting
 spliced_data = splice_data(data, labels, options.sv)
-
-if options.raw:
-    save_matrix(data, res_order, labels, options.raw, options.transpose)
 
 for i in range(len(spliced_data)):
     plot_matrix(spliced_data[i][0],
