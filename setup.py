@@ -39,7 +39,8 @@ setup(
 		       'numpy',
                        'scipy',
                        'six',
-                       'openpyxl'],
+                       'openpyxl',
+                       'pyyaml'],
     package_data={
         '': ['LICENSE', '*.md'],
     },

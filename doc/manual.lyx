@@ -3231,12 +3231,22 @@ status open
 
 \begin_layout Plain Layout
 
-ddg2histo -p 1D5R_clean_model0_checked.pdb -l mutation_list.txt 
+ddg2histo -p 1D5R_clean_model0_checked.pdb 
 \end_layout
 
 \begin_layout Plain Layout
 
--d results/mutation_ddgs/1D5R_clean_model0_checked_Repair -r QA110 
+-l mutation_list.txt 
+\end_layout
+
+\begin_layout Plain Layout
+
+-d results/mutation_ddgs/1D5R_clean_model0_checked_Repair 
+\end_layout
+
+\begin_layout Plain Layout
+
+-r QA110 
 \end_layout
 
 \end_inset
@@ -3277,7 +3287,7 @@ status open
 
 
 \backslash
-vspace*{-3.5cm}
+vspace*{-0.4cm}
 \end_layout
 
 \end_inset
@@ -3462,7 +3472,7 @@ status open
 
 
 \backslash
-vspace*{-3.5cm}
+vspace*{-0.4cm}
 \end_layout
 
 \end_inset
@@ -3513,6 +3523,284 @@ name "fig:logo"
 \end_inset
 
 Logo plot obtained using ddg2logo.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The user can also customize the logo plotting providing a configuration
+ file in the yaml format with the -c option.
+ The configiguration file contains the information about custom classes
+ of residues (class, residues, color).
+ The color info needs to be provided for each channel (RGB) with a number
+ between 0 and 1.
+ If a configuration file is provided, the residues are then plotted by class
+ and in order of ∆∆G value.
+ 
+\end_layout
+
+\begin_layout Standard
+A typical configuration file is : 
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+aromatic:     
+\end_layout
+
+\begin_layout Plain Layout
+
+    residues:         
+\end_layout
+
+\begin_layout Plain Layout
+
+        - W         
+\end_layout
+
+\begin_layout Plain Layout
+
+        - F         
+\end_layout
+
+\begin_layout Plain Layout
+
+        - Y     
+\end_layout
+
+\begin_layout Plain Layout
+
+    color: [0.7, 0.2, 0.7] 
+\end_layout
+
+\begin_layout Plain Layout
+
+negatively_charged:     
+\end_layout
+
+\begin_layout Plain Layout
+
+    residues:         
+\end_layout
+
+\begin_layout Plain Layout
+
+        - E         
+\end_layout
+
+\begin_layout Plain Layout
+
+        - D     
+\end_layout
+
+\begin_layout Plain Layout
+
+    color: [0.0, 0.0, 1.0] 
+\end_layout
+
+\begin_layout Plain Layout
+
+positively_charged:     
+\end_layout
+
+\begin_layout Plain Layout
+
+    residues:         
+\end_layout
+
+\begin_layout Plain Layout
+
+        - R         
+\end_layout
+
+\begin_layout Plain Layout
+
+        - H         
+\end_layout
+
+\begin_layout Plain Layout
+
+        - K     
+\end_layout
+
+\begin_layout Plain Layout
+
+    color: [1.0, 0.0, 0.0]  
+\end_layout
+
+\begin_layout Plain Layout
+
+others:
+\end_layout
+
+\begin_layout Plain Layout
+
+   residues:         
+\end_layout
+
+\begin_layout Plain Layout
+
+        - I         
+\end_layout
+
+\begin_layout Plain Layout
+
+        - V         
+\end_layout
+
+\begin_layout Plain Layout
+
+        - G     
+\end_layout
+
+\begin_layout Plain Layout
+
+        - A         
+\end_layout
+
+\begin_layout Plain Layout
+
+        - P         
+\end_layout
+
+\begin_layout Plain Layout
+
+        - M 
+\end_layout
+
+\begin_layout Plain Layout
+
+        - L         
+\end_layout
+
+\begin_layout Plain Layout
+
+        - C         
+\end_layout
+
+\begin_layout Plain Layout
+
+        - N
+\end_layout
+
+\begin_layout Plain Layout
+
+        - Q         
+\end_layout
+
+\begin_layout Plain Layout
+
+        - S         
+\end_layout
+
+\begin_layout Plain Layout
+
+        - T 
+\end_layout
+
+\begin_layout Plain Layout
+
+    color: [0.0, 1.0, 1.0] 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+A possible output for the above configuration file is shown in 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:logo-1"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace*{-0.4cm}
+\end_layout
+
+\end_inset
+
+
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename ../new_manual/2_logo.png
+	lyxscale 55
+	scale 50
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:logo-1"
+
+\end_inset
+
+Logo plot obtained using ddg2logo with a configuration file.
 \end_layout
 
 \end_inset
@@ -3657,7 +3945,7 @@ status open
 
 
 \backslash
-vspace*{-3.5cm}
+vspace*{-0.4cm}
 \end_layout
 
 \end_inset
