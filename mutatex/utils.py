@@ -432,7 +432,6 @@ def get_foldx_sequence(pdb, multimers=True):
             for residue in chain:
                 try:
                     res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
-                    pos_code = str(residue.get_id()[1])
                 except:
                     log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
                     continue
@@ -440,41 +439,40 @@ def get_foldx_sequence(pdb, multimers=True):
                     residue_list.append(tuple(["%s%s%d" % (res_code, chain.get_id(), residue.get_id()[1])]))
                 else:
                     sequences[chain_name] += res_code
-                    positions[chain_name] += pos_code
+                    positions[chain_name] += f"{residue.get_id()[1]},"
 
     if multimers:
-        collated_chains_pos = []
-        collated_chains_seq = []
+        collated_chains = []
         seq_ids, seqs = list(zip(*list(iteritems(sequences))))
         pos_ids, pos = list(zip(*list(iteritems(positions))))
         seq_ids = np.array(seq_ids)
         pos_ids = np.array(pos_ids)
-
+        
         unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
         unique_pos, unique_idxp = np.unique(pos, return_inverse=True)
+        
+        if (unique_idxs == unique_idxp).all() == False:
+            log.warning("Input amino acid sequence and input position sequence is not identical in multimer.")
+            residue_list.append("RESIDUE_MISMATCH")
+            return tuple(residue_list)
 
-        for i in np.unique(unique_idxp):
-            collated_chains_pos.append(pos_ids[unique_idxp == i])
         for i in np.unique(unique_idxs):
-            collated_chains_seq.append(seq_ids[unique_idxs == i])
+            collated_chains.append(seq_ids[unique_idxs == i])
 
-        if len(collated_chains_seq) > len(collated_chains_pos) or len(collated_chains_seq) == len(collated_chains_pos):
-            for cg in collated_chains_seq:
-                for model in structure:
-                    for residue in model[cg[0]]:
-                        resid = residue.get_id()[1]
-                        try:
-                            res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
-                        except:
-                            log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
-                            continue
-                        this_res = tuple(sorted([ "%s%s%d" % (res_code, c, resid) for c in cg ], key=lambda x: x[1]))
-                        residue_list.append(this_res)
-            return tuple(residue_list)
-
-        else:
-            residue_list.append("RESIDUENUMBERING")
-            return tuple(residue_list)
+        for cg in collated_chains:
+            for model in structure:
+                for residue in model[cg[0]]:
+                    resid = residue.get_id()[1]
+                    try:
+                        res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                    except:
+                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
+                        continue                        
+                    
+                    this_res = tuple(sorted([ "%s%s%d" % (res_code, c, resid) for c in cg ], key=lambda x: x[1]))
+                    residue_list.append(this_res)
+                    
+    return tuple(residue_list)
 
 def safe_makedirs(dirname):
     """
@@ -859,3 +857,4 @@ def termination_handler(signalnum, handler):
     log.info("Received termination signal - mutatex will be stopped")
     log.shutdown()
     sys.exit(-1)
+

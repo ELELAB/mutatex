@@ -316,14 +316,16 @@ for pdb in repaired_pdbs_list:
         except IOError:
             exit(1)
 
+for i in residues_list:
+    if "RESIDUE_MISMATCH" in i:
+        log.error("The supplied PDB files must have identical positions of sequences. Exiting...")
+        exit(1)
+
 unique_residues = tuple(set(residues_list))
 
 if len(unique_residues) != 1:
     log.error("The supplied PDB files must have identical sequences. Exiting...")
-    exit(1)
-if unique_residues[0][0] == 'RESIDUENUMBERING':
-    log.error("The supplied PDB files must have identical residue ID for identical sequence. Exiting...")
-    exit(1)
+    exit(1)    
 
 unique_residues = list(unique_residues[0])
 
