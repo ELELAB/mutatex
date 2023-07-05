@@ -361,8 +361,9 @@ if options.config_file:
 else:
     # if config file doesn't exist, let's use a mock configuration
     config = {'all' : {'residues' : ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
-                                      'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y'],
-                        'color': [0., 0., 0.]}}
+                                     'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S',
+                                     'T', 'V', 'W', 'Y'],
+                       'color': [0., 0., 0.]}}
 
 new_letters = letters.copy()
 for key in config:
