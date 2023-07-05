@@ -298,6 +298,11 @@ except:
     log.error("Couldn't parse PNG file containing the letters; exiting...")
     exit(1)
 
+# check positive value for DPI
+if options.dpi <= 0:
+    log.error('Specified resolution for image (option -D) should be a positive number. Exiting...')
+    exit(1)
+
 # parse mutation list
 try:
     res_order = parse_mutlist_file(options.mutation_list)
