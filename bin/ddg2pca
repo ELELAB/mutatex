@@ -1,0 +1,345 @@
+#! /usr/bin/env python
+#    ddg2pca: performs PCA on the DDG MutateX results and plots the first two principal components.
+#    Copyright (C) 2015, 2022, Matteo Tiberti <matteo.tiberti@gmail.com> 
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+def set_default_config():
+    '''
+    If no config file is provided with custom grouping of residues, this will be the default plotting configuration
+    '''
+    config = {'Aromatic': {'residues': ['F', 'W', 'Y'], 'color': (0.00, 0.45, 0.70)},
+    'Acidic': {'residues': ['D', 'E'], 'color': (0.00, 0.62, 0.45)},
+    'Basic': {'residues': ['H', 'K', 'R'], 'color': (0.94, 0.89, 0.26)},
+    'Polar': {'residues': ['C', 'N', 'Q', 'S', 'T'], 'color': (0.90, 0.62, 0.00)},
+    'Hydrophobic': {'residues': ['A', 'G', 'I', 'L', 'M', 'P', 'V'],
+    'color': (0.34, 0.71, 0.91)}}
+
+    color_dict = {group: tuple(details['color']) for group, details in config.items()}
+
+    return config, color_dict
+
+def read_textlist_file(text_file_path):
+    '''
+    Reads the textlist file with the residues whose labels should be seen in the plot
+    ''' 
+    with open(text_file_path, 'r') as f:
+        text_list = f.read().splitlines()
+    return text_list
+
+def get_ddg_data(options, config, labels=None):
+    try:
+        res_order = parse_mutlist_file(options.mutation_list)      
+    except (IOError, TypeError):
+        exit(1)
+
+    log.info("Mutation list is:")
+    for i,r in enumerate(res_order):
+        log.info("%d\t%s" % (i,r))
+
+    try:
+        res_ids_str = get_residue_list(options.in_pdb, multimers=options.multimers)
+    
+    except IOError:
+        exit(1)
+
+    if options.position_list is not None:
+        log.info("Positions will be read from file")
+        try:
+            poslist = parse_poslist_file(options.position_list, res_ids_str)
+
+        except (IOError, TypeError):
+            exit(1)
+
+        res_ids_str = filter_reslist(res_ids_str, poslist)
+   
+   
+    fnames = ["_".join(r) for r in res_ids_str]
+    res_id_labels = [" ".join(r) for r in res_ids_str]
+
+    if options.labels:
+        try:
+            labels = parse_label_file(options.labels, fnames, res_id_labels)
+        except:
+            exit(1)
+    else:
+        labels = None
+
+    data = []
+
+    log.info("The following files will be considered: %s" % ", ".join(fnames))
+    for i,f in enumerate(fnames):
+        try:
+            # Convert the data to float as it's loaded
+            data.append(np.array(parse_ddg_file("%s%s" % (options.ddg_dir, f), reslist=res_order, )).astype(float))
+        except (IOError, TypeError, ValueError):
+            log.error("Failed to read input file %s%s" % (options.ddg_dir, f))
+            exit(1)
+
+
+    if labels: # not being used
+        csv_table = np.asarray(["Residue"])
+        
+        for i,r in enumerate(res_order):
+            csv_table = np.append(csv_table, r)
+        
+        for i in range(len(labels)):                                   
+            lines = np.append(labels[i], data[i]) 
+            csv_table = np.vstack((csv_table, lines))
+
+    else:
+        csv_table = np.asarray(["WT residue type", "chain ID", "Residue #"])
+
+        for i,r in enumerate(res_order):
+            csv_table = np.append(csv_table, r)
+            
+                
+        for i, resset in enumerate(res_ids_str):
+            chain = ["".join([res[1] for res in resset])]
+
+            lines = np.append(resset[0][2:], data[i])
+            lines = np.append(chain, lines)
+            lines = np.append(resset[0][0], lines)
+            csv_table = np.vstack((csv_table, lines))
+
+        
+        # Create a reverse mapping from residue to its type
+        residue_to_nature = {}
+        for group, details in config.items():
+            for residue in details['residues']:
+                residue_to_nature[residue] = group
+
+
+        selected_residue_type = options.residue_nature
+
+        column_headers = csv_table[0]
+        data = csv_table[1:]
+
+        if "all" in selected_residue_type.lower():
+            selected_residue_types = np.unique([residue_to_nature.get(residue, 'Unknown') for residue in data[:, 0]])
+        else:
+            selected_residue_types = [res.capitalize() for res in selected_residue_type.lower().split(",")]
+
+        # Extract the 'WT residue type' column and determine the type of each residue
+        residue_natures = np.array([residue_to_nature.get(residue, 'Unknown') for residue in data[:, 0]])
+
+        mask = np.isin(residue_natures, selected_residue_types)
+        data_filtered = data[mask]
+
+
+    return data_filtered, column_headers, residue_natures, mask, selected_residue_types
+
+    # np.savetxt(f"{options.name_outfile}.csv", csv_table, delimiter=",", fmt='%s')  
+def perform_pca(data_filtered):
+    
+    data_scaled = (data_filtered[:, 3:].astype(float) - np.mean(data_filtered[:, 3:].astype(float), axis=0)) / np.std(data_filtered[:, 3:].astype(float), axis=0)
+
+    U, S, Vt = np.linalg.svd(data_scaled, full_matrices=False)
+    pca_data = U * S
+
+    pca_df = pca_data
+    string_df = data_filtered[:, :3]
+
+    variance_ratio = S**2 / np.sum(S**2)
+
+    if options.loadings:
+        loadings = Vt
+    else:
+        loadings = None
+    
+    return pca_df, string_df, variance_ratio, loadings
+def plot_biplot(pca_df, string_df, variance_ratio, residue_natures, mask, selected_residue_types, loadings = None, color_dict = None, title = None):
+
+    offset = 0.25 * abs((pca_df[:, 1].max() / pca_df[:, 1].min()) / 2)
+
+    fig, ax = plt.subplots()
+
+
+    texts = []  # list to store the texts that we then use to prevent overlapping 
+    for residue_type in selected_residue_types:
+        subset = pca_df[residue_natures[mask] == residue_type]
+        string_subset = string_df[residue_natures[mask] == residue_type]
+        ax.scatter(subset[:, 0], subset[:, 1], label=residue_type, color=color_dict[residue_type], s=10)
+        if options.text_list is None:
+            for point, string_point in zip(subset, string_subset):
+                texts.append(ax.text(point[0], point[1] - offset, str(string_point[0])+str(string_point[1])+str(int(string_point[2])), color=color_dict[residue_type], va="top", ha="center"))
+        else:
+            text_list = read_textlist_file(options.text_list)
+            # Only plot the text for the residues in the text list
+            for point, string_point in zip(subset, string_subset):
+                residue_label = str(string_point[0])+str(string_point[1])+str(int(string_point[2]))
+                if residue_label in text_list:
+                    texts.append(ax.text(point[0], point[1] - offset, residue_label, color="white", va="top", ha="center", weight='bold', bbox=dict(alpha=1,facecolor=color_dict[residue_type], edgecolor='black', boxstyle='round,pad=0.2')))
+            # Adjust the positions of the texts
+            adjust_text(texts, force_points=0.2, force_text=0.2, expand_points=(1,1), expand_text=(1,1), arrowprops=dict(arrowstyle="-", color='black', lw=0.5))
+
+    if options.loadings:
+        # Calculate the range of the first two principal components
+        pca_range = np.ptp(pca_df[:, :2], axis=0)
+
+        # Calculate the scale factor based on the range
+        scale_factor = np.mean(pca_range)  / 1.5 # Adjust the denominator as needed
+        loadings_scaled = loadings * scale_factor
+        text_offset = 0
+        texts = []
+        for i in range(loadings_scaled.shape[1]):
+            ax.arrow(0, 0, loadings_scaled[0, i], loadings_scaled[1, i], color='black', alpha=0.5, zorder=4, head_width=0.5, head_length=0.3)
+            if column_headers[i] is not None:
+                texts.append(ax.text(loadings_scaled[0, i] + text_offset, loadings_scaled[1, i] + text_offset, column_headers[i+3], size=10, alpha=1, color='blue', ha='center', va='center', zorder=5))
+
+        adjust_text(texts)
+
+    ax.axhline(0, color='grey', linestyle='dashed', alpha=0.5,zorder=4)
+    ax.axvline(0, color='grey', linestyle='dashed', alpha = 0.5,zorder=4)
+    ax.legend(title='WT residue type')
+
+    ax.set_xlabel(f'PC1 ({variance_ratio[0]*100:.2f}% variance explained)')
+    ax.set_ylabel(f'PC2 ({variance_ratio[1]*100:.2f}% variance explained)')
+    plt.title(title)
+    plt.tight_layout()
+    plt.show()
+
+def plot_scree(variance_ratio):
+    plt.figure(figsize=(8, 6))
+    plt.bar(range(1, min(11, len(variance_ratio) + 1)), (variance_ratio * 100)
+    [:min(10, len(variance_ratio))])
+    plt.xlabel('Principal Component')
+    plt.ylabel('Proportion of Variance Explained (%)')
+    plt.title('Variance of Principal Components')
+    plt.xticks(range(1, min(11, len(variance_ratio) + 1)))  # Only display up to 10 PCs
+    plt.tight_layout()
+
+import argparse
+from Bio import PDB
+from six import iteritems
+import numpy as np
+import logging as log
+import openpyxl as pyxl
+from mutatex.utils import *
+import yaml
+from yaml import SafeLoader
+import matplotlib
+matplotlib.use('Agg')
+matplotlib.rcParams['savefig.format'] = 'pdf'
+from matplotlib import pyplot as plt
+from adjustText import adjust_text
+
+
+LOGFMT = "%(levelname)s: %(message)s"
+
+description = 'ddg2pca: performs a PCA of the the average values from a MutateX DDG scan and plots the first two principal components'
+epilog = """ddg2pca performs a PCA of the the average values from a MutateX DDG and plots the first two principal components. 
+Optional Option -n, --residue_nature chooses a subset of residues to plot based on nature (hydrophobic, polar, basic, acidic or aromatic), 
+by default all are shown. The colouring of these groups can be changed by means of a configuration file, -c --config.
+With option -y, --loadings, the user can also visualise as arrows the PCA loadings in the plot. By default, all residue points as well as their labels 
+are plotted, but the user can tune the plot by specifying the residue points to be seen with the option -q --position_list, and it is also possible to 
+determine filter the labels with -t --text_list
+"""
+
+parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
+optional = parser._action_groups.pop()
+required = parser.add_argument_group('required arguments')
+
+required = init_arguments(['pdb', 'data', 'mutation_list'], required)
+optional = init_arguments(['multimers', 'position_list', 'title'], optional)
+
+# optional.add_argument("-o","--output", dest="name_outfile", action='store', default='energies', help="output file name (default: energies.csv)")
+optional.add_argument("-n","--nature", dest="residue_nature", action='store', default='all', help="Residues of a specific nature to be analysed with PCA (default: all)")
+optional.add_argument("-c","--config", dest="config_file", action='store', default=None, help="Configuration file with which the user can set the colour of types of residues")
+optional.add_argument("-y","--loadings", dest="loadings", action="store_true", default=False, help="Show the loadings in the plot")
+optional.add_argument("-t","--text_list", dest="text_list", action="store", default=None, help="Residues to display in the text plot")
+
+optional = init_arguments(['labels', 'verbose'], optional)
+
+parser._action_groups.append(optional)
+options = parser.parse_args()
+
+if options.verbose:
+    log.basicConfig(level=log.INFO,    format=LOGFMT)
+else:
+    log.basicConfig(level=log.WARNING, format=LOGFMT)
+
+# Processing the config file
+if options.config_file:
+    try:
+        with open(options.config_file) as f:
+            config = yaml.load(f, Loader=SafeLoader)
+    except:
+        log.error("Couldn't open or parse config file. Exiting...")
+        exit(1)
+
+    # Obtaining a color dictionary
+    color_dict = {group: tuple(details['color']) for group, details in config.items()}
+
+else:
+    config, color_dict = set_default_config()
+
+
+try:
+    data_filtered, column_headers, residue_natures, mask, selected_residue_types = get_ddg_data(options = options, config = config, labels = options.labels)
+except (IOError, TypeError):
+     exit(1)
+
+pca_df, string_df, variance_ratio, loadings = perform_pca(data_filtered)
+
+
+plot_biplot(pca_df, 
+            string_df,
+            variance_ratio, 
+            residue_natures, 
+            mask, 
+            selected_residue_types,
+            loadings,
+            color_dict = color_dict,
+            title = options.title)
+
+# Options for plotting the biplot
+if options.position_list is None:
+    if "all" in options.residue_nature.lower():
+        plt.savefig("pca_all_res_all_types")
+    else:
+        filename = "pca_all_res_" + "_".join(sorted(selected_residue_types)).lower() 
+        plt.savefig(filename)
+    plt.clf()
+else:
+    if "all" in options.residue_nature.lower():
+        plt.savefig("pca_custom_res_all_types")
+    else:
+        filename = "pca_custom_res_" + "_".join(sorted(selected_residue_types)).lower() 
+        plt.savefig(filename)
+    plt.clf()
+
+
+
+plot_scree(variance_ratio=variance_ratio)
+# Options for plotting the scree
+if options.position_list is None: # position list provided
+    if "all" in options.residue_nature.lower():
+        plt.savefig("scree_all_res_all_types")
+    else:
+        filename = "scree_all_res_" + "_".join(sorted(selected_residue_types)).lower() 
+        plt.savefig(filename)
+    plt.clf()
+else: # position list provided
+    if "all" in options.residue_nature.lower():
+        plt.savefig("scree_custom_res_all_types")
+    else:
+        filename = "scree_custom_res_" + "_".join(sorted(selected_residue_types)).lower() 
+        plt.savefig(filename)
+    plt.clf()
+
+
+ 
+np.savetxt(f"PC_coordinates.csv", pca_df, delimiter=",", fmt='%s')
+np.savetxt(f"PC_explained_variance.csv", variance_ratio, delimiter=",", fmt='%s')
