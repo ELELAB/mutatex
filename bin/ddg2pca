@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-#    ddg2pca: performs PCA on the DDG MutateX results and plots the first two principal components.
+#    ddg2pca: performs PCA on the DDG MutateX results and plots the first two principal components and the explained variance.
 #    Copyright (C) 2015, 2022, Matteo Tiberti <matteo.tiberti@gmail.com> 
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -15,6 +15,47 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+def parse_config_file(config, reslist):
+
+    #initialize dictionary with residues indeces from mutlist as 
+    #keys and color as values
+    pos_dic={}
+    
+
+    # Build the pos_dic with residues indices from mutlist as 
+    # keys and another dictionary (with group name from config as key and color as value) as values
+    for group, details in config.items():
+        for aa in reslist:
+            if aa in details['residues'] or aa[0][0] in details['residues']:
+                index = reslist.index(aa)
+                pos_dic[index] = {group: details['color']}
+    return pos_dic
+
+def filter_by_group(data, group_dict, desired_group):
+    """
+    Filters the data based on the desired group.
+    
+    Parameters:
+    - data: The list to be filtered.
+    - group_dict: Dictionary mapping indices to groups.
+    - desired_group: The group(s) to filter by.
+    
+    Returns:
+    - Filtered list.
+    """
+    # If the desired group is "all", return the original data.
+    if desired_group.lower() == "all":
+        return data
+    
+    # If multiple groups are provided, split them.
+    desired_groups = [group.strip().capitalize() for group in desired_group.split(",")]
+    
+    # Get the indices that belong to the desired group.
+    valid_indices = [index for index, group in group_dict.items() if any(desired in group for desired in desired_groups)]
+    
+    # Filter the data based on the valid indices, but also ensure the index is within the bounds of the data list.
+    return [data[i] for i in valid_indices if i < len(data)]
+
 def set_default_config():
     '''
     If no config file is provided with custom grouping of residues, this will be the default plotting configuration
@@ -26,9 +67,7 @@ def set_default_config():
     'Hydrophobic': {'residues': ['A', 'G', 'I', 'L', 'M', 'P', 'V'],
     'color': (0.34, 0.71, 0.91)}}
 
-    color_dict = {group: tuple(details['color']) for group, details in config.items()}
-
-    return config, color_dict
+    return config
 
 def read_textlist_file(text_file_path):
     '''
@@ -38,7 +77,7 @@ def read_textlist_file(text_file_path):
         text_list = f.read().splitlines()
     return text_list
 
-def get_ddg_data(options, config, labels=None):
+def get_ddg_data(options):
     try:
         res_order = parse_mutlist_file(options.mutation_list)      
     except (IOError, TypeError):
@@ -54,6 +93,7 @@ def get_ddg_data(options, config, labels=None):
     except IOError:
         exit(1)
 
+    ### Poslist parsing
     if options.position_list is not None:
         log.info("Positions will be read from file")
         try:
@@ -64,7 +104,23 @@ def get_ddg_data(options, config, labels=None):
 
         res_ids_str = filter_reslist(res_ids_str, poslist)
    
+
+
+    ### Textlist parsing - same mechanism as poslist
+    if options.text_list:
+        log.info("Positions will be read from file")
+        try:
+            textlist = parse_poslist_file(options.text_list, res_ids_str)
+            
+        except (IOError, TypeError):
+            exit(1)
+
+        textlist = filter_reslist(res_ids_str, textlist)
+
+    else:
+        textlist = []
    
+    ### Label parsing
     fnames = ["_".join(r) for r in res_ids_str]
     res_id_labels = [" ".join(r) for r in res_ids_str]
 
@@ -74,8 +130,54 @@ def get_ddg_data(options, config, labels=None):
         except:
             exit(1)
     else:
-        labels = None
+        labels = res_id_labels
 
+    # Create a mapping from res_id_labels to labels
+    label_mapping = dict(zip(res_id_labels, labels))
+
+    # Update the values in textlist using the mapping
+    textlist = [(label_mapping[residue[0]],) if residue[0] in label_mapping else residue for residue in textlist]
+
+    ### Processing the config file
+    if options.config_file:
+        try:
+            with open(options.config_file) as f:
+                config = yaml.load(f, Loader=SafeLoader)
+        except:
+            log.error("Couldn't open or parse config file. Exiting...")
+            exit(1)
+
+    else:
+        config= set_default_config()
+
+    pos_dic = parse_config_file(config, res_ids_str)
+
+    # Get color and group for plotting purposes
+    color_dict = {}
+    for k, v in pos_dic.items():
+        for group, color in v.items():
+            color_dict[group] = color
+
+    # Extracting the group for each label and putting it in a list
+    residue_grouping = [list(pos_dic[i].keys())[0] for i in range(len(res_id_labels))]
+
+    # Converting the list to a numpy array
+    residue_grouping = np.array(residue_grouping)
+
+    ### Group processing
+    options_group = options.residue_nature #change name of residue nature
+
+    # Filter res_ids_str and labels using indices.
+    filtered_res_ids_str = filter_by_group(res_ids_str, pos_dic, options_group)
+    filtered_labels = filter_by_group(labels, pos_dic, options_group)
+    filtered_residue_grouping = filter_by_group(residue_grouping, pos_dic, options_group)
+
+    # Determine which labels were removed.
+    removed_labels = set(labels) - set(filtered_labels)
+
+    # Remove the same labels from textlist.
+    filtered_textlist = [label for label in textlist if label[0] not in removed_labels]
+   
     data = []
 
     log.info("The following files will be considered: %s" % ", ".join(fnames))
@@ -87,69 +189,51 @@ def get_ddg_data(options, config, labels=None):
             log.error("Failed to read input file %s%s" % (options.ddg_dir, f))
             exit(1)
 
+    
+    csv_table = np.asarray(["WT residue type", "chain ID", "Residue #"])
 
-    if labels: # not being used
-        csv_table = np.asarray(["Residue"])
+    for i,r in enumerate(res_order):
+        csv_table = np.append(csv_table, r)
         
-        for i,r in enumerate(res_order):
-            csv_table = np.append(csv_table, r)
-        
-        for i in range(len(labels)):                                   
-            lines = np.append(labels[i], data[i]) 
-            csv_table = np.vstack((csv_table, lines))
-
-    else:
-        csv_table = np.asarray(["WT residue type", "chain ID", "Residue #"])
-
-        for i,r in enumerate(res_order):
-            csv_table = np.append(csv_table, r)
             
-                
-        for i, resset in enumerate(res_ids_str):
-            chain = ["".join([res[1] for res in resset])]
+    for i, resset in enumerate(filtered_res_ids_str):
+        chain = ["".join([res[1] for res in resset])]
 
-            lines = np.append(resset[0][2:], data[i])
-            lines = np.append(chain, lines)
-            lines = np.append(resset[0][0], lines)
-            csv_table = np.vstack((csv_table, lines))
+        lines = np.append(resset[0][2:], data[i])
+        lines = np.append(chain, lines)
+        lines = np.append(resset[0][0], lines)
+        csv_table = np.vstack((csv_table, lines))
 
-        
-        # Create a reverse mapping from residue to its type
-        residue_to_nature = {}
-        for group, details in config.items():
-            for residue in details['residues']:
-                residue_to_nature[residue] = group
+    
+    column_headers = csv_table[0]
+    column_headers = np.concatenate((np.array(["Residue_label"]), column_headers[3:]))
+    data = csv_table[1:]
 
 
-        selected_residue_type = options.residue_nature
+    # Combining the first three columns into one (ojo)
+    combined_column = np.core.defchararray.add(np.core.defchararray.add(data[:,0], data[:,1]), data[:,2])
+    combined_column = combined_column.reshape(-1, 1)  # reshape to 2D column vector
 
-        column_headers = csv_table[0]
-        data = csv_table[1:]
+    # Now delete the first three columns
+    data = np.delete(data, [0,1,2], axis=1)
 
-        if "all" in selected_residue_type.lower():
-            selected_residue_types = np.unique([residue_to_nature.get(residue, 'Unknown') for residue in data[:, 0]])
-        else:
-            selected_residue_types = [res.capitalize() for res in selected_residue_type.lower().split(",")]
+    # Concatenate the combined_column with the modified array
+    data = np.hstack((combined_column, data))
 
-        # Extract the 'WT residue type' column and determine the type of each residue
-        residue_natures = np.array([residue_to_nature.get(residue, 'Unknown') for residue in data[:, 0]])
+    # Replacing the res_str in the data by the corresponding labels 
+    for i, label in enumerate(filtered_labels):
+        data[i, 0] = label
 
-        mask = np.isin(residue_natures, selected_residue_types)
-        data_filtered = data[mask]
-
-
-    return data_filtered, column_headers, residue_natures, mask, selected_residue_types
+    return data, column_headers, filtered_labels, filtered_textlist, filtered_residue_grouping, color_dict
 
     # np.savetxt(f"{options.name_outfile}.csv", csv_table, delimiter=",", fmt='%s')  
-def perform_pca(data_filtered):
+def perform_pca(data):
     
-    data_scaled = (data_filtered[:, 3:].astype(float) - np.mean(data_filtered[:, 3:].astype(float), axis=0)) / np.std(data_filtered[:, 3:].astype(float), axis=0)
+    data_scaled = (data[:, 1:].astype(float) - np.mean(data[:, 1:].astype(float), axis=0)) / np.std(data[:, 1:].astype(float), axis=0)
 
     U, S, Vt = np.linalg.svd(data_scaled, full_matrices=False)
     pca_data = U * S
-
     pca_df = pca_data
-    string_df = data_filtered[:, :3]
 
     variance_ratio = S**2 / np.sum(S**2)
 
@@ -158,57 +242,55 @@ def perform_pca(data_filtered):
     else:
         loadings = None
     
-    return pca_df, string_df, variance_ratio, loadings
-def plot_biplot(pca_df, string_df, variance_ratio, residue_natures, mask, selected_residue_types, loadings = None, color_dict = None, title = None):
+    return pca_df, variance_ratio, loadings
 
-    offset = 0.25 * abs((pca_df[:, 1].max() / pca_df[:, 1].min()) / 2)
-
+def plot_biplot(pca_df, labels, residue_grouping, color_map, variance_ratio, text_list=None, loadings=None, title=None):
     fig, ax = plt.subplots()
 
+    residue_texts = []  # list for texts related to residues
+    loading_texts = []  # list for texts related to loadings
 
-    texts = []  # list to store the texts that we then use to prevent overlapping 
-    for residue_type in selected_residue_types:
-        subset = pca_df[residue_natures[mask] == residue_type]
-        string_subset = string_df[residue_natures[mask] == residue_type]
-        ax.scatter(subset[:, 0], subset[:, 1], label=residue_type, color=color_dict[residue_type], s=10)
-        if options.text_list is None:
-            for point, string_point in zip(subset, string_subset):
-                texts.append(ax.text(point[0], point[1] - offset, str(string_point[0])+str(string_point[1])+str(int(string_point[2])), color=color_dict[residue_type], va="top", ha="center"))
+    for point, label, group in zip(pca_df, labels, residue_grouping):
+        ax.scatter(point[0], point[1], color=color_map[group], s=10)
+        
+        offset = 0.05
+
+        if len(text_list) > 0:
+            # Only label points whose labels are in the text_list
+            if (label,) in text_list:
+                residue_texts.append(ax.text(point[0], point[1] - offset, label, color="white", va="top", ha="center", weight='bold', 
+                                    bbox=dict(alpha=1, facecolor=color_map[group], edgecolor='black', boxstyle='round,pad=0.2')))
         else:
-            text_list = read_textlist_file(options.text_list)
-            # Only plot the text for the residues in the text list
-            for point, string_point in zip(subset, string_subset):
-                residue_label = str(string_point[0])+str(string_point[1])+str(int(string_point[2]))
-                if residue_label in text_list:
-                    texts.append(ax.text(point[0], point[1] - offset, residue_label, color="white", va="top", ha="center", weight='bold', bbox=dict(alpha=1,facecolor=color_dict[residue_type], edgecolor='black', boxstyle='round,pad=0.2')))
-            # Adjust the positions of the texts
-            adjust_text(texts, force_points=0.2, force_text=0.2, expand_points=(1,1), expand_text=(1,1), arrowprops=dict(arrowstyle="-", color='black', lw=0.5))
+            ax.text(point[0], point[1] - offset, label, color=color_map[group], va="top", ha="center")
 
-    if options.loadings:
-        # Calculate the range of the first two principal components
+    if loadings is not None:
         pca_range = np.ptp(pca_df[:, :2], axis=0)
-
-        # Calculate the scale factor based on the range
-        scale_factor = np.mean(pca_range)  / 1.5 # Adjust the denominator as needed
+        scale_factor = np.mean(pca_range) / 1.5
         loadings_scaled = loadings * scale_factor
         text_offset = 0
-        texts = []
         for i in range(loadings_scaled.shape[1]):
             ax.arrow(0, 0, loadings_scaled[0, i], loadings_scaled[1, i], color='black', alpha=0.5, zorder=4, head_width=0.5, head_length=0.3)
-            if column_headers[i] is not None:
-                texts.append(ax.text(loadings_scaled[0, i] + text_offset, loadings_scaled[1, i] + text_offset, column_headers[i+3], size=10, alpha=1, color='blue', ha='center', va='center', zorder=5))
+            loading_texts.append(ax.text(loadings_scaled[0, i] + text_offset, loadings_scaled[1, i] + text_offset, column_headers[i+1], size=10, alpha=1, color='blue', ha='center', va='center', zorder=5))
 
-        adjust_text(texts)
+    # Adjust positions of the labels
+    if residue_texts:
+        adjust_text(residue_texts, force_points=0.2, force_text=0.2, expand_points=(1,1), expand_text=(1,1), arrowprops=dict(arrowstyle="-", color='black', lw=0.5))
+    if loading_texts:
+        adjust_text(loading_texts, force_points=0.2, force_text=0.2, expand_points=(1,1), expand_text=(1,1), arrowprops=dict(arrowstyle="-", color='black', lw=0.5))
 
-    ax.axhline(0, color='grey', linestyle='dashed', alpha=0.5,zorder=4)
-    ax.axvline(0, color='grey', linestyle='dashed', alpha = 0.5,zorder=4)
-    ax.legend(title='WT residue type')
+    ax.axhline(0, color='grey', linestyle='dashed', alpha=0.5)
+    ax.axvline(0, color='grey', linestyle='dashed', alpha=0.5)
+    
+    # Legend
+    legend_labels = {group: plt.Line2D([0], [0], color=color_map[group], marker='o', linestyle='', label=group) for group in set(residue_grouping)}
+    ax.legend(legend_labels.values(), legend_labels.keys(), title='Residue Type')
 
     ax.set_xlabel(f'PC1 ({variance_ratio[0]*100:.2f}% variance explained)')
     ax.set_ylabel(f'PC2 ({variance_ratio[1]*100:.2f}% variance explained)')
     plt.title(title)
     plt.tight_layout()
-    plt.show()
+
+
 
 def plot_scree(variance_ratio):
     plt.figure(figsize=(8, 6))
@@ -270,74 +352,63 @@ if options.verbose:
 else:
     log.basicConfig(level=log.WARNING, format=LOGFMT)
 
-# Processing the config file
-if options.config_file:
-    try:
-        with open(options.config_file) as f:
-            config = yaml.load(f, Loader=SafeLoader)
-    except:
-        log.error("Couldn't open or parse config file. Exiting...")
-        exit(1)
-
-    # Obtaining a color dictionary
-    color_dict = {group: tuple(details['color']) for group, details in config.items()}
-
-else:
-    config, color_dict = set_default_config()
 
 
 try:
-    data_filtered, column_headers, residue_natures, mask, selected_residue_types = get_ddg_data(options = options, config = config, labels = options.labels)
+     data, column_headers, filtered_labels, filtered_textlist, filtered_residue_grouping, color_dict = get_ddg_data(options = options)
 except (IOError, TypeError):
      exit(1)
 
-pca_df, string_df, variance_ratio, loadings = perform_pca(data_filtered)
+pca_df, variance_ratio, loadings = perform_pca(data)
 
 
 plot_biplot(pca_df, 
-            string_df,
+            filtered_labels, 
+            filtered_residue_grouping, 
+            color_dict, 
             variance_ratio, 
-            residue_natures, 
-            mask, 
-            selected_residue_types,
-            loadings,
-            color_dict = color_dict,
-            title = options.title)
+            filtered_textlist, 
+            loadings, 
+            options.title)
 
-# Options for plotting the biplot
-if options.position_list is None:
-    if "all" in options.residue_nature.lower():
-        plt.savefig("pca_all_res_all_types")
-    else:
-        filename = "pca_all_res_" + "_".join(sorted(selected_residue_types)).lower() 
-        plt.savefig(filename)
-    plt.clf()
-else:
-    if "all" in options.residue_nature.lower():
-        plt.savefig("pca_custom_res_all_types")
-    else:
-        filename = "pca_custom_res_" + "_".join(sorted(selected_residue_types)).lower() 
-        plt.savefig(filename)
-    plt.clf()
+plt.savefig("pca")
+plt.clf()
+# # Options for plotting the biplot
+# if options.position_list is None:
+#     if "all" in options.residue_nature.lower():
+#         plt.savefig("pca_all_res_all_types")
+#     else:
+#         filename = "pca_all_res_" + "_".join(sorted(selected_residue_types)).lower() 
+#         plt.savefig(filename)
+#     plt.clf()
+# else:
+#     if "all" in options.residue_nature.lower():
+#         plt.savefig("pca_custom_res_all_types")
+#     else:
+#         filename = "pca_custom_res_" + "_".join(sorted(selected_residue_types)).lower() 
+#         plt.savefig(filename)
+#     plt.clf()
 
 
 
 plot_scree(variance_ratio=variance_ratio)
-# Options for plotting the scree
-if options.position_list is None: # position list provided
-    if "all" in options.residue_nature.lower():
-        plt.savefig("scree_all_res_all_types")
-    else:
-        filename = "scree_all_res_" + "_".join(sorted(selected_residue_types)).lower() 
-        plt.savefig(filename)
-    plt.clf()
-else: # position list provided
-    if "all" in options.residue_nature.lower():
-        plt.savefig("scree_custom_res_all_types")
-    else:
-        filename = "scree_custom_res_" + "_".join(sorted(selected_residue_types)).lower() 
-        plt.savefig(filename)
-    plt.clf()
+plt.savefig("scree")
+plt.clf()
+# # Options for plotting the scree
+# if options.position_list is None: # position list provided
+#     if "all" in options.residue_nature.lower():
+#         plt.savefig("scree_all_res_all_types")
+#     else:
+#         filename = "scree_all_res_" + "_".join(sorted(selected_residue_types)).lower() 
+#         plt.savefig(filename)
+#     plt.clf()
+# else: # position list provided
+#     if "all" in options.residue_nature.lower():
+#         plt.savefig("scree_custom_res_all_types")
+#     else:
+#         filename = "scree_custom_res_" + "_".join(sorted(selected_residue_types)).lower() 
+#         plt.savefig(filename)
+#     plt.clf()
 
 
  

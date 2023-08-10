@@ -27,7 +27,6 @@ setup(
               'bin/pdb2labels',
               'bin/ddg2heatmap',
               'bin/ddg2excel',
-              #'bin/ddg2csv',
               'bin/ddg2pca',
               'bin/mutatex',
               'bin/ddg2dg',
@@ -42,7 +41,8 @@ setup(
                        'scipy==1.6.3',
                        'six',
                        'openpyxl',
-                       'pyyaml'],
+                       'pyyaml',
+                       'adjustText'],
     package_data={
         '': ['LICENSE', '*.md'],
     },
