@@ -117,6 +117,9 @@ def get_ddg_data(options):
 
         textlist = filter_reslist(res_ids_str, textlist)
 
+        # Determine if textlist items are single strings or tuples
+        is_single_chain = len(textlist[0]) == 1 # textlist items are single strings or tuples   
+
     else:
         textlist = []
    
@@ -132,11 +135,23 @@ def get_ddg_data(options):
     else:
         labels = res_id_labels
 
-    # Create a mapping from res_id_labels to labels
-    label_mapping = dict(zip(res_id_labels, labels))
+    # Updating the names in textlist based on the labels provided
+    if textlist:
+        # Create a mapping from res_id_labels to labels
+        if is_single_chain:
+            # Current mapping for single strings
+            label_mapping = dict(zip(res_id_labels, labels))
 
-    # Update the values in textlist using the mapping
-    textlist = [(label_mapping[residue[0]],) if residue[0] in label_mapping else residue for residue in textlist]
+            # Update the values in textlist using the mapping
+            textlist = [(label_mapping[residue[0]],) if residue[0] in label_mapping else residue for residue in textlist]
+        else:
+            # Adjust mapping for tuples
+            tuple_keys = [tuple(label.split()) for label in res_id_labels]
+            label_mapping = dict(zip(tuple_keys, labels))
+
+            # Adjust the updating for tuples
+            textlist = [label_mapping.get(residue, residue) for residue in textlist]
+
 
     ### Processing the config file
     if options.config_file:
@@ -165,7 +180,7 @@ def get_ddg_data(options):
     residue_grouping = np.array(residue_grouping)
 
     ### Group processing
-    options_group = options.residue_nature #change name of residue nature
+    options_group = options.group_selection #change name of residue nature
 
     # Filter res_ids_str and labels using indices.
     filtered_res_ids_str = filter_by_group(res_ids_str, pos_dic, options_group)
@@ -257,7 +272,7 @@ def plot_biplot(pca_df, labels, residue_grouping, color_map, variance_ratio, tex
 
         if len(text_list) > 0:
             # Only label points whose labels are in the text_list
-            if (label,) in text_list:
+            if (label,) in text_list or label in text_list: #the double condition should account for textlists coming from single and multiple chains
                 residue_texts.append(ax.text(point[0], point[1] - offset, label, color="white", va="top", ha="center", weight='bold', 
                                     bbox=dict(alpha=1, facecolor=color_map[group], edgecolor='black', boxstyle='round,pad=0.2')))
         else:
@@ -274,9 +289,9 @@ def plot_biplot(pca_df, labels, residue_grouping, color_map, variance_ratio, tex
 
     # Adjust positions of the labels
     if residue_texts:
-        adjust_text(residue_texts, force_points=0.2, force_text=0.2, expand_points=(1,1), expand_text=(1,1), arrowprops=dict(arrowstyle="-", color='black', lw=0.5))
+        adjust_text(residue_texts, force_points=0.05, force_text=0.05, expand_points=(0.5,0.5), expand_text=(0.5,0.5), arrowprops=dict(arrowstyle="-", color='black', lw=0.5))
     if loading_texts:
-        adjust_text(loading_texts, force_points=0.2, force_text=0.2, expand_points=(1,1), expand_text=(1,1), arrowprops=dict(arrowstyle="-", color='black', lw=0.5))
+        adjust_text(loading_texts, force_points=0.05, force_text=0.05, expand_points=(0.5,0.5), expand_text=(0.5,0.5), arrowprops=dict(arrowstyle="-", color='black', lw=0.5))
 
     ax.axhline(0, color='grey', linestyle='dashed', alpha=0.5)
     ax.axvline(0, color='grey', linestyle='dashed', alpha=0.5)
@@ -322,7 +337,7 @@ LOGFMT = "%(levelname)s: %(message)s"
 
 description = 'ddg2pca: performs a PCA of the the average values from a MutateX DDG scan and plots the first two principal components'
 epilog = """ddg2pca performs a PCA of the the average values from a MutateX DDG and plots the first two principal components. 
-Optional Option -n, --residue_nature chooses a subset of residues to plot based on nature (hydrophobic, polar, basic, acidic or aromatic), 
+Optional Option -g, --group_selection chooses a subset of residues to plot based on nature (hydrophobic, polar, basic, acidic or aromatic), 
 by default all are shown. The colouring of these groups can be changed by means of a configuration file, -c --config.
 With option -y, --loadings, the user can also visualise as arrows the PCA loadings in the plot. By default, all residue points as well as their labels 
 are plotted, but the user can tune the plot by specifying the residue points to be seen with the option -q --position_list, and it is also possible to 
@@ -336,8 +351,8 @@ required = parser.add_argument_group('required arguments')
 required = init_arguments(['pdb', 'data', 'mutation_list'], required)
 optional = init_arguments(['multimers', 'position_list', 'title'], optional)
 
-# optional.add_argument("-o","--output", dest="name_outfile", action='store', default='energies', help="output file name (default: energies.csv)")
-optional.add_argument("-n","--nature", dest="residue_nature", action='store', default='all', help="Residues of a specific nature to be analysed with PCA (default: all)")
+optional.add_argument("-o","--output", dest="name_outfile", action='store', default='pca', help="output file name (default: pca.pdf)")
+optional.add_argument("-g","--group", dest="group_selection", action='store', default='all', help="Residues of a specific group to be analysed with PCA (default: all)")
 optional.add_argument("-c","--config", dest="config_file", action='store', default=None, help="Configuration file with which the user can set the colour of types of residues")
 optional.add_argument("-y","--loadings", dest="loadings", action="store_true", default=False, help="Show the loadings in the plot")
 optional.add_argument("-t","--text_list", dest="text_list", action="store", default=None, help="Residues to display in the text plot")
@@ -371,18 +386,22 @@ plot_biplot(pca_df,
             loadings, 
             options.title)
 
-plt.savefig("pca")
-plt.clf()
+if options.name_outfile == "pca":
+    plt.savefig(options.name_outfile)
+    plt.clf()
+else:
+    plt.savefig("%s_%s" %("pca", options.name_outfile))
+
 # # Options for plotting the biplot
 # if options.position_list is None:
-#     if "all" in options.residue_nature.lower():
+#     if "all" in options.group_selection.lower():
 #         plt.savefig("pca_all_res_all_types")
 #     else:
 #         filename = "pca_all_res_" + "_".join(sorted(selected_residue_types)).lower() 
 #         plt.savefig(filename)
 #     plt.clf()
 # else:
-#     if "all" in options.residue_nature.lower():
+#     if "all" in options.group_selection.lower():
 #         plt.savefig("pca_custom_res_all_types")
 #     else:
 #         filename = "pca_custom_res_" + "_".join(sorted(selected_residue_types)).lower() 
@@ -396,14 +415,14 @@ plt.savefig("scree")
 plt.clf()
 # # Options for plotting the scree
 # if options.position_list is None: # position list provided
-#     if "all" in options.residue_nature.lower():
+#     if "all" in options.group_selection.lower():
 #         plt.savefig("scree_all_res_all_types")
 #     else:
 #         filename = "scree_all_res_" + "_".join(sorted(selected_residue_types)).lower() 
 #         plt.savefig(filename)
 #     plt.clf()
 # else: # position list provided
-#     if "all" in options.residue_nature.lower():
+#     if "all" in options.group_selection.lower():
 #         plt.savefig("scree_custom_res_all_types")
 #     else:
 #         filename = "scree_custom_res_" + "_".join(sorted(selected_residue_types)).lower() 
