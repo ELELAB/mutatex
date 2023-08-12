@@ -281,18 +281,22 @@ def plot_biplot(pca_df, labels, residue_grouping, color_map, variance_ratio, tex
     residue_texts = []  # list for texts related to residues
     loading_texts = []  # list for texts related to loadings
 
-    for point, label, group in zip(pca_df, labels, residue_grouping):
-        ax.scatter(point[0], point[1], color=color_map[group], s=10)
-        
-        offset = 0.05
+    if options.scatter:
+        for point, label, group in zip(pca_df, labels, residue_grouping):
+            ax.scatter(point[0], point[1], color=color_map[group], s=10)
+    else:
+        for point, label, group in zip(pca_df, labels, residue_grouping):
+            ax.scatter(point[0], point[1], color=color_map[group], s=10)
+            
+            offset = 0.05
 
-        if len(text_list) > 0:
-            # Only label points whose labels are in the text_list
-            if (label,) in text_list or label in text_list: # bugfix multimers: the double condition should account for textlists coming from single and multiple chains
-                residue_texts.append(ax.text(point[0], point[1] - offset, label, color="white", va="top", ha="center", weight='bold', 
-                                    bbox=dict(alpha=1, facecolor=color_map[group], edgecolor='black', boxstyle='round,pad=0.2')))
-        else:
-            ax.text(point[0], point[1] - offset, label, color=color_map[group], va="top", ha="center")
+            if len(text_list) > 0:
+                # Only label points whose labels are in the text_list
+                if (label,) in text_list or label in text_list: # bugfix multimers: the double condition should account for textlists coming from single and multiple chains
+                    residue_texts.append(ax.text(point[0], point[1] - offset, label, color="white", va="top", ha="center", weight='bold', 
+                                        bbox=dict(alpha=1, facecolor=color_map[group], edgecolor='black', boxstyle='round,pad=0.2')))
+            else:
+                ax.text(point[0], point[1] - offset, label, color=color_map[group], va="top", ha="center")
 
     if loadings is not None:
         pca_range = np.ptp(pca_df[:, :2], axis=0)
@@ -351,9 +355,10 @@ optional = init_arguments(['multimers', 'position_list', 'title'], optional)
 
 optional.add_argument("-o","--output", dest="name_outfile", action='store', default='pca', help="output file name (default: pca.pdf)")
 optional.add_argument("-g","--group", dest="group_selection", action='store', default='all', help="Residues of a specific group to be analysed with PCA (default: all)")
-optional.add_argument("-c","--config", dest="config_file", action='store', default=None, help="Configuration file with which the user can set the colour of types of residues")
+optional.add_argument("-c","--config", dest="config_file", action='store', default=None, help="Configuration file with the custom grouping and color of residues")
+optional.add_argument("-t","--text_list", dest="text_list", action="store", default=None, help="List of residues to display as text")
 optional.add_argument("-y","--loadings", dest="loadings", action="store_true", default=False, help="Show the loadings in the plot")
-optional.add_argument("-t","--text_list", dest="text_list", action="store", default=None, help="Residues to display in the text plot")
+optional.add_argument("-z","--scatter", dest="scatter", action="store_true", default=False, help="Do not show any labels in the plot")
 
 optional = init_arguments(['labels', 'verbose'], optional)
 
