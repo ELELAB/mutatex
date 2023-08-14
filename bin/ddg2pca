@@ -395,44 +395,11 @@ if options.name_outfile == "pca":
 else:
     plt.savefig("%s_%s" %("pca", options.name_outfile))
 
-# # Options for plotting the biplot
-# if options.position_list is None:
-#     if "all" in options.group_selection.lower():
-#         plt.savefig("pca_all_res_all_types")
-#     else:
-#         filename = "pca_all_res_" + "_".join(sorted(selected_residue_types)).lower() 
-#         plt.savefig(filename)
-#     plt.clf()
-# else:
-#     if "all" in options.group_selection.lower():
-#         plt.savefig("pca_custom_res_all_types")
-#     else:
-#         filename = "pca_custom_res_" + "_".join(sorted(selected_residue_types)).lower() 
-#         plt.savefig(filename)
-#     plt.clf()
-
-
 
 plot_scree(variance_ratio=variance_ratio)
-plt.savefig("scree")
+plt.savefig("%s_%s" %("scree", options.name_outfile))
 plt.clf()
-# # Options for plotting the scree
-# if options.position_list is None: # position list provided
-#     if "all" in options.group_selection.lower():
-#         plt.savefig("scree_all_res_all_types")
-#     else:
-#         filename = "scree_all_res_" + "_".join(sorted(selected_residue_types)).lower() 
-#         plt.savefig(filename)
-#     plt.clf()
-# else: # position list provided
-#     if "all" in options.group_selection.lower():
-#         plt.savefig("scree_custom_res_all_types")
-#     else:
-#         filename = "scree_custom_res_" + "_".join(sorted(selected_residue_types)).lower() 
-#         plt.savefig(filename)
-#     plt.clf()
 
 
- 
 np.savetxt(f"PC_coordinates.csv", pca_df, delimiter=",", fmt='%s')
 np.savetxt(f"PC_explained_variance.csv", variance_ratio, delimiter=",", fmt='%s')
