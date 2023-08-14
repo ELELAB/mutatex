@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 #    ddg2pca: performs PCA on the DDG MutateX results and plots the first two principal components and the explained variance.
-#    Copyright (C) 2015, 2022, Matteo Tiberti <matteo.tiberti@gmail.com> 
+#    Copyright (C) 2015, 2022, 2023 Matteo Tiberti <matteo.tiberti@gmail.com>, Álvaro Gutiérrez León <alvaroguleon@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -29,23 +29,8 @@ matplotlib.use('Agg')
 matplotlib.rcParams['savefig.format'] = 'pdf'
 from matplotlib import pyplot as plt
 from adjustText import adjust_text
+import sys
 
-
-def parse_config_file(config, reslist):
-
-    #initialize dictionary with residues indeces from mutlist as 
-    #keys and color as values
-    pos_dic={}
-    
-
-    # Build the pos_dic with residues indices from mutlist as 
-    # keys and another dictionary (with group name from config as key and color as value) as values
-    for group, details in config.items():
-        for aa in reslist:
-            if aa in details['residues'] or aa[0] in details['residues'] or aa[0][0] in details['residues']: #bugfix for single residue labeling
-                index = reslist.index(aa)
-                pos_dic[index] = {group: details['color']}
-    return pos_dic
 
 def filter_by_group(data, group_dict, desired_group):
     """
@@ -72,197 +57,14 @@ def filter_by_group(data, group_dict, desired_group):
     # Filter the data based on the valid indices, but also ensure the index is within the bounds of the data list.
     return [data[i] for i in valid_indices if i < len(data)]
 
-def set_default_config():
-    '''
-    If no config file is provided with custom grouping of residues, this will be the default plotting configuration
-    '''
-    config = {'Aromatic': {'residues': ['F', 'W', 'Y'], 'color': (0.00, 0.45, 0.70)},
-    'Acidic': {'residues': ['D', 'E'], 'color': (0.00, 0.62, 0.45)},
-    'Basic': {'residues': ['H', 'K', 'R'], 'color': (0.94, 0.89, 0.26)},
-    'Polar': {'residues': ['C', 'N', 'Q', 'S', 'T'], 'color': (0.90, 0.62, 0.00)},
-    'Hydrophobic': {'residues': ['A', 'G', 'I', 'L', 'M', 'P', 'V'],
-    'color': (0.34, 0.71, 0.91)}}
 
-    return config
-
-def read_textlist_file(text_file_path):
-    '''
-    Reads the textlist file with the residues whose labels should be seen in the plot
-    ''' 
-    with open(text_file_path, 'r') as f:
-        text_list = f.read().splitlines()
-    return text_list
-
-def get_ddg_data(options):
-    try:
-        res_order = parse_mutlist_file(options.mutation_list)      
-    except (IOError, TypeError):
-        exit(1)
-
-    log.info("Mutation list is:")
-    for i,r in enumerate(res_order):
-        log.info("%d\t%s" % (i,r))
-
-    try:
-        res_ids_str = get_residue_list(options.in_pdb, multimers=options.multimers)
-    
-    except IOError:
-        exit(1)
-
-    ### Poslist parsing
-    if options.position_list is not None:
-        log.info("Positions will be read from file")
-        try:
-            poslist = parse_poslist_file(options.position_list, res_ids_str)
-
-        except (IOError, TypeError):
-            exit(1)
-
-        res_ids_str = filter_reslist(res_ids_str, poslist)
-   
-
-
-    ### Textlist parsing - same mechanism as poslist
-    if options.text_list:
-        log.info("Positions will be read from file")
-        try:
-            textlist = parse_poslist_file(options.text_list, res_ids_str)
-            
-        except (IOError, TypeError):
-            exit(1)
-
-        textlist = filter_reslist(res_ids_str, textlist)
-
-        # Determine if textlist items are single strings or tuples
-        is_single_chain = len(textlist[0]) == 1 # textlist items are single strings or tuples   
-
-    else:
-        textlist = []
-   
-    ### Label parsing
-    fnames = ["_".join(r) for r in res_ids_str]
-    res_id_labels = [" ".join(r) for r in res_ids_str]
-
-    if options.labels:
-        try:
-            labels = parse_label_file(options.labels, fnames, res_id_labels)
-        except:
-            exit(1)
-    else:
-        labels = res_id_labels
-
-    # Updating the names in textlist based on the labels provided Bugfix multimers 
-    if textlist:
-        # Create a mapping from res_id_labels to labels
-        if is_single_chain:
-            # Current mapping for single strings
-            label_mapping = dict(zip(res_id_labels, labels))
-
-            # Update the values in textlist using the mapping
-            textlist = [(label_mapping[residue[0]],) if residue[0] in label_mapping else residue for residue in textlist]
-        else:
-            # Adjust mapping for tuples
-            tuple_keys = [tuple(label.split()) for label in res_id_labels]
-            label_mapping = dict(zip(tuple_keys, labels))
-
-            # Adjust the updating for tuples
-            textlist = [label_mapping.get(residue, residue) for residue in textlist]
-
-
-    ### Processing the config file
-    if options.config_file:
-        try:
-            with open(options.config_file) as f:
-                config = yaml.load(f, Loader=SafeLoader)
-        except:
-            log.error("Couldn't open or parse config file. Exiting...")
-            exit(1)
-
-    else:
-        config= set_default_config()
-
-    pos_dic = parse_config_file(config, res_ids_str)
-
-    # Get color and group for plotting purposes
-    color_dict = {}
-    for k, v in pos_dic.items():
-        for group, color in v.items():
-            color_dict[group] = color
-
-    # Extracting the group for each label and putting it in a list
-    residue_grouping = [list(pos_dic[i].keys())[0] for i in range(len(res_id_labels))]
-
-    # Converting the list to a numpy array
-    residue_grouping = np.array(residue_grouping)
-
-    ### Group processing
-    options_group = options.group_selection #change name of residue nature
-
-    # Filter res_ids_str and labels using indices.
-    filtered_res_ids_str = filter_by_group(res_ids_str, pos_dic, options_group)
-    filtered_labels = filter_by_group(labels, pos_dic, options_group)
-    filtered_residue_grouping = filter_by_group(residue_grouping, pos_dic, options_group)
-
-    # Determine which labels were removed.
-    removed_labels = set(labels) - set(filtered_labels)
-
-    # Remove the same labels from textlist.
-    filtered_textlist = [label for label in textlist if label[0] not in removed_labels]
-   
-    data = []
-
-    log.info("The following files will be considered: %s" % ", ".join(fnames))
-    for i,f in enumerate(fnames):
-        try:
-            # Convert the data to float as it's loaded
-            data.append(np.array(parse_ddg_file("%s%s" % (options.ddg_dir, f), reslist=res_order, )).astype(float))
-        except (IOError, TypeError, ValueError):
-            log.error("Failed to read input file %s%s" % (options.ddg_dir, f))
-            exit(1)
-
-    
-    csv_table = np.asarray(["WT residue type", "chain ID", "Residue #"])
-
-    for i,r in enumerate(res_order):
-        csv_table = np.append(csv_table, r)
-        
-            
-    for i, resset in enumerate(filtered_res_ids_str):
-        chain = ["".join([res[1] for res in resset])]
-
-        lines = np.append(resset[0][2:], data[i])
-        lines = np.append(chain, lines)
-        lines = np.append(resset[0][0], lines)
-        csv_table = np.vstack((csv_table, lines))
-
-    
-    column_headers = csv_table[0]
-    column_headers = np.concatenate((np.array(["Residue_label"]), column_headers[3:]))
-    data = csv_table[1:]
-
-
-    # Combining the first three columns into one (ojo)
-    combined_column = np.core.defchararray.add(np.core.defchararray.add(data[:,0], data[:,1]), data[:,2])
-    combined_column = combined_column.reshape(-1, 1)  # reshape to 2D column vector
-
-    # Now delete the first three columns
-    data = np.delete(data, [0,1,2], axis=1)
-
-    # Concatenate the combined_column with the modified array
-    data = np.hstack((combined_column, data))
-
-    # Replacing the res_str in the data by the corresponding labels 
-    for i, label in enumerate(filtered_labels):
-        data[i, 0] = label
-
-    return data, column_headers, filtered_labels, filtered_textlist, filtered_residue_grouping, color_dict
-
-    # np.savetxt(f"{options.name_outfile}.csv", csv_table, delimiter=",", fmt='%s')  
 def perform_pca(data):
+    if options.unscale:
+        U, S, Vt = np.linalg.svd(data[:, 1:].astype(float), full_matrices=False)
+    else:
+        data_scaled = (data[:, 1:].astype(float) - np.mean(data[:, 1:].astype(float), axis=0)) / np.std(data[:, 1:].astype(float), axis=0)
+        U, S, Vt = np.linalg.svd(data_scaled, full_matrices=False)
     
-    data_scaled = (data[:, 1:].astype(float) - np.mean(data[:, 1:].astype(float), axis=0)) / np.std(data[:, 1:].astype(float), axis=0)
-
-    U, S, Vt = np.linalg.svd(data_scaled, full_matrices=False)
     pca_data = U * S
     pca_df = pca_data
 
@@ -359,6 +161,7 @@ optional.add_argument("-c","--config", dest="config_file", action='store', defau
 optional.add_argument("-t","--text_list", dest="text_list", action="store", default=None, help="List of residues to display as text")
 optional.add_argument("-y","--loadings", dest="loadings", action="store_true", default=False, help="Show the loadings in the plot")
 optional.add_argument("-z","--scatter", dest="scatter", action="store_true", default=False, help="Do not show any labels in the plot")
+optional.add_argument("-u","--unscaled", dest="unscale", action="store_true", default=False, help="Do not scale the data prior to PCA (default: False)")
 
 optional = init_arguments(['labels', 'verbose'], optional)
 
@@ -370,16 +173,200 @@ if options.verbose:
 else:
     log.basicConfig(level=log.WARNING, format=LOGFMT)
 
+print("Processing the input data...")
+### Mutation list parsing
+try:
+    res_order = parse_mutlist_file(options.mutation_list)      
+except (IOError, TypeError):
+    exit(1)
+
+log.info("Mutation list is:")
+for i,r in enumerate(res_order):
+    log.info("%d\t%s" % (i,r))
+
+### PDB parsing
+try:
+    res_ids_str = get_residue_list(options.in_pdb, multimers=options.multimers)
+
+except IOError:
+    exit(1)
+
+### Position list parsing
+if options.position_list is not None:
+    log.info("Positions will be read from file")
+    try:
+        poslist = parse_poslist_file(options.position_list, res_ids_str)
+
+    except (IOError, TypeError):
+        exit(1)
+
+    res_ids_str = filter_reslist(res_ids_str, poslist)
+
+### Textlist parsing - same mechanism as poslist
+if options.text_list:
+    log.info("Positions will be read from file")
+    try:
+        textlist = parse_poslist_file(options.text_list, res_ids_str)
+        
+    except (IOError, TypeError):
+        exit(1)
+
+    textlist = filter_reslist(res_ids_str, textlist)
+
+    # Determine if textlist items are single strings or tuples
+    is_single_chain = len(textlist[0]) == 1 # textlist items are single strings or tuples   
+
+else:
+    textlist = []
+
+### Label parsing
+fnames = ["_".join(r) for r in res_ids_str]
+res_id_labels = [" ".join(r) for r in res_ids_str]
+
+if options.labels:
+    try:
+        labels = parse_label_file(options.labels, fnames, res_id_labels)
+    except:
+        exit(1)
+else:
+    labels = res_id_labels
+
+# Updating the names in textlist based on the labels provided Bugfix multimers 
+if textlist:
+    # Create a mapping from res_id_labels to labels
+    if is_single_chain:
+        # Current mapping for single strings
+        label_mapping = dict(zip(res_id_labels, labels))
+
+        # Update the values in textlist using the mapping
+        textlist = [(label_mapping[residue[0]],) if residue[0] in label_mapping else residue for residue in textlist]
+    else:
+        # Adjust mapping for tuples
+        tuple_keys = [tuple(label.split()) for label in res_id_labels]
+        label_mapping = dict(zip(tuple_keys, labels))
+
+        # Adjust the updating for tuples
+        textlist = [label_mapping.get(residue, residue) for residue in textlist]
+
+### Processing the config file
+if options.config_file:
+    try:
+        with open(options.config_file) as f:
+            config = yaml.load(f, Loader=SafeLoader)
+    except:
+        log.error("Couldn't open or parse config file. Exiting...")
+        exit(1)
+
+else:
+    config = {'Aromatic': {'residues': ['F', 'W', 'Y'], 'color': (0.00, 0.45, 0.70)},
+                'Acidic': {'residues': ['D', 'E'], 'color': (0.00, 0.62, 0.45)},
+                'Basic': {'residues': ['H', 'K', 'R'], 'color': (0.94, 0.89, 0.26)},
+                'Polar': {'residues': ['C', 'N', 'Q', 'S', 'T'], 'color': (0.90, 0.62, 0.00)},
+                'Hydrophobic': {'residues': ['A', 'G', 'I', 'L', 'M', 'P', 'V'], 'color': (0.34, 0.71, 0.91)}}
+
+
+#initialize dictionary with residues indeces from mutlist as 
+#keys and color as values
+pos_dic={}
+
+# Build the pos_dic with residues indices from mutlist as 
+# keys and another dictionary (with group name from config as key and color as value) as values
+for group, details in config.items():
+    for aa in res_ids_str:
+        if aa in details['residues'] or aa[0] in details['residues'] or aa[0][0] in details['residues']: #bugfix for single residue labeling
+            index = res_ids_str.index(aa)
+            pos_dic[index] = {group: details['color']}
+
+# Get color and group for plotting purposes
+color_dict = {}
+for k, v in pos_dic.items():
+    for group, color in v.items():
+        color_dict[group] = color
 
 
 try:
-     data, column_headers, filtered_labels, filtered_textlist, filtered_residue_grouping, color_dict = get_ddg_data(options = options)
-except (IOError, TypeError):
-     exit(1)
+    # Extracting the group for each label and putting it in a list
+    residue_grouping = [list(pos_dic[i].keys())[0] for i in range(len(res_id_labels))]
+except Exception:
+    log.error("Parsing of configuration file failed. Please, check that all residues have been assigned to a group.")
+    exit(1)
 
+# Converting the list to a numpy array
+residue_grouping = np.array(residue_grouping)
+
+### Group processing
+options_group = options.group_selection #change name of residue nature
+
+# Filter res_ids_str and labels using indices.
+filtered_res_ids_str = filter_by_group(res_ids_str, pos_dic, options_group)
+
+if not filtered_res_ids_str:  # If the user prompts a group which does not exist, the list will be empty and an error returned
+    print("ERROR: The provided group filters did not return any results. This can happen due to one of the following reasons:")
+    print("1. The provided groups are not correctly spelled or formatted.")
+    print("2. The groups do not exist in the configuration file you provided.")
+    print("Please double-check the group names and the configuration file, and try again.") 
+    sys.exit(1) 
+
+filtered_labels = filter_by_group(labels, pos_dic, options_group)
+filtered_residue_grouping = filter_by_group(residue_grouping, pos_dic, options_group)
+print(filtered_res_ids_str)
+# Determine which labels were removed.
+removed_labels = set(labels) - set(filtered_labels)
+
+# Remove the same labels from textlist.
+filtered_textlist = [label for label in textlist if label[0] not in removed_labels]
+
+print("Generating the ΔΔG data...")
+data = []
+log.info("The following files will be considered: %s" % ", ".join(fnames))
+for i,f in enumerate(fnames):
+    try:
+        # Convert the data to float as it's loaded
+        data.append(np.array(parse_ddg_file("%s%s" % (options.ddg_dir, f), reslist=res_order, )).astype(float))
+    except (IOError, TypeError, ValueError):
+        log.error("Failed to read input file %s%s" % (options.ddg_dir, f))
+        exit(1)
+
+
+csv_table = np.asarray(["WT residue type", "chain ID", "Residue #"])
+
+for i,r in enumerate(res_order):
+    csv_table = np.append(csv_table, r)
+    
+        
+for i, resset in enumerate(filtered_res_ids_str):
+    chain = ["".join([res[1] for res in resset])]
+
+    lines = np.append(resset[0][2:], data[i])
+    lines = np.append(chain, lines)
+    lines = np.append(resset[0][0], lines)
+    csv_table = np.vstack((csv_table, lines))
+
+
+column_headers = csv_table[0]
+column_headers = np.concatenate((np.array(["Residue_label"]), column_headers[3:]))
+data = csv_table[1:]
+
+
+# Combining the first three columns into one (ojo)
+combined_column = np.core.defchararray.add(np.core.defchararray.add(data[:,0], data[:,1]), data[:,2])
+combined_column = combined_column.reshape(-1, 1)  # reshape to 2D column vector
+
+# Now delete the first three columns
+data = np.delete(data, [0,1,2], axis=1)
+
+# Concatenate the combined_column with the modified array
+data = np.hstack((combined_column, data))
+
+# Replacing the res_str in the data by the corresponding labels 
+for i, label in enumerate(filtered_labels):
+    data[i, 0] = label
+
+
+print("Performing Principal Component Analysis...")
 pca_df, variance_ratio, loadings = perform_pca(data)
 
-
+print("Plotting the first two principal components...")
 plot_biplot(pca_df, 
             filtered_labels, 
             filtered_residue_grouping, 
@@ -395,11 +382,12 @@ if options.name_outfile == "pca":
 else:
     plt.savefig("%s_%s" %("pca", options.name_outfile))
 
-
+print("Plotting the scree plot...")
 plot_scree(variance_ratio=variance_ratio)
 plt.savefig("%s_%s" %("scree", options.name_outfile))
 plt.clf()
 
-
+print("Saving the PC coordinates and explained variance...")
 np.savetxt(f"PC_coordinates.csv", pca_df, delimiter=",", fmt='%s')
 np.savetxt(f"PC_explained_variance.csv", variance_ratio, delimiter=",", fmt='%s')
+print("Done!")
