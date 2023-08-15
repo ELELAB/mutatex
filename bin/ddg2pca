@@ -142,10 +142,11 @@ LOGFMT = "%(levelname)s: %(message)s"
 description = 'ddg2pca: performs a PCA of the the average values from a MutateX DDG scan and plots the first two principal components'
 epilog = """ddg2pca performs a PCA of the the average values from a MutateX DDG and plots the first two principal components. 
 Optional Option -g, --group_selection chooses a subset of residues to plot based on nature (hydrophobic, polar, basic, acidic or aromatic), 
-by default all are shown. The colouring of these groups can be changed by means of a configuration file, -c --config.
+by default all are shown. The grouping and color of the residues can be changed by means of a configuration file, -c --config.
 With option -y, --loadings, the user can also visualise as arrows the PCA loadings in the plot. By default, all residue points as well as their labels 
-are plotted, but the user can tune the plot by specifying the residue points to be seen with the option -q --position_list, and it is also possible to 
-determine filter the labels with -t --text_list
+are plotted, but option -z, --scater allows to obtain just the scatter plot. In addition, the user can specify the residue points to be seen with the option -q --position_list, and it is also possible to 
+filter the labels that should be plotted with -t --text_list. Finally, the data is by default scaled prior to PCA, but this can be disabled 
+using th option -u, --unscale
 """
 
 parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
