@@ -91,7 +91,7 @@ def plot_biplot(pca_df, labels, residue_grouping, color_map, variance_ratio, tex
             ax.scatter(point[0], point[1], color=color_map[group], s=10)
             
             offset = 0.05
-
+            
             if text_list is not None:
                 # Only label points whose labels are in the text_list
                 if (label,) in text_list or label in text_list: # bugfix multimers: the double condition should account for textlists coming from single and multiple chains
