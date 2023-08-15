@@ -92,7 +92,7 @@ def plot_biplot(pca_df, labels, residue_grouping, color_map, variance_ratio, tex
             
             offset = 0.05
 
-            if len(text_list) > 0:
+            if text_list is not None:
                 # Only label points whose labels are in the text_list
                 if (label,) in text_list or label in text_list: # bugfix multimers: the double condition should account for textlists coming from single and multiple chains
                     residue_texts.append(ax.text(point[0], point[1] - offset, label, color="white", va="top", ha="center", weight='bold', 
@@ -232,7 +232,7 @@ else:
     labels = res_id_labels
 
 # Updating the names in textlist based on the labels provided Bugfix multimers 
-if textlist:
+if textlist is not None:
     # Create a mapping from res_id_labels to labels
     if is_single_chain:
         # Current mapping for single strings
@@ -301,20 +301,24 @@ options_group = options.group_selection #change name of residue nature
 filtered_res_ids_str = filter_by_group(res_ids_str, pos_dic, options_group)
 
 if not filtered_res_ids_str:  # If the user prompts a group which does not exist, the list will be empty and an error returned
-    print("ERROR: The provided group filters did not return any results. This can happen due to one of the following reasons:")
+    print("ERROR: The provided group filters did not return any residues. This can happen due to one of the following reasons:")
     print("1. The provided groups are not correctly spelled or formatted.")
-    print("2. The groups do not exist in the configuration file you provided.")
+    print("2. The groups do not exist in the configuration file you provided or in the default configuration.")
     print("Please double-check the group names and the configuration file, and try again.") 
     sys.exit(1) 
 
 filtered_labels = filter_by_group(labels, pos_dic, options_group)
 filtered_residue_grouping = filter_by_group(residue_grouping, pos_dic, options_group)
 
+
 # Determine which labels were removed.
 removed_labels = set(labels) - set(filtered_labels)
 
-# Remove the same labels from textlist.
-filtered_textlist = [label for label in textlist if label[0] not in removed_labels]
+if textlist is not None:
+    # Remove the same labels from textlist.
+    filtered_textlist = [label for label in textlist if label[0] not in removed_labels]
+else:
+    filtered_textlist = None
 
 print("Generating the ΔΔG data...")
 data = []
