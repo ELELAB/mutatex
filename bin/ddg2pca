@@ -115,10 +115,9 @@ def plot_biplot(pca_df, labels, residue_grouping, color_map, variance_ratio, tex
         pca_range = np.ptp(pca_df[:, :2], axis=0)
         scale_factor = np.mean(pca_range) / 1.5
         loadings_scaled = loadings * scale_factor
-        text_offset = 0
         for i in range(loadings_scaled.shape[1]):
             ax.arrow(0, 0, loadings_scaled[0, i], loadings_scaled[1, i], color='black', alpha=0.5, zorder=4, head_width=0.5, head_length=0.3)
-            loading_texts.append(ax.text(loadings_scaled[0, i] + text_offset, loadings_scaled[1, i] + text_offset, column_headers[i+1], size=10, alpha=1, color='blue', ha='center', va='center', zorder=5))
+            loading_texts.append(ax.text(loadings_scaled[0, i], loadings_scaled[1, i], column_headers[i+1], size=10, alpha=1, color='blue', ha='center', va='center', zorder=5))
 
     # Adjust positions of the labels
     if residue_texts:
