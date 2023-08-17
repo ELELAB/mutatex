@@ -39,7 +39,7 @@ With option -y, --loadings, the user can also visualise as arrows the PCA loadin
 
 By default, all residue points as well as their labels are plotted, but option -z, --scater allows to obtain just the scatter plot. 
 In addition, the user can specify the residue points to be seen with the option -q --position_list, and it is also possible to 
-filter the labels that should be plotted with -t --text_list. Finally, the data is by default scaled prior to PCA, 
+filter the labels that should be plotted with -t --text-list. Finally, the data is by default scaled prior to PCA, 
 but this can be disabled using th option -u, --unscale.
 """
 
@@ -174,7 +174,7 @@ optional = init_arguments(['multimers', 'position_list', 'title'], optional)
 optional.add_argument("-o","--output", dest="name_outfile", action='store', default='pca', help="output file name (default: pca.pdf)")
 optional.add_argument("-g","--group", dest="group_selection", action='store', default='all', help="Residues of a specific group to be analysed with PCA (default: all)")
 optional.add_argument("-c","--config", dest="config_file", action='store', default=None, help="Configuration file with the custom grouping and color of residues")
-optional.add_argument("-t","--text_list", dest="text_list", action="store", default=None, help="List of residues to display as text")
+optional.add_argument("-t","--text-list", dest="text_list", action="store", default=None, help="List of residues to display as text")
 optional.add_argument("-y","--loadings", dest="loadings", action="store_true", help="Display the loadings in the plot")
 optional.add_argument("-z","--scatter", dest="scatter", action="store_true", help="Do not show any labels in the plot")
 optional.add_argument("-u","--unscaled", dest="unscale", action="store_true",help="Do not scale the data prior to PCA")
