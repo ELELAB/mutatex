@@ -36,13 +36,13 @@ setup(
               'bin/ddg2summary'],
 
     install_requires=[ 'biopython',
-                       'matplotlib==3.4.3',
-		       'numpy==1.21.0',
-                       'scipy==1.6.3',
+                       'matplotlib>=3.4.3',
+		       'numpy>=1.21.0',
+                       'scipy>=1.6.3',
                        'six',
                        'openpyxl',
                        'pyyaml',
-                       'adjustText==0.8'],
+                       'adjustText>=0.8'],
     package_data={
         '': ['LICENSE', '*.md'],
     },
