@@ -3776,7 +3776,7 @@ status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
-	filename ../new_manual/2_logo.png
+	filename 2_logo.png
 	lyxscale 55
 	scale 50
 
@@ -3806,6 +3806,271 @@ Logo plot obtained using ddg2logo with a configuration file.
 \end_inset
 
 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Principal Component Analysis biplot.
+\end_layout
+
+\begin_layout Standard
+The ddg2pca tool is designed to perform Principal Component Analysis (PCA)
+ on ΔΔG data and visualize the first two principal components in a biplot
+ and the explained variance per principal component.
+ This tool offers a comprehensive way to visualize the impact of multiple
+ mutations on the stability of proteins.
+\end_layout
+
+\begin_layout Standard
+Ddg2pca can be run in default mode using some of the same inputs as for
+ ddg2heatmap and ddg2distribution (see before).
+ The path to the “results” directory (either final_averages or a specific
+ protein model of interest), original pdb file and a list of mutated residue
+ types are mandatory parameters.
+ By default, it generates a scatter plot with labels with the first two
+ principal components, as well as a scree plot showing the percentage of
+ variance explained by the first 10 components.
+\end_layout
+
+\begin_layout Standard
+A default commandline for this tool would look like:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2pca -d results/final_averages  -p single_model.pdb -l mutation_list.txt
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename pca_default.pdf
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:pca-1"
+
+\end_inset
+
+PCA biplot obtained using ddg2pca with the default settings.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The optional arguments give the possibility of customising the biplot.
+ Users can decide if data should be scaled before undergoing PCA using the
+ -u or --unscaled option; the default behavior is to scale.
+ The -z or --scatter option, when engaged, will suppress labels, producing
+ just a scatter plot, while the -y or --loadings option, when activated,
+ will display the loadings in the biplot.
+ Like previous tools, ddg2pca accepts the -b or –labels to obtain custom
+ labels as residue names, as well as the -q or –position-list option to
+ conduct PCA on a specific susbet of residues.
+ In addition, -t or --text_list allows users to indicate specific residues
+ that should be presented as text in the generated plot, hiding text from
+ other residues.
+\end_layout
+
+\begin_layout Standard
+The user can customize the residue grouping and coloring providing a configurati
+on file in the yaml format with the -c option (see before).
+ Without specifying this, the software defaults to sorting residues based
+ on their physicochemical attributes (hydrophobic, polar, basic, acidic,
+ aromatic).
+ The configuration file can create custom classes with residues as in ddg2logo,
+ but it also accepts classes grouping positions of the protein.
+ An example of this alternative configuration file can be seen below:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+Buried:   
+\end_layout
+
+\begin_layout Plain Layout
+
+	residues:    
+\end_layout
+
+\begin_layout Plain Layout
+
+		- GA2    
+\end_layout
+
+\begin_layout Plain Layout
+
+		- EA3  
+\end_layout
+
+\begin_layout Plain Layout
+
+		- HA4     
+\end_layout
+
+\begin_layout Plain Layout
+
+		- LA6   
+\end_layout
+
+\begin_layout Plain Layout
+
+	color: [0.0, 0.2706, 0.6980] 
+\end_layout
+
+\begin_layout Plain Layout
+
+Exposed:   
+\end_layout
+
+\begin_layout Plain Layout
+
+	residues:     
+\end_layout
+
+\begin_layout Plain Layout
+
+		- MA1     
+\end_layout
+
+\begin_layout Plain Layout
+
+		- GA5     
+\end_layout
+
+\begin_layout Plain Layout
+
+		- EA7   
+\end_layout
+
+\begin_layout Plain Layout
+
+	color: [0.4039, 0.9020, 0.0] 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Either with the default group configuration or by a custom configuration
+ file, users looking to center their analyses on certain residue groups
+ can utilize the -g or --group option, else the tool plots all residues.
+\end_layout
+
+\begin_layout Standard
+A personalised commandline for this tool with a custom configuration file
+ and textlist could look like:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2pca -d results/final_averages  -p single_model.pdb -l mutation_list.txt
+ -t text_list.txt -c config_file.yaml
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename pca_config.pdf
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:pca-2"
+
+\end_inset
+
+PCA plot obtained using ddg2pca with a configuration file and a text list.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+For full list of user specified options see the ddg2pca help option.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ddg2pca -h 
 \end_layout
 
 \end_inset

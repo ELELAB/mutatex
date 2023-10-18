@@ -27,6 +27,7 @@ setup(
               'bin/pdb2labels',
               'bin/ddg2heatmap',
               'bin/ddg2excel',
+              'bin/ddg2pca',
               'bin/mutatex',
               'bin/ddg2dg',
               'bin/ddg2histo',
@@ -40,7 +41,8 @@ setup(
                        'scipy',
                        'six',
                        'openpyxl',
-                       'pyyaml'],
+                       'pyyaml',
+                       'adjustText>=0.8'],
     package_data={
         '': ['LICENSE', '*.md'],
     },
@@ -50,4 +52,3 @@ setup(
     keywords="foldx energy mutation",
     url="https://github.com/ELELAB/mutatex",
 )
-
