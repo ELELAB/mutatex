@@ -279,12 +279,11 @@ if options.config_file:
         exit(1)
 
 else:
-    config = {'Aromatic': {'residues': ['F', 'W', 'Y', 'H'], 'color': (0.00, 0.45, 0.70)},
-                'Acidic': {'residues': ['D', 'E'], 'color': (0.00, 0.62, 0.45)},
-                'Basic': {'residues': ['K', 'R'], 'color': (0.94, 0.89, 0.26)},
-                'Polar': {'residues': ['C', 'N', 'Q', 'S', 'T'], 'color': (0.90, 0.62, 0.00)},
-                'Hydrophobic': {'residues': ['A', 'G', 'I', 'L', 'M', 'P', 'V'], 'color': (0.34, 0.71, 0.91)}}
-
+    config = {'Aromatic': {'residues': ['F', 'W', 'Y'], 'color': (0.00, 0.45, 0.70)},
+              'Acidic': {'residues': ['D', 'E'], 'color': (0.00, 0.62, 0.45)},
+              'Basic': {'residues': ['K', 'R'], 'color': (0.94, 0.89, 0.26)},
+              'Polar': {'residues': ['C', 'N', 'Q', 'S', 'T', 'H'], 'color': (0.90, 0.62, 0.00)},
+              'Hydrophobic': {'residues': ['A', 'G', 'I', 'L', 'M', 'P', 'V'], 'color': (0.34, 0.71, 0.91)}}
 
 #initialize dictionary with residues indeces from mutlist as
 #keys and color as values
