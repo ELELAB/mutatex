@@ -3776,7 +3776,7 @@ status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
-	filename ../new_manual/2_logo.png
+	filename 2_logo.png
 	lyxscale 55
 	scale 50
 
@@ -3995,7 +3995,7 @@ Exposed:
 \end_layout
 
 \begin_layout Standard
-Either with the default group configuration or by a custom configuraiton
+Either with the default group configuration or by a custom configuration
  file, users looking to center their analyses on certain residue groups
  can utilize the -g or --group option, else the tool plots all residues.
 \end_layout
