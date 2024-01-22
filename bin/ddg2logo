@@ -358,11 +358,18 @@ if options.config_file:
     except:
         log.error("Couldn't open or parse config file. Exiting...")
         exit(1)
-    new_letters = letters.copy()
-    for key in config:
-        for aa in config[key]['residues']:
-            new_letters[aa] = color_letter(new_letters[aa], config[key]['color'])
-    letters = new_letters
+else:
+    # if config file doesn't exist, let's use a mock configuration
+    config = {'all' : {'residues' : ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
+                                     'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S',
+                                     'T', 'V', 'W', 'Y'],
+                       'color': [0., 0., 0.]}}
+
+new_letters = letters.copy()
+for key in config:
+    for aa in config[key]['residues']:
+        new_letters[aa] = color_letter(new_letters[aa], config[key]['color'])
+letters = new_letters
 
 # parse DDG files
 data = []
