@@ -451,10 +451,13 @@ def get_foldx_sequence(pdb, multimers=True):
         unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
         unique_pos, unique_idxp = np.unique(pos, return_inverse=True)
         
-        if (unique_idxs == unique_idxp).all() == False:
-            log.warning("Input amino acid sequence and input position sequence is not identical in multimer.")
-            residue_list.append("RESIDUE_MISMATCH")
-            return tuple(residue_list)
+        try:
+            if not (unique_idxs == unique_idxp).all():
+                log.warning("Input amino acid sequence and input position sequence is not identical in multimer.")
+                raise ValueError
+        except ValueError as e:
+            log.error("The supplied PDB files must have identical positions of sequences. Exiting...")
+            exit(1)
 
         for i in np.unique(unique_idxs):
             collated_chains.append(seq_ids[unique_idxs == i])
@@ -467,11 +470,11 @@ def get_foldx_sequence(pdb, multimers=True):
                         res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
                     except:
                         log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
-                        continue                        
-                    
+                        continue
+
                     this_res = tuple(sorted([ "%s%s%d" % (res_code, c, resid) for c in cg ], key=lambda x: x[1]))
                     residue_list.append(this_res)
-                    
+
     return tuple(residue_list)
 
 def safe_makedirs(dirname):
