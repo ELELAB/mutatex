@@ -451,13 +451,9 @@ def get_foldx_sequence(pdb, multimers=True):
         unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
         unique_pos, unique_idxp = np.unique(pos, return_inverse=True)
         
-        try:
-            if not (unique_idxs == unique_idxp).all():
-                log.warning("Input amino acid sequence and input position sequence is not identical in multimer.")
-                raise ValueError
-        except ValueError as e:
-            log.error("The supplied PDB files must have identical positions of sequences. Exiting...")
-            exit(1)
+        if not (unique_idxs == unique_idxp).all():
+            log.warning("Input amino acid sequence and input position sequence is not identical in multimer.")
+            raise ValueError("The supplied PDB files must have identical positions of sequences")
 
         for i in np.unique(unique_idxs):
             collated_chains.append(seq_ids[unique_idxs == i])
