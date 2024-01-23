@@ -23,7 +23,7 @@ import numpy as np
 import logging as log
 from six import iteritems
 from Bio import PDB
-from multiprocessing.pool import ThreadPool
+import multiprocessing 
 import matplotlib
 import sys
 import os
@@ -38,6 +38,7 @@ import tarfile as tar
 import platform
 import textwrap
 import csv
+from tqdm import tqdm
 
 def init_arguments(arguments, parser):
     """
@@ -624,12 +625,16 @@ def parallel_foldx_run(foldx_runs, np):
     results : list of (str, bool) tuples
         whether each run has been complete successfully (name and status)
     """
+    
+    #print(foldx_worker, foldx_runs)
     pool = ThreadPool(np)
 
-    result = pool.imap_unordered(foldx_worker, foldx_runs)
-
+    with multiprocessing.Pool() as pool:
+        result = tqdm(pool.imap_unordered(foldx_worker, foldx_runs),total=len(foldx_runs))
+    
     pool.close()
     pool.join()
+
 
     return list(result)
 

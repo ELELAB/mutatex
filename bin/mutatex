@@ -27,6 +27,7 @@ from Bio import PDB
 from six import iteritems
 from mutatex.utils import *
 from mutatex.core import *
+from tqdm import tqdm
 
 signal.signal(signal.SIGTERM, termination_handler)
 signal.signal(signal.SIGINT, termination_handler)
@@ -366,6 +367,7 @@ for r in unique_residues:
                                     mutlist=mutlist,
                                     clean = mutate_clean
                                     ))
+
 
 for r in mutation_runs:
     log.info("Preparing for mutation run %s" % r.name)
