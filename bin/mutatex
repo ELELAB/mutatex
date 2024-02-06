@@ -315,6 +315,9 @@ for pdb in repaired_pdbs_list:
             residues_list.append(get_foldx_sequence(pdb, multimers=args.multimers))
         except IOError:
             exit(1)
+        except ValueError as e:
+            log.error(f"{e}. Exiting...")
+            exit(1)
 
 unique_residues = tuple(set(residues_list))
 
