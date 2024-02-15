@@ -286,7 +286,6 @@ else:
     repaired_pdbs_list = [repair_runs[i].working_directory+"/"+current_version.repair_pdb_output_fname(pdbs_list[i]) for i in range(len(pdbs_list))]
     log.info("list of PDBs to be used: %s" % ", ".join(repaired_pdbs_list))
 
-
 # PHASE TWO: mutate + energy
 
 
@@ -299,25 +298,66 @@ try:
 except:
     exit(1)
 
+#get the original PDB list
+pdbs_list = [ os.path.join(main_dir, pdb) for pdb in pdbs_list ]
+original_residues_list = []
+original_residues_dictionary = {}
+
+for pdb in pdbs_list:
+    this_dirname = working_directory+"/"+os.path.splitext(os.path.basename(pdb))[0]
+    try:
+        safe_makedirs(this_dirname)
+    except:
+        log.error("PDB %s will be ignored." % pdb)
+        pdbs_list.remove(pdb)
+        continue
+    try:
+        key = pdb.split("/")[-1].split("_checked")[0]
+        value = get_foldx_sequence(pdb, multimers=args.multimers)
+        original_residues_list.append(value)
+        original_residues_dictionary[key] = value
+    except IOError:
+        exit(1)
+    except ValueError as e:
+        log.error(f"{e}. Exiting...")
+        exit(1)
+
 residues_list = []
 dir_list = []
+residues_dictionary = {}
+
+print(repaired_pdbs_list)
 for pdb in repaired_pdbs_list:
     this_dirname = working_directory+"/"+os.path.splitext(os.path.basename(pdb))[0]
-    for pdb in repaired_pdbs_list:
-        this_dirname = working_directory+"/"+os.path.splitext(os.path.basename(pdb))[0]
-        try:
-            safe_makedirs(this_dirname)
-        except:
-            log.error("PDB %s will be ignored." % pdb)
-            repaired_pdbs_list.remove(pdb)
-            continue
-        try:
-            residues_list.append(get_foldx_sequence(pdb, multimers=args.multimers))
-        except IOError:
-            exit(1)
-        except ValueError as e:
-            log.error(f"{e}. Exiting...")
-            exit(1)
+    try:
+        safe_makedirs(this_dirname)
+    except:
+        log.error("PDB %s will be ignored." % pdb)
+        repaired_pdbs_list.remove(pdb)
+        continue
+    try:
+        key = pdb.split("/")[-1].split("_checked")[0]
+        value = get_foldx_sequence(pdb, multimers=args.multimers)
+        residues_list.append(value)
+        residues_dictionary[key] = value
+    except IOError:
+        exit(1)
+    except ValueError as e:
+        log.error(f"{e}. Exiting...")
+        exit(1)
+
+#check in all models if the repair step removed any residues
+error_messages = []
+for pdb, residues in original_residues_dictionary.items():
+    repaired_residues = residues_dictionary.get(pdb)
+    if len(residues) != len(repaired_residues):
+        difference = list(set(residues) - set(repaired_residues))
+        error_messages.append(f"The following residues were removed during the repair {difference} on {pdb}. ")
+
+if error_messages:
+    for error_message in error_messages:
+        log.error(error_message + "Exiting...")
+    exit(1)
 
 unique_residues = tuple(set(residues_list))
 
