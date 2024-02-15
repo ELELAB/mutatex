@@ -300,7 +300,6 @@ except:
 
 #get the original PDB list
 pdbs_list = [ os.path.join(main_dir, pdb) for pdb in pdbs_list ]
-original_residues_list = []
 original_residues_dictionary = {}
 
 for pdb in pdbs_list:
@@ -313,9 +312,7 @@ for pdb in pdbs_list:
         continue
     try:
         key = pdb.split("/")[-1].split("_checked")[0]
-        value = get_foldx_sequence(pdb, multimers=args.multimers)
-        original_residues_list.append(value)
-        original_residues_dictionary[key] = value
+        original_residues_dictionary[key] = get_foldx_sequence(pdb, multimers=args.multimers)
     except IOError:
         exit(1)
     except ValueError as e:
