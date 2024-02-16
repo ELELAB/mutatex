@@ -345,21 +345,19 @@ dir_list = []
 
 for pdb in repaired_pdbs_list:
     this_dirname = working_directory+"/"+os.path.splitext(os.path.basename(pdb))[0]
-    for pdb in repaired_pdbs_list:
-        this_dirname = working_directory+"/"+os.path.splitext(os.path.basename(pdb))[0]
-        try:
-            safe_makedirs(this_dirname)
-        except:
-            log.error("PDB %s will be ignored." % pdb)
-            repaired_pdbs_list.remove(pdb)
-            continue
-        try:
-            residues_list.append(get_foldx_sequence(pdb, multimers=args.multimers))
-        except IOError:
-            exit(1)
-        except ValueError as e:
-            log.error(f"{e}. Exiting...")
-            exit(1)
+    try:
+        safe_makedirs(this_dirname)
+    except:
+        log.error("PDB %s will be ignored." % pdb)
+        repaired_pdbs_list.remove(pdb)
+        continue
+    try:
+        residues_list.append(get_foldx_sequence(pdb, multimers=args.multimers))
+    except IOError:
+        exit(1)
+    except ValueError as e:
+        log.error(f"{e}. Exiting...")
+        exit(1)
 
 unique_residues = tuple(set(residues_list))
 
