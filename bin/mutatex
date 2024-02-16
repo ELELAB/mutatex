@@ -286,32 +286,15 @@ else:
     repaired_pdbs_list = [repair_runs[i].working_directory+"/"+current_version.repair_pdb_output_fname(pdbs_list[i]) for i in range(len(pdbs_list))]
     log.info("list of PDBs to be used: %s" % ", ".join(repaired_pdbs_list))
 
-# PHASE TWO: mutate + energy
+##Check if the repair step removed any residues
 
-
-# create working directory
-working_directory = main_dir+"/"+mutations_dirname
-log.info("Working directory is: %s" % working_directory)
-
-try:
-    safe_makedirs(working_directory)
-except:
-    exit(1)
-
-#get the original PDB list
+#get the original PDB list and residues
 pdbs_list = [ os.path.join(main_dir, pdb) for pdb in pdbs_list ]
 original_residues_dictionary = {}
 
 for pdb in pdbs_list:
-    this_dirname = working_directory+"/"+os.path.splitext(os.path.basename(pdb))[0]
     try:
-        safe_makedirs(this_dirname)
-    except:
-        log.error("PDB %s will be ignored." % pdb)
-        pdbs_list.remove(pdb)
-        continue
-    try:
-        key = pdb.split("/")[-1].split("_checked")[0]
+        key = pdb.split('/')[-1].split('_checked')[0]
         original_residues_dictionary[key] = get_foldx_sequence(pdb, multimers=args.multimers)
     except IOError:
         exit(1)
@@ -319,23 +302,12 @@ for pdb in pdbs_list:
         log.error(f"{e}. Exiting...")
         exit(1)
 
-residues_list = []
-dir_list = []
+#the repaired PDB list and residues
 residues_dictionary = {}
-
-print(repaired_pdbs_list)
 for pdb in repaired_pdbs_list:
-    this_dirname = working_directory+"/"+os.path.splitext(os.path.basename(pdb))[0]
     try:
-        safe_makedirs(this_dirname)
-    except:
-        log.error("PDB %s will be ignored." % pdb)
-        repaired_pdbs_list.remove(pdb)
-        continue
-    try:
-        key = pdb.split("/")[-1].split("_checked")[0]
+        key = pdb.split('/')[-1].split('_checked')[0]
         value = get_foldx_sequence(pdb, multimers=args.multimers)
-        residues_list.append(value)
         residues_dictionary[key] = value
     except IOError:
         exit(1)
@@ -353,8 +325,39 @@ for pdb, residues in original_residues_dictionary.items():
 
 if error_messages:
     for error_message in error_messages:
-        log.error(error_message + "Exiting...")
+        log.error(error_message)
+    log.error("some residues were removed during repair; please check your PDB files for integrity and compatibility with FoldX. Exiting...")
     exit(1)
+
+# PHASE TWO: mutate + energy
+
+# create working directory
+working_directory = main_dir+"/"+mutations_dirname
+log.info("Working directory is: %s" % working_directory)
+
+try:
+    safe_makedirs(working_directory)
+except:
+    exit(1)
+
+residues_list = []
+dir_list = []
+
+for pdb in repaired_pdbs_list:
+    this_dirname = working_directory+"/"+os.path.splitext(os.path.basename(pdb))[0]
+    try:
+        safe_makedirs(this_dirname)
+    except:
+        log.error("PDB %s will be ignored." % pdb)
+        repaired_pdbs_list.remove(pdb)
+        continue
+    try:
+        residues_list.append(get_foldx_sequence(pdb, multimers=args.multimers))
+    except IOError:
+        exit(1)
+    except ValueError as e:
+        log.error(f"{e}. Exiting...")
+        exit(1)
 
 unique_residues = tuple(set(residues_list))
 
