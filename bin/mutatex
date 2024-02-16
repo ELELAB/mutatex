@@ -294,7 +294,7 @@ original_residues_dictionary = {}
 
 for pdb in pdbs_list:
     try:
-        key = pdb.split('/')[-1].split('_checked')[0]
+        key = os.path.basename(pdb).split('_checked')[0]
         original_residues_dictionary[key] = get_foldx_sequence(pdb, multimers=args.multimers)
     except IOError:
         exit(1)
@@ -306,7 +306,7 @@ for pdb in pdbs_list:
 residues_dictionary = {}
 for pdb in repaired_pdbs_list:
     try:
-        key = pdb.split('/')[-1].split('_checked')[0]
+        key = os.path.basename(pdb).split('_checked')[0]
         value = get_foldx_sequence(pdb, multimers=args.multimers)
         residues_dictionary[key] = value
     except IOError:
@@ -315,7 +315,7 @@ for pdb in repaired_pdbs_list:
         log.error(f"{e}. Exiting...")
         exit(1)
 
-#check in all models if the repair step removed any residues
+#collect the missing residue errors for all models in run
 error_messages = []
 for pdb, residues in original_residues_dictionary.items():
     repaired_residues = residues_dictionary.get(pdb)
