@@ -306,8 +306,7 @@ for pdb in pdbs_list:
 residues_dictionary = {}
 for pdb in repaired_pdbs_list:
     try:
-        key = os.path.basename(pdb).split('_Repair')[0]
-        print(key)
+        key = os.path.basename(pdb)[:-11]
         value = get_foldx_sequence(pdb, multimers=args.multimers)
         residues_dictionary[key] = value
     except IOError:
@@ -346,19 +345,21 @@ dir_list = []
 
 for pdb in repaired_pdbs_list:
     this_dirname = working_directory+"/"+os.path.splitext(os.path.basename(pdb))[0]
-    try:
-        safe_makedirs(this_dirname)
-    except:
-        log.error("PDB %s will be ignored." % pdb)
-        repaired_pdbs_list.remove(pdb)
-        continue
-    try:
-        residues_list.append(get_foldx_sequence(pdb, multimers=args.multimers))
-    except IOError:
-        exit(1)
-    except ValueError as e:
-        log.error(f"{e}. Exiting...")
-        exit(1)
+    for pdb in repaired_pdbs_list:
+        this_dirname = working_directory+"/"+os.path.splitext(os.path.basename(pdb))[0]
+        try:
+            safe_makedirs(this_dirname)
+        except:
+            log.error("PDB %s will be ignored." % pdb)
+            repaired_pdbs_list.remove(pdb)
+            continue
+        try:
+            residues_list.append(get_foldx_sequence(pdb, multimers=args.multimers))
+        except IOError:
+            exit(1)
+        except ValueError as e:
+            log.error(f"{e}. Exiting...")
+            exit(1)
 
 unique_residues = tuple(set(residues_list))
 
