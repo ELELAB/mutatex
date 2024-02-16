@@ -294,7 +294,7 @@ original_residues_dictionary = {}
 
 for pdb in pdbs_list:
     try:
-        key = os.path.basename(pdb).split('_checked')[0]
+        key = os.path.splitext(os.path.basename(pdb))[0]
         original_residues_dictionary[key] = get_foldx_sequence(pdb, multimers=args.multimers)
     except IOError:
         exit(1)
@@ -306,7 +306,8 @@ for pdb in pdbs_list:
 residues_dictionary = {}
 for pdb in repaired_pdbs_list:
     try:
-        key = os.path.basename(pdb).split('_checked')[0]
+        key = os.path.basename(pdb).split('_Repair')[0]
+        print(key)
         value = get_foldx_sequence(pdb, multimers=args.multimers)
         residues_dictionary[key] = value
     except IOError:
