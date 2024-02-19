@@ -286,48 +286,48 @@ else:
     repaired_pdbs_list = [repair_runs[i].working_directory+"/"+current_version.repair_pdb_output_fname(pdbs_list[i]) for i in range(len(pdbs_list))]
     log.info("list of PDBs to be used: %s" % ", ".join(repaired_pdbs_list))
 
-##Check if the repair step removed any residues
-
-#get the original PDB list and residues
-pdbs_list = [ os.path.join(main_dir, pdb) for pdb in pdbs_list ]
-original_residues_dictionary = {}
-
-for pdb in pdbs_list:
-    try:
-        key = os.path.splitext(os.path.basename(pdb))[0]
-        original_residues_dictionary[key] = get_foldx_sequence(pdb, multimers=args.multimers)
-    except IOError:
+    ##Check if the repair step removed any residues
+    
+    #get the original PDB list and residues
+    pdbs_list = [ os.path.join(main_dir, pdb) for pdb in pdbs_list ]
+    original_residues_dictionary = {}
+    
+    for pdb in pdbs_list:
+        try:
+            key = os.path.splitext(os.path.basename(pdb))[0]
+            original_residues_dictionary[key] = get_foldx_sequence(pdb, multimers=args.multimers)
+        except IOError:
+            exit(1)
+        except ValueError as e:
+            log.error(f"{e}. Exiting...")
+            exit(1)
+    
+    #the repaired PDB list and residues
+    residues_dictionary = {}
+    for pdb in repaired_pdbs_list:
+        try:
+            key = os.path.basename(pdb)[:-11]
+            value = get_foldx_sequence(pdb, multimers=args.multimers)
+            residues_dictionary[key] = value
+        except IOError:
+            exit(1)
+        except ValueError as e:
+            log.error(f"{e}. Exiting...")
+            exit(1)
+    
+    #collect the missing residue errors for all models in run
+    error_messages = []
+    for pdb, residues in original_residues_dictionary.items():
+        repaired_residues = residues_dictionary.get(pdb)
+        if len(residues) != len(repaired_residues):
+            difference = list(set(residues) - set(repaired_residues))
+            error_messages.append(f"The following residues were removed during the repair {difference} on {pdb}. ")
+    
+    if error_messages:
+        for error_message in error_messages:
+            log.error(error_message)
+        log.error("some residues were removed during repair; please check your PDB files for integrity and compatibility with FoldX. Exiting...")
         exit(1)
-    except ValueError as e:
-        log.error(f"{e}. Exiting...")
-        exit(1)
-
-#the repaired PDB list and residues
-residues_dictionary = {}
-for pdb in repaired_pdbs_list:
-    try:
-        key = os.path.basename(pdb)[:-11]
-        value = get_foldx_sequence(pdb, multimers=args.multimers)
-        residues_dictionary[key] = value
-    except IOError:
-        exit(1)
-    except ValueError as e:
-        log.error(f"{e}. Exiting...")
-        exit(1)
-
-#collect the missing residue errors for all models in run
-error_messages = []
-for pdb, residues in original_residues_dictionary.items():
-    repaired_residues = residues_dictionary.get(pdb)
-    if len(residues) != len(repaired_residues):
-        difference = list(set(residues) - set(repaired_residues))
-        error_messages.append(f"The following residues were removed during the repair {difference} on {pdb}. ")
-
-if error_messages:
-    for error_message in error_messages:
-        log.error(error_message)
-    log.error("some residues were removed during repair; please check your PDB files for integrity and compatibility with FoldX. Exiting...")
-    exit(1)
 
 # PHASE TWO: mutate + energy
 
