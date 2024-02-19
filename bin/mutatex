@@ -286,8 +286,7 @@ else:
     repaired_pdbs_list = [repair_runs[i].working_directory+"/"+current_version.repair_pdb_output_fname(pdbs_list[i]) for i in range(len(pdbs_list))]
     log.info("list of PDBs to be used: %s" % ", ".join(repaired_pdbs_list))
 
-    ##Check if the repair step removed any residues
-    
+    #Check if the repair step removed any residues
     #get the original PDB list and residues
     pdbs_list = [ os.path.join(main_dir, pdb) for pdb in pdbs_list ]
     original_residues_dictionary = {}
@@ -302,7 +301,7 @@ else:
             log.error(f"{e}. Exiting...")
             exit(1)
     
-    #the repaired PDB list and residues
+    #get the repaired PDB list and residues
     residues_dictionary = {}
     for pdb in repaired_pdbs_list:
         try:
@@ -323,6 +322,7 @@ else:
             difference = list(set(residues) - set(repaired_residues))
             error_messages.append(f"The following residues were removed during the repair {difference} on {pdb}. ")
     
+    #log errors
     if error_messages:
         for error_message in error_messages:
             log.error(error_message)
