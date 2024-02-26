@@ -5,7 +5,7 @@
 #                        Thilde Bagger Terkelsen <ThildeBT@gmail.com>
 #    Copyright (C) 2022, Matteo Tiberti, Thilde Bagger Therkelsen,
 #                        Matteo Arnaudi - Danish Cancer Society
-#
+#    Copyright (C) 2024, Matteo Tiberti, Kristine Degn
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -134,6 +134,17 @@ def parse_label_file(csv_fname, fnames, default_labels):
             log.warning("label for residue %s not found; it will be skipped" % fname)
 
     return labels
+
+
+def three_to_one(amino_acid):
+    amino_acid = amino_acid.upper()
+    amino_acid_mapping = {
+        'ASP': 'D', 'VAL': 'V', 'ALA': 'A', 'MET': 'M', 'ASN': 'N',
+        'PHE': 'F', 'GLY': 'G', 'LEU': 'L', 'ILE': 'I', 'THR': 'T',
+        'PRO': 'P', 'CYS': 'C', 'SER': 'S', 'ARG': 'R', 'TYR': 'Y',
+        'GLN': 'Q', 'LYS': 'K', 'TRP': 'W', 'GLU': 'E', 'HIS': 'H'}
+    return amino_acid_mapping.get(amino_acid, None)
+
 
 def parse_ddg_file(fname, reslist=None, full=False):
     """
@@ -357,7 +368,7 @@ def get_residue_list(infile, multimers=True, get_structure=False):
         sequences[chain_name] = ''
         for residue in chain:
             try:
-                res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                res_code = three_to_one(residue.get_resname())
             except:
                 log.warning("Residue %s couldn't be recognized; it will be skipped" % residue )
                 continue
@@ -380,7 +391,7 @@ def get_residue_list(infile, multimers=True, get_structure=False):
                 for residue in model[cg[0]]:
                     resid = residue.get_id()[1]
                     try:
-                        res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                        res_code = three_to_one(residue.get_resname())
                     except:
                         log.warning("Residue %s couldn't be recognized; it will be skipped" % residue)
                         continue
@@ -431,7 +442,7 @@ def get_foldx_sequence(pdb, multimers=True):
             positions[chain_name] = ''
             for residue in chain:
                 try:
-                    res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                    res_code = three_to_one(residue.get_resname())
                 except:
                     log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
                     continue
@@ -463,7 +474,7 @@ def get_foldx_sequence(pdb, multimers=True):
                 for residue in model[cg[0]]:
                     resid = residue.get_id()[1]
                     try:
-                        res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                        res_code = three_to_one(residue.get_resname())
                     except:
                         log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
                         continue
@@ -856,4 +867,3 @@ def termination_handler(signalnum, handler):
     log.info("Received termination signal - mutatex will be stopped")
     log.shutdown()
     sys.exit(-1)
-
