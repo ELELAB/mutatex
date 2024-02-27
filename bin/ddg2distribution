@@ -69,8 +69,6 @@ def plot_box(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys_r'):
     box = plt.boxplot(mat, flierprops=flierprops)
     
     cm = matplotlib.colormaps.get_cmap(cmap)
-
-    #cm = plt.cm.get_cmap(cmap)
     for i, key in enumerate(list(box.keys())):
         plt.setp(box[key], color=cm(float(i)/10))
 
@@ -98,7 +96,6 @@ def plot_violin(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys_r'
                             widths = 0.7,
                             bw_method='scott')
 
-    #cm = plt.cm.get_cmap(cmap)
     cm = matplotlib.colormaps.get_cmap(cmap)
     for i, key in enumerate(list(violin.keys())):
         plt.setp(violin[key], color=cm(float(i)/10))
@@ -178,7 +175,6 @@ def plot_stemplot(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys'
     if title is None:
         title = ""
     cm = matplotlib.colormaps.get_cmap(cmap)
-    #cm = plt.cm.get_cmap(cmap)
 
     mean_means = [np.average(i) for i in mat.T]
     ste = [np.std(i) for i in mat.T]
@@ -213,7 +209,6 @@ def plot_average(mat, xlabels, vmin, vmax, title=None, fontsize=8, topmuts=0, cm
     if title is None:
         title = ""
     cm = matplotlib.colormaps.get_cmap(cmap)
-    #cm = plt.cm.get_cmap(cmap)
 
     mean_means = np.array([np.average(i) for i in mat.T])
     mean_means_color = mean_means.copy()

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-#    ddg2distribution: plot DDG MutateX results as distribution plots: boxplot, violinplot or scatterplot.
-#    Copyright (C) 2019, Matteo Tiberti <matteo.tiberti@gmail.com, Tycho Canter Cremers <tycho.c.c@gmail.com>,
-#    Thilde Bagger Terkelsen <thildebt@gmail.com>
+#    ddg2density: plot probability density of DDG MutateX results.
+#    Copyright (C) 2015, Matteo Tiberti <matteo.tiberti@gmail.com>
+#                        Thilde Bagger Terkelsen <ThildeBT@gmail.com>
 #    Copyright (C) 2024, Matteo Tiberti, Kristine Degn
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -18,273 +18,110 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import numpy as np
-import logging as log
-from six import iteritems
-import argparse
-import csv
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
+import argparse
+from scipy import stats
+from six import iteritems
+import logging as log
+import numpy as np
 from Bio import PDB
 from mutatex.utils import *
 
-description = 'ddg2distribution: plot DDG MutateX results as distribution plot'
-epilog = """This script plots a representation of distributions of DDG values for each
-mutation site. For instance, the user can request a box plot, which means that
-one box plot will be generated from the DDG values of each site. This allows to
-understand both the general effect of mutating certain sites, and to understand
-which of them are generally more sensitive to mutation. The user can choose the
-plot type with option -T, among stem, box, violin, average and scatter. Each plot
-type has mutation sites (i.e. residue labels) on the X axis. Different type of
-plots correspond to different representations of the DDG values, namely
 
-    * stem: stem plot. The central dot is the average DDG values, the stems
-      span as far as the standard deviation
-    * box: box plot. The box extends from the lower to upper quartile values
-      of the data, with a line at the median. The whiskers extend from the
-      box to show the range of the data. Flier points are those past the end of
-      the whiskers. This is default behaviour of matplotlib.pyplot.boxplot
-      (see https://matplotlib.org/3.1.1/api/_as_genmatplotlib.pyplot.boxplot.html)
-    * violin: violin plot
-    * average: scatter plot of mean values. Useful when wanting to keep many
-      values (i.e. many mutation sites) in the same plot.
-    * scatter: scatter plot in which each point is a different mutation. Useful
-      to show all the mutations at a glance
+description = "ddg2density: generate probability density via kernel density estimation of the calculated DDG values"
+epilog = """ddg2density uses all the input DDG data to generate a probability
+density over the DDG values, using the kernel density estimation method. In
+particular, this script uses the KDE implementation available in scipy (see
+https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.gaussian_kde.html).
+Before calculating the density the program excludes the DDG values coming from
+all self-mutations (i.e. mutations of each residue to the same type) as they
+aren't meaningful for the purpose of evaluating the distribution of DDG upon
+mutation.
 
-Options -n and -x control the range of the y axis.
+The user can tune how the density calculation is performed by setting the DDG
+limits between which density is calculated (-m and -x), the number of grid
+points on which the density is calculated (-g), the method for the calculation
+of the bandwidth (-w - same arguments as the scipy KDE function).
 
-Type average has two special options: option -u adds the label with the mutation site
-on top of the n most destabilizing mutations, option -L sets a limit for the DDG values
-- values higher than this will be reduced to the threshold value."""
+The script writes the density plot as a default (-o), and optionally simple text
+files containing either the DDG values used for the calculation (-u) or the
+calculated density values (-k). """
 
-def plot_box(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys_r'):
-    flierprops = dict(marker='.', linestyle='none', fillstyle='full')
-    xt = xlabels
-    xticks = np.arange(1,mat.shape[1]+1)
-    if title is None:
-        title = ""
+def get_ddg_data(residue_list, mutation_list, ddg_dir):
 
-    plt.title(title)
-    box = plt.boxplot(mat, flierprops=flierprops)
-    
-    cm = matplotlib.colormaps.get_cmap(cmap)
-    for i, key in enumerate(list(box.keys())):
-        plt.setp(box[key], color=cm(float(i)/10))
+    data = []
 
-    plt.ylim(vmin, vmax)
-    plt.xlabel("Residue id")
-    plt.ylabel(r'FoldX $\Delta\Delta{}$G (kcal/mol)')
-    rotation_xt=90
-    plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
-    plt.tight_layout()
+    if options.multimers:
+        res_ids_str = ["_".join(r) for r in residue_list]
+    else:
+        res_ids_str = residue_list
 
-def plot_violin(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys_r'):
-    xt = xlabels
-    xticks = np.arange(1,mat.shape[1]+1)
-    if title is None:
-        title = ""
+    res_restypes = [r[0][0] for r in residue_list]
 
-    plt.title(title)
+    for fname in res_ids_str:
 
-    violin = plt.violinplot(mat,
-                            xticks,
-                            showmeans = True,
-                            showextrema = True,
-                            showmedians = True,
-                            points = 100,
-                            widths = 0.7,
-                            bw_method='scott')
+        try:
+            this_data = parse_ddg_file("%s/%s" % (ddg_dir, fname), mutation_list)
+        except (IOError, TypeError):
+            exit(1)
 
-    cm = matplotlib.colormaps.get_cmap(cmap)
-    for i, key in enumerate(list(violin.keys())):
-        plt.setp(violin[key], color=cm(float(i)/10))
+        data.append(np.array(this_data))
+    data = np.vstack(data)
 
-    plt.ylim(vmin, vmax)
+    remove =  []
+    positions = []
+    for i,r in enumerate(res_restypes):
+        if r in mutation_list:
+            remove.append(mutation_list.index(r))
+            positions.append(i)
 
-    plt.xlabel("Residue")
-    plt.ylabel(r'FoldX $\Delta\Delta{}$G (kcal/mol)')
-    rotation_xt=90
-    plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
-    plt.xlim(0,mat.shape[1]+1)
-    plt.tight_layout()
+    mask = np.ones_like(data, dtype='bool')
+    mask[(positions, remove)] = 0
+    return data[mask].flatten()
 
-def plot_scatter(mat, xlabels, res_order, vmin, vmax, title=None, fontsize=8):
-    xt = xlabels
-    xticks = np.arange(1,mat.shape[1]+1)
-    if title is None:
-        title = ""
+def plot_density(data, outfile, title, mycolor, bw_method, xmin, xmax, spaces):
+    fig, ax = plt.subplots()
 
-    if options.limit:
-        mat[mat > options.limit] = options.limit
-        vmax = options.limit + abs(0 - options.limit * 0.2)
+    kde = stats.gaussian_kde(data, bw_method=bw_method)
+    x = np.linspace(xmin, xmax, spaces)
 
-    plt.title(title)
+    kdv = kde(np.linspace(xmin, xmax, spaces))
 
-    #Plot graph
-    for i in range(len(res_order)):
-        plt.scatter(xticks, mat[i], color="black", s=1.5)
-    plt.ylim(vmin, vmax)
+    np.savetxt(options.kdvfile, np.array([x, kdv]).T, fmt='%.5f', header='DDG, density', comments='#')
 
-    #Calculate non-overlapping label coordinates
-    fig_height = plt.gcf().get_figheight()
-    y_range = float(abs(plt.ylim()[0] - plt.ylim()[1]))
-    fontsize_inch = (1.0 / 72.0) * 12    #label font size in inches
-    label_size = (y_range / fig_height) * fontsize_inch #Size of the labels on the y axis
-    label_size *= 1.05  #Add margin to label size
-    y_coords = np.copy(mat.T)
+    ax.axvline(0, linestyle='--', linewidth=1, color='black')
+    ax.plot(x, kdv, color=mycolor)
+    ax.plot(data, np.zeros(data.shape[0])-np.max(kdv)/50.0*2, '|', ms=15, color=mycolor)
+    ax.set_xlabel(r'FoldX $\Delta\Delta{}$G (kcal/mol)')
+    ax.set_ylabel('Density')
 
-    mat = mat.T
-    overlap = True
-    while overlap:
-        overlap = False
-        for residue in range(y_coords.shape[0]):
-            for i in range(y_coords.shape[1]):
-                for j in range(y_coords.shape[1]):
-                    diff = abs(y_coords[residue][i] - y_coords[residue][j])
-                    offset = label_size - diff
-                    if(diff < label_size and i is not j and offset > 0.01): #Check for overlap
-                        overlap = True
-                        if(mat[residue][i] > mat[residue][j]): #Devide offset between points (Add to highest, subtract from lowest ddg value)
-                            if(y_coords[residue][j] + offset/2 < vmax): #Check if changed label coordinates don't fall outside y-range
-                                y_coords[residue][i] += offset/2
-                            if(y_coords[residue][j] - offset/2 > vmin):
-                                y_coords[residue][j] -= offset/2
-                        else:
-                            if(y_coords[residue][i] - offset/2 > vmin):
-                                y_coords[residue][i] -= offset/2
-                            if(y_coords[residue][i] + offset/2 < vmax):
-                                y_coords[residue][j] += offset/2
-    #Add labels
-    x_offset = float(len(xticks)) / 270
-    for i in range(len(res_order)):
-        res = res_order[i]
-        for j in xticks:
-            plt.annotate(res, (j + x_offset, y_coords[j-1][i]), fontsize = fontsize)
+    if title is not None:
+        ax.title(title)
 
-    plt.xlabel("Residue")
-    plt.ylabel(r'FoldX $\Delta\Delta{}$G (kcal/mol)')
-    rotation_xt=90
-    plt.xticks(xticks,xt,rotation=rotation_xt,size=fontsize)
-    plt.xlim(0,mat.shape[0]+1)
-    plt.tight_layout()
-
-def plot_stemplot(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys'):
-    xt = xlabels
-    xticks = np.arange(1,mat.shape[1]+1)
-    if title is None:
-        title = ""
-    cm = matplotlib.colormaps.get_cmap(cmap)
-
-    mean_means = [np.average(i) for i in mat.T]
-    ste = [np.std(i) for i in mat.T]
-
-    fig = plt.figure()
-    plt.title(title)
-    ax = plt.subplot(111)
-    sc = ax.scatter(xticks, mean_means, s=100, c=mean_means, marker='o', edgecolors='grey', cmap=cm, alpha=1)
-    ax.errorbar(xticks, mean_means, yerr=ste, ls='None', color='grey')
-    ax.set_xlabel('Residue')
-    ax.set_ylabel(r'Mean FoldX $\Delta\Delta{}$G (kcal/mol)')
-    plt.xticks(xticks, xt, rotation='vertical', size=fontsize)
-    plt.colorbar(sc)
-    plt.ylim(vmin, vmax)
-    plt.tight_layout()
-
-
-def plot_average(mat, xlabels, vmin, vmax, title=None, fontsize=8, topmuts=0, cmap='Greys'):
-    plt.tick_params(
-    axis='x',
-    which='both',
-    bottom=False,
-    top=False,
-    labelbottom=True)
-
-    lv_offset=0.05
-    lh_offset=0.3
-
-    xticks = np.arange(1, mat.shape[1]+1)
-    xs = np.arange(1, mat.shape[1]+1)
-    xt = ["" for t in xticks]
-    if title is None:
-        title = ""
-    cm = matplotlib.colormaps.get_cmap(cmap)
-
-    mean_means = np.array([np.average(i) for i in mat.T])
-    mean_means_color = mean_means.copy()
-    mean_means_color[mean_means_color >= vmax] = vmax
-    mean_means_color[mean_means_color <= vmin] = vmin
-
-    mean_means_labels = np.argsort(mean_means)[::-1][:topmuts]
-
-    fig = plt.figure()
-    plt.title(title)
-    ax = plt.subplot(111)
-    sc = ax.scatter(xs, mean_means, s=20, marker='o', c=mean_means_color, edgecolors='grey', cmap=cm, alpha=1)
-    ax.set_xlabel('Residue')
-    ax.set_ylabel(r'Mean FoldX $\Delta\Delta{}$G (kcal/mol)')
-    plt.tick_params(
-        axis='x',          
-        which='both',     
-        bottom=False,      
-        top=False,         
-        labelbottom=False) 
-
-    plt.xlim((0,len(xticks)+1))
-
-    for l in mean_means_labels:
-        plt.text(l+1+lh_offset, mean_means[l]+lv_offset, xlabels[l], ha='left', va='bottom', size=fontsize)
-
-    #plt.colorbar(sc)
-    plt.ylim(vmin, vmax)
-    plt.tight_layout()
-
-def splice_data(data, labels, sv):
-
-    out = []
-
-    if data.shape[1] <= sv:
-        return [[data, labels]]
-
-    nsplice = data.shape[1] // int(sv)
-    rest =    data.shape[1] %  int(sv)
-
-    if rest != 0:
-        nsplice += 1
-
-    for i in range(nsplice):
-        out.append([
-                data[:,i*sv:(i+1)*sv],
-                labels[i*sv:(i+1)*sv]
-                ])
-
-    return out
+    fig.tight_layout()
+    fig.savefig(outfile)
 
 LOGFMT = "%(levelname)s: %(message)s"
 
-if not __name__ == "__main__":
-    exit()
-
-parser = argparse.ArgumentParser(
-    description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
+parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
 optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
 
 required = init_arguments(['pdb', 'data', 'mutation_list'], required)
 optional = init_arguments(['multimers', 'position_list'], optional)
 
-required.add_argument("-T","--type", dest="type", nargs = '+', required = True, choices = ["stem", "box", "violin", "average", "scatter"], help = "type of plot(s) to generate: stem, box, violin, average or scatter")
-optional.add_argument("-L","--limit", dest="limit", action='store', default = None, type=float, help="maximum DDG value to be plotted in average plots")
-optional.add_argument("-n","--min", dest='vmin',action='store',default=None,type=float,help="lower limit for the range of the y axis")
-optional.add_argument("-x","--max", dest='vmax',action='store',default=None,type=float,help="upper limit for the range of the y axis")
-optional.add_argument("-u","--topmuts", dest="topmuts", type=int, default=0, help="number of extreme residues to be labeled (average plot only)")
+optional.add_argument("-m","--vmin", dest="vmin", type=float, default=-5, help="minimum DDG value for density determination (default: -5.0)")
+optional.add_argument("-x","--vmax", dest="vmax", type=float, default=10, help="maximum DDG value for density determination (default:  10.0)")
+optional.add_argument("-g","--grid-points", dest="grid", type=int, default=150, help="number of point between minimum and maximum to calculate density on")
+optional.add_argument("-w","--bandwidth-method", dest="bw", default=None, help="method used to calculate the estimator bandwith in KDE. Same options as scipy KDE function")
 
-optional = init_arguments(['title', 'labels', 'fonts', 'fontsize', 'splice'], optional)
-optional.add_argument("-c","--colormap", dest="colormap", type=str, default=None, help="color map to be used for the plot")
+optional = init_arguments(['title', 'color', 'fonts'], optional)
 
-optional.add_argument("-o","--output", dest="outfile", action='store', default='energies.pdf', help="output filename")
-
-optional = init_arguments(['verbose'], optional)
+optional.add_argument("-o","--output", dest="outfile", type=str, default="kde_density.pdf", help="output density plot")
+optional.add_argument("-u","--ddgfile", dest="ddgfile", type=str, default="ddg_values.dat", help="output file containing all the used DDG values")
+optional.add_argument("-k","--kdvfile", dest="kdvfile", type=str, default="density_values.dat", help="output file containing calculated density values")
 
 parser._action_groups.append(optional)
 options = parser.parse_args()
@@ -297,141 +134,32 @@ if options.font is not None:
         log.error(get_font_list())
         exit(1)
 
-if options.verbose:
-    log.basicConfig(level=log.INFO,    format=LOGFMT)
-else:
-    log.basicConfig(level=log.WARNING, format=LOGFMT)
+log.basicConfig(level=log.WARNING, format=LOGFMT)
 
-colormaps = {'box':     'Greys_r',
-             'violin':  'Greys_r',
-             'stemplot':'Greys',
-             'average': 'Greys'}
-
-if options.colormap is not None:
-    if not options.colormap in plt.colormaps():
-        log.error("The supplied colormap is not supported. Exiting...")
-        exit(1)
-    for k,v in iteritems(colormaps):
-        colormaps[k] = options.colormap
+pdb_parser = PDB.PDBParser()
 
 try:
-    res_order = parse_mutlist_file(options.mutation_list)
-except (IOError, TypeError):
-    exit(1)
-
-log.info("Residues list is:")
-for i,r in enumerate(res_order):
-    log.info("%d\t%s" % (i,r))
-
-res_ids_str = []
-data = []
-
-try:
-    res_ids_str = get_residue_list(options.in_pdb, multimers=options.multimers)
+    residue_list = get_residue_list(options.in_pdb, multimers=options.multimers)
 except IOError:
     exit(1)
 
 if options.position_list is not None:
     log.info("Positions will be read from file")
     try:
-        poslist = parse_poslist_file(options.position_list, res_ids_str)
+        poslist = parse_poslist_file(options.position_list, residue_list)
     except (IOError, TypeError):
         exit(1)
 
-    res_ids_str = filter_reslist(res_ids_str, poslist)
+    residue_list = filter_reslist(residue_list, poslist)
 
-if options.multimers:
-    fnames = ["_".join(r) for r in res_ids_str]
-    res_id_labels = [", ".join(r) for r in res_ids_str]
-else:
-    fnames = res_ids_str
-    res_id_labels = res_ids_str
+try:
+    mutlist = parse_mutlist_file(options.mutation_list)
+except (IOError, TypeError):
+    exit(1)
 
-#Assign custom residue labels
-if options.labels:
-    try:
-        labels = parse_label_file(options.labels, fnames, res_id_labels)
-    except:
-        exit(1)
-else:
-    labels = res_id_labels
+data = get_ddg_data(residue_list, mutlist, options.ddg_dir)
 
+plot_density(data, options.outfile, options.title, options.mycolor, options.bw, options.vmin, options.vmax, options.grid)
 
-for fname in fnames:
-
-    try:
-        this_data = parse_ddg_file("%s/%s" % (options.ddg_dir, fname), reslist=res_order)
-    except (IOError, TypeError):
-        exit(1)
-
-    data.append(np.array(this_data))
-
-data = np.vstack(tuple(data)).T
-
-if not options.vmax:
-    options.vmax = np.ceil(np.max(data) + abs(0 - np.max(data))*0.2)
-if not options.vmin:
-    options.vmin = np.floor(np.min(data) - abs(0 - np.min(data))*0.2)
-
-spliced_data = splice_data(data, labels, options.sv)
-
-#Plot the plots
-for i in range(len(spliced_data)):
-    if("violin" in options.type):
-        plot_violin(spliced_data[i][0],
-                    spliced_data[i][1],
-                    options.vmin,
-                    options.vmax,
-                    title=options.title,
-                    fontsize=options.fontsize,
-                    cmap=colormaps['violin'])
-        plt.savefig("violin_%d_%s" %(i, options.outfile))
-        plt.clf()
-
-    if("box" in options.type):
-        plot_box(spliced_data[i][0],
-                spliced_data[i][1],
-                options.vmin,
-                options.vmax,
-                title=options.title,
-                fontsize=options.fontsize,
-                cmap=colormaps['box'])
-        plt.savefig("box_%d_%s" %(i, options.outfile))
-        plt.clf()
-
-    if("scatter" in options.type):
-        plot_scatter(spliced_data[i][0],
-                     spliced_data[i][1],
-                     res_order,
-                     options.vmin,
-                     options.vmax,
-                     title=options.title,
-                     fontsize=options.fontsize)
-        plt.savefig("scatter_%d_%s" %(i, options.outfile))
-        plt.clf()
-
-    if("average" in options.type):
-        plot_average(spliced_data[i][0],
-                     spliced_data[i][1],
-                     options.vmin,
-                     options.vmax,
-                     title=options.title,
-                     fontsize=options.fontsize,
-                     topmuts=options.topmuts,
-                     cmap=colormaps['average'])
-        plt.savefig("average_%d_%s" %(i, options.outfile))
-        plt.clf()
-
-    if("stem" in options.type):
-        plot_stemplot(spliced_data[i][0],
-            spliced_data[i][1],
-            options.vmin,
-            options.vmax,
-            title=options.title,
-            fontsize=options.fontsize,
-            cmap=colormaps['stemplot'])
-        plt.savefig("stem_%d_%s" %(i, options.outfile))
-        plt.clf()
-
-    log.info("Plot: " + str(i + 1) + "/" + str(len(spliced_data)))
+np.savetxt(options.ddgfile, data, fmt='%.3f', header='DDG', comments='# ')
 
