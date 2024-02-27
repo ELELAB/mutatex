@@ -3,6 +3,7 @@
 #    ddg2distribution: plot DDG MutateX results as distribution plots: boxplot, violinplot or scatterplot.
 #    Copyright (C) 2019, Matteo Tiberti <matteo.tiberti@gmail.com, Tycho Canter Cremers <tycho.c.c@gmail.com>,
 #    Thilde Bagger Terkelsen <thildebt@gmail.com>
+#    Copyright (C) 2024, Matteo Tiberti, Kristine Degn
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -66,8 +67,10 @@ def plot_box(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys_r'):
 
     plt.title(title)
     box = plt.boxplot(mat, flierprops=flierprops)
+    
+    cm = matplotlib.colormaps.get_cmap(cmap)
 
-    cm = plt.cm.get_cmap(cmap)
+    #cm = plt.cm.get_cmap(cmap)
     for i, key in enumerate(list(box.keys())):
         plt.setp(box[key], color=cm(float(i)/10))
 
@@ -95,7 +98,8 @@ def plot_violin(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys_r'
                             widths = 0.7,
                             bw_method='scott')
 
-    cm = plt.cm.get_cmap(cmap)
+    #cm = plt.cm.get_cmap(cmap)
+    cm = matplotlib.colormaps.get_cmap(cmap)
     for i, key in enumerate(list(violin.keys())):
         plt.setp(violin[key], color=cm(float(i)/10))
 
@@ -173,7 +177,8 @@ def plot_stemplot(mat, xlabels, vmin, vmax, title=None, fontsize=8, cmap='Greys'
     xticks = np.arange(1,mat.shape[1]+1)
     if title is None:
         title = ""
-    cm = plt.cm.get_cmap(cmap)
+    cm = matplotlib.colormaps.get_cmap(cmap)
+    #cm = plt.cm.get_cmap(cmap)
 
     mean_means = [np.average(i) for i in mat.T]
     ste = [np.std(i) for i in mat.T]
@@ -207,7 +212,8 @@ def plot_average(mat, xlabels, vmin, vmax, title=None, fontsize=8, topmuts=0, cm
     xt = ["" for t in xticks]
     if title is None:
         title = ""
-    cm = plt.cm.get_cmap(cmap)
+    cm = matplotlib.colormaps.get_cmap(cmap)
+    #cm = plt.cm.get_cmap(cmap)
 
     mean_means = np.array([np.average(i) for i in mat.T])
     mean_means_color = mean_means.copy()
@@ -433,3 +439,4 @@ for i in range(len(spliced_data)):
         plt.clf()
 
     log.info("Plot: " + str(i + 1) + "/" + str(len(spliced_data)))
+
