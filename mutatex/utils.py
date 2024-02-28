@@ -88,20 +88,25 @@ def init_arguments(arguments, parser):
     return parser
 
 def get_font_list(str=True):
-
-    flist = matplotlib.font_manager.get_fontconfig_fonts()
-    names = [ matplotlib.font_manager.FontProperties(fname=fname).get_name() for fname in flist ]
-    if not str:
+    flist = matplotlib.font_manager._get_fontconfig_fonts()
+    names = []
+    for fname in flist:
+        try:
+            name = matplotlib.font_manager.FontProperties(fname=fname).get_name()
+            names.append(name)
+        except:
+            pass
+    if type(names) is not str:
         return names
     return textwrap.fill(", ".join(sorted(list(set(names)))), width=69)
 
 def set_default_font(font):
     available_fonts = get_font_list()
-    if font not in available_fonts:
-        raise NameError
-
     matplotlib.rcParams['font.family'] = 'sans-serif'
-    matplotlib.rcParams['font.sans-serif'] = [ font ]
+    if font in available_fonts:
+        matplotlib.rcParams['font.sans-serif'] = [font]
+    else:
+        log.warning(f"Font {font} is not found in available fonts, using default.")
 
 def parse_label_file(csv_fname, fnames, default_labels):
     if sys.version_info[0] <= 2:
