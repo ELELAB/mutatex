@@ -5,7 +5,7 @@
 #                        Thilde Bagger Terkelsen <ThildeBT@gmail.com>
 #    Copyright (C) 2022, Matteo Tiberti, Thilde Bagger Therkelsen,
 #                        Matteo Arnaudi - Danish Cancer Society
-#
+#    Copyright (C) 2024, Matteo Tiberti, Kristine Degn
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -88,20 +88,25 @@ def init_arguments(arguments, parser):
     return parser
 
 def get_font_list(str=True):
-
-    flist = matplotlib.font_manager.get_fontconfig_fonts()
-    names = [ matplotlib.font_manager.FontProperties(fname=fname).get_name() for fname in flist ]
-    if not str:
+    flist = matplotlib.font_manager._get_fontconfig_fonts()
+    names = []
+    for fname in flist:
+        try:
+            name = matplotlib.font_manager.FontProperties(fname=fname).get_name()
+            names.append(name)
+        except:
+            pass
+    if type(names) is not str:
         return names
     return textwrap.fill(", ".join(sorted(list(set(names)))), width=69)
 
 def set_default_font(font):
     available_fonts = get_font_list()
-    if font not in available_fonts:
-        raise NameError
-
     matplotlib.rcParams['font.family'] = 'sans-serif'
-    matplotlib.rcParams['font.sans-serif'] = [ font ]
+    if font in available_fonts:
+        matplotlib.rcParams['font.sans-serif'] = [font]
+    else:
+        log.warning(f"Font {font} is not found in available fonts, using default.")
 
 def parse_label_file(csv_fname, fnames, default_labels):
     if sys.version_info[0] <= 2:
@@ -134,6 +139,17 @@ def parse_label_file(csv_fname, fnames, default_labels):
             log.warning("label for residue %s not found; it will be skipped" % fname)
 
     return labels
+
+
+def three_to_one(amino_acid):
+    amino_acid = amino_acid.upper()
+    amino_acid_mapping = {
+        'ASP': 'D', 'VAL': 'V', 'ALA': 'A', 'MET': 'M', 'ASN': 'N',
+        'PHE': 'F', 'GLY': 'G', 'LEU': 'L', 'ILE': 'I', 'THR': 'T',
+        'PRO': 'P', 'CYS': 'C', 'SER': 'S', 'ARG': 'R', 'TYR': 'Y',
+        'GLN': 'Q', 'LYS': 'K', 'TRP': 'W', 'GLU': 'E', 'HIS': 'H'}
+    return amino_acid_mapping.get(amino_acid, None)
+
 
 def parse_ddg_file(fname, reslist=None, full=False):
     """
@@ -357,7 +373,7 @@ def get_residue_list(infile, multimers=True, get_structure=False):
         sequences[chain_name] = ''
         for residue in chain:
             try:
-                res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                res_code = three_to_one(residue.get_resname())
             except:
                 log.warning("Residue %s couldn't be recognized; it will be skipped" % residue )
                 continue
@@ -380,7 +396,7 @@ def get_residue_list(infile, multimers=True, get_structure=False):
                 for residue in model[cg[0]]:
                     resid = residue.get_id()[1]
                     try:
-                        res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                        res_code = three_to_one(residue.get_resname())
                     except:
                         log.warning("Residue %s couldn't be recognized; it will be skipped" % residue)
                         continue
@@ -431,7 +447,7 @@ def get_foldx_sequence(pdb, multimers=True):
             positions[chain_name] = ''
             for residue in chain:
                 try:
-                    res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                    res_code = three_to_one(residue.get_resname())
                 except:
                     log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
                     continue
@@ -463,7 +479,7 @@ def get_foldx_sequence(pdb, multimers=True):
                 for residue in model[cg[0]]:
                     resid = residue.get_id()[1]
                     try:
-                        res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                        res_code = three_to_one(residue.get_resname())
                     except:
                         log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
                         continue
@@ -856,4 +872,3 @@ def termination_handler(signalnum, handler):
     log.info("Received termination signal - mutatex will be stopped")
     log.shutdown()
     sys.exit(-1)
-
