@@ -113,7 +113,11 @@ parser.add_argument('-v', '--verbose',
 
 args = parser.parse_args()
 
-log.basicConfig(level=log.INFO)
+if args.verbose:
+    log.basicConfig(level=log.INFO)
+else:
+    log.basicConfig(level=log.WARNING)
+
 log.info("MutateX logging started.")
 log.info("Running on Python %s, the interpreter is %s" % (platform.python_version(), sys.executable))
 
