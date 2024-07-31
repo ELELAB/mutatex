@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 #    ddg2excel: write DDG MutateX results in the xlsx format
-#    Copyright (C) 2015, 2022, Matteo Tiberti <matteo.tiberti@gmail.com> 
+#    Copyright (C) 2015, 2022, Matteo Tiberti <matteo.tiberti@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -15,7 +15,6 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 import argparse
 from Bio import PDB
 from six import iteritems
@@ -27,13 +26,15 @@ from mutatex.utils import *
 LOGFMT = "%(levelname)s: %(message)s"
 
 description = 'ddg2excel: writes the average values from a MutateX DDG scan as tables either in excel or in a csv file format'
-epilog = """ddg2excel writes the average values from a MutateX DDG scan as a 
-excel compatible file. Optional Option -F, --format chooses the output file 
-format, csv or xlsx, by default xlsx is chosen. Option -T swaps rows and 
-columns of the output file. By default, residue type, number and chain 
-identifier are written in separate columns/rows to make the data easily 
-explorable, however one column/row is used when the label file is provided 
-(option -b)."""
+epilog = """ddg2excel writes the average values from a MutateX DDG scan as a
+excel compatible file. Optional Option -F, --format chooses the output file
+format, csv or xlsx, by default xlsx is chosen. Option -T swaps rows and
+columns of the output file. By default, residue type, number and chain
+identifier are written in separate columns/rows to make the data easily
+explorable, however one column/row is used when the label file is provided
+(option -b). If option -s is used, standard deviation for each average are
+ stored in a second worksheet (excel format) or as a second output file (csv
+ format)."""
 
 parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
 optional = parser._action_groups.pop()
@@ -43,8 +44,10 @@ required = init_arguments(['pdb', 'data', 'mutation_list'], required)
 optional = init_arguments(['multimers', 'position_list'], optional)
 
 optional.add_argument("-T","--transpose", dest='transpose', action="store_true", default=False, help="swap rows and columns")
-optional.add_argument("-o","--output", dest="name_outfile", action='store', default='energies', help="output file name (default: energies.xlsx/csv)")
+optional.add_argument("-o","--output", dest="name_outfile", action='store', default='energies', type=str, help="output file name (default: energies.xlsx/csv)")
 optional.add_argument("-F", "--format", dest="format_outfile", action="store", default="xlsx", help="file format of output name, xlsx or csv (default: xlsx)")
+optional.add_argument("-s", "--include-std", dest="include_std", action="store_true", default=False, help="Include standard deviation in the output (see description)")
+
 
 optional = init_arguments(['labels', 'verbose'], optional)
 
@@ -99,7 +102,7 @@ log.info("The following files will be considered: %s" % ", ".join(fnames))
 
 for i,f in enumerate(fnames):
     try:
-        data.append(np.array(parse_ddg_file("%s/%s" % (options.ddg_dir, f), reslist=res_order, )))
+        data.append(np.array(parse_ddg_file("%s/%s" % (options.ddg_dir, f), reslist=res_order, full=True)))
     except (IOError, TypeError):
         log.error("Failed to read input file %s/%s" % (options.ddg_dir, f))
         exit(1)
@@ -107,87 +110,107 @@ for i,f in enumerate(fnames):
 if options.format_outfile == "xlsx":
 
     wb = pyxl.Workbook()
-    ws = wb['Sheet']
-    ws.title = 'FoldX mutations DDG'
-    
+    wsa = wb['Sheet']
+    wsa.title = 'FoldX mutations DDG averages'
+
+    if options.include_std:
+        wss = wb.create_sheet("FoldX mutations DDG standard deviations")
+
+        data_types = [(wsa, 0, ''), (wss, 3, '_std')]
+    else:
+        data_types = [(wsa, 0, '')]
+
+
     #prepare header
 
-    offset = 0
+    for ws, data_idx, fname_suffix in data_types:
 
-    if labels:
-        ws.cell(row=1, column=1).value = "Residue"
-    
-        for i,l in enumerate(labels):
-            if options.transpose:
-                ws.cell(row=1, column=1+i+1).value = l
-            else:
-                ws.cell(row=1+i+1,column=1).value = l
-        offset = 1
-    
-    else:
-        if options.transpose:
-            ws.cell(row=1+offset, column=1).value = "WT Residue type"
-            ws.cell(row=1+offset+1, column=1).value = "Chain ID"
-            ws.cell(row=1+offset+2, column=1).value = "Residue #"
+        offset = 0
+
+        if labels:
+            ws.cell(row=1, column=1).value = "Residue"
+
+            for i,l in enumerate(labels):
+                if options.transpose:
+                    ws.cell(row=1, column=1+i+1).value = l
+                else:
+                    ws.cell(row=1+i+1,column=1).value = l
+            offset = 1
+
         else:
-            ws.cell(row=1, column=1+offset).value = "WT Residue type"
-            ws.cell(row=1, column=1+offset+1).value = "Chain ID"
-            ws.cell(row=1, column=1+offset+2).value = "Residue #"
 
-        for i,resset in enumerate(res_ids_str):
-            chain = "".join([res[1] for res in resset])
             if options.transpose:
-                ws.cell(row=1+offset,  column=1+i+1).value = resset[0][0]
-                ws.cell(row=1+offset+1,column=1+i+1).value = chain
-                ws.cell(row=1+offset+2,column=1+i+1).value = resset[0][2:]
+                ws.cell(row=1+offset, column=1).value = "WT Residue type"
+                ws.cell(row=1+offset+1, column=1).value = "Chain ID"
+                ws.cell(row=1+offset+2, column=1).value = "Residue #"
             else:
-                ws.cell(row=1+i+1,column=1+offset  ).value = resset[0][0]
-                ws.cell(row=1+i+1,column=1+offset+1).value = chain
-                ws.cell(row=1+i+1,column=1+offset+2).value = resset[0][2:]
-        offset = 3
+                ws.cell(row=1, column=1+offset).value = "WT Residue type"
+                ws.cell(row=1, column=1+offset+1).value = "Chain ID"
+                ws.cell(row=1, column=1+offset+2).value = "Residue #"
 
-    for i,mut in enumerate(res_order):
-        if options.transpose:
-            ws.cell(row=1+i+offset,column=1).value = mut
-        else:
-            ws.cell(row=1,column=1+i+offset).value = mut
+            for i,resset in enumerate(res_ids_str):
+                chain = "".join([res[1] for res in resset])
+                if options.transpose:
+                    ws.cell(row=1+offset,  column=1+i+1).value = resset[0][0]
+                    ws.cell(row=1+offset+1,column=1+i+1).value = chain
+                    ws.cell(row=1+offset+2,column=1+i+1).value = resset[0][2:]
+                else:
+                    ws.cell(row=1+i+1,column=1+offset  ).value = resset[0][0]
+                    ws.cell(row=1+i+1,column=1+offset+1).value = chain
+                    ws.cell(row=1+i+1,column=1+offset+2).value = resset[0][2:]
+            offset = 3
 
-    for i,res in enumerate(res_ids_str):
-        for j,ddg in enumerate(data[i]):
+        for i,mut in enumerate(res_order):
             if options.transpose:
-                ws.cell(row=1+j+offset, column=1+i+1).value = ddg
+                ws.cell(row=1+i+offset,column=1).value = mut
             else:
-                ws.cell(row=1+i+1, column=1+j+offset).value = ddg
-    
-    wb.save(f"{options.name_outfile}")
+                ws.cell(row=1,column=1+i+offset).value = mut
+
+        for i,res in enumerate(res_ids_str):
+            for j,ddg in enumerate(data[i][data_idx]):
+                if options.transpose:
+                    ws.cell(row=1+j+offset, column=1+i+1).value = ddg
+                else:
+                    ws.cell(row=1+i+1, column=1+j+offset).value = ddg
+
+    wb.save(options.name_outfile)
 
 elif options.format_outfile == "csv":
-    
-    if labels:
-        csv_table = np.asarray(["Residue"])
-        
-        for i,r in enumerate(res_order):
-            csv_table = np.append(csv_table, r)
-        
-        for i in range(len(labels)):                                   
-            lines = np.append(labels[i], data[i]) 
-            csv_table = np.vstack((csv_table, lines))
-        
-    else:
-        csv_table = np.asarray(["WT residue type", "chain ID", "Residue #"])
-    
-        for i,r in enumerate(res_order):
-            csv_table = np.append(csv_table, r)
-                
-        for i, resset in enumerate(res_ids_str):
-            chain = ["".join([res[1] for res in resset])]
 
-            lines = np.append(resset[0][2:], data[i])
-            lines = np.append(chain, lines)
-            lines = np.append(resset[0][0], lines)
-            csv_table = np.vstack((csv_table, lines))
-    
-    if options.transpose:
-        csv_table = csv_table.T
-            
-    np.savetxt(f"{options.name_outfile}", csv_table, delimiter=",", fmt='%s')  
+    if options.include_std:
+        data_types = [(0, ''), (3, '_std')]
+    else:
+        data_types = [(0, '')]
+
+    for data_idx, fname_suffix in data_types:
+
+        if labels:
+            csv_table = np.asarray(["Residue"])
+
+            for i,r in enumerate(res_order):
+                csv_table = np.append(csv_table, r)
+
+            for i in range(len(labels)):
+                lines = np.append(labels[i], data[i])
+                csv_table = np.vstack((csv_table, lines))
+
+        else:
+            csv_table = np.asarray(["WT residue type", "chain ID", "Residue #"])
+
+            for i,r in enumerate(res_order):
+                csv_table = np.append(csv_table, r)
+
+            for i, resset in enumerate(res_ids_str):
+                chain = ["".join([res[1] for res in resset])]
+
+                lines = np.append(resset[0][2:], data[i][data_idx])
+                lines = np.append(chain, lines)
+                lines = np.append(resset[0][0], lines)
+                csv_table = np.vstack((csv_table, lines))
+
+        if options.transpose:
+            csv_table = csv_table.T
+
+        original_fname, extension = os.path.splitext(options.name_outfile[0])
+
+        np.savetxt(f"{original_fname}{fname_suffix}.{extension}", csv_table, delimiter=",", fmt='%s')
