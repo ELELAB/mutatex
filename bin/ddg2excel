@@ -45,7 +45,7 @@ optional = init_arguments(['multimers', 'position_list'], optional)
 
 optional.add_argument("-T","--transpose", dest='transpose', action="store_true", default=False, help="swap rows and columns")
 optional.add_argument("-o","--output", dest="name_outfile", action='store', default='energies', type=str, help="output file name (default: energies.xlsx/csv)")
-optional.add_argument("-F", "--format", dest="format_outfile", action="store", default="xlsx", help="file format of output name, xlsx or csv (default: xlsx)")
+optional.add_argument("-F", "--format", dest="format_outfile", action="store", default="xlsx", choices=['xlsx', 'csv'], help="file format of output name, xlsx or csv (default: xlsx)")
 optional.add_argument("-s", "--include-std", dest="include_std", action="store_true", default=False, help="Include standard deviation in the output (see description)")
 
 
