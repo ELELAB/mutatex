@@ -32,8 +32,8 @@ format, csv or xlsx, by default xlsx is chosen. Option -T swaps rows and
 columns of the output file. By default, residue type, number and chain
 identifier are written in separate columns/rows to make the data easily
 explorable, however one column/row is used when the label file is provided
-(option -b). If option -s is used, standard deviation for each average are
- stored in a second worksheet (excel format) or as a second output file (csv
+(option -b). If option -s is used, standard deviation for each average is
+ stored in a second worksheet (Excel format) or as a second output file (csv
  format)."""
 
 parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
