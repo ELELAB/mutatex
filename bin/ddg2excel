@@ -211,6 +211,6 @@ elif options.format_outfile == "csv":
         if options.transpose:
             csv_table = csv_table.T
 
-        original_fname, extension = os.path.splitext(options.name_outfile[0])
+        original_fname, extension = os.path.splitext(options.name_outfile)
 
-        np.savetxt(f"{original_fname}{fname_suffix}.{extension}", csv_table, delimiter=",", fmt='%s')
+        np.savetxt(f"{original_fname}{fname_suffix}{extension}", csv_table, delimiter=",", fmt='%s')
