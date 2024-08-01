@@ -116,7 +116,7 @@ if options.format_outfile == "xlsx":
     if options.include_std:
         wss = wb.create_sheet("FoldX mutations DDG standard deviations")
 
-        data_types = [(wsa, 0, ''), (wss, 3, '_std')]
+        data_types = [(wsa, 0, ''), (wss, 1, '_std')]
     else:
         data_types = [(wsa, 0, '')]
 
@@ -178,7 +178,7 @@ if options.format_outfile == "xlsx":
 elif options.format_outfile == "csv":
 
     if options.include_std:
-        data_types = [(0, ''), (3, '_std')]
+        data_types = [(0, ''), (1, '_std')]
     else:
         data_types = [(0, '')]
 
