@@ -376,16 +376,15 @@ def get_residue_list(infile, multimers=True, get_structure=False):
             collated_chains.append(seq_ids[unique_idxs == i])
 
         for cg in collated_chains:
-            for model in structure:
-                for residue in model[cg[0]]:
-                    resid = residue.get_id()[1]
-                    try:
-                        res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
-                    except:
-                        log.warning("Residue %s couldn't be recognized; it will be skipped" % residue)
-                        continue
-                    this_res = tuple(sorted([ "%s%s%d" % (res_code, c, resid) for c in cg ], key=lambda x: x[1]))
-                    residue_list.append(this_res)
+            for residue in model[cg[0]]:
+                resid = residue.get_id()[1]
+                try:
+                    res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                except:
+                    log.warning("Residue %s couldn't be recognized; it will be skipped" % residue)
+                    continue
+                this_res = tuple(sorted([ "%s%s%d" % (res_code, c, resid) for c in cg ], key=lambda x: x[1]))
+                residue_list.append(this_res)
 
     if get_structure:
         return residue_list, structure
