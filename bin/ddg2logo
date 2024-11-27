@@ -91,7 +91,7 @@ def plot_logo(array,reslist,xlabels,splice,color_scheme,font,degeneracy):
     # style using Logo methods
     fig.style_spines(visible=False)
     fig.style_spines(spines=['left', 'bottom'], visible=True)
-    fig.style_xticks(rotation=45, fmt='%d', anchor=0)
+    fig.style_xticks(rotation=90, fmt='%d', anchor=0)
 
     # Set custom x-axis labels
     fig.ax.set_xticklabels(labels)
@@ -137,14 +137,14 @@ parser = argparse.ArgumentParser(
 description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
 optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
-thresholds = parser.add_mutually_exclusive_group(required=True)
-colors = parser.add_mutually_exclusive_group(required=False) 
+thresholds = required.add_mutually_exclusive_group(required=True)
+colors = optional.add_mutually_exclusive_group(required=False)
 
 required = init_arguments(['pdb', 'data', 'mutation_list'], required)
 optional = init_arguments(['multimers', 'position_list'], optional)
 
-thresholds.add_argument("-T","--stab-threshold", dest="threshold_stab", action='store', type=float, help="DDG threshold values for stabilizing mutations - mutations with DDG higher than this are not considered.")
-thresholds.add_argument("-t","--destab-threshold", dest="threshold_destab", action='store', type=float, help="DDG threshold values for destabilizing mutations - mutations with DDG lower than this are not considered.")
+thresholds.add_argument("-T","--stab-threshold", dest="threshold_stab", action='store', type=float, help="DDG threshold values for stabilizing mutations - mutations with DDG higher than this are not considered. This option is mutually exclusive to option '-t'. ")
+thresholds.add_argument("-t","--destab-threshold", dest="threshold_destab", action='store', type=float, help="DDG threshold values for destabilizing mutations - mutations with DDG lower than this are not considered. This option is mutually exclusive to option '-T'.")
 optional.add_argument("-x","--maximum-degeneracy", dest="degeneracy", action='store', type=int, default=20, help="when the number of stabilizing/destabilizing mutations is higher than this threshold an X will be plotted instead")
 optional = init_arguments(['labels', 'fonts', 'fontsize', 'title', 'splice'], optional)
 optional.add_argument("-D","--dpi", dest="dpi", type=float, action='store', default=150, help="number of DPI for the output image. Saving the images at higher DPI (as 300) uses a lot of memory, therefore use with caution" )
@@ -262,7 +262,7 @@ data = np.vstack(tuple(data))
 # In the case of stabilizing mutations, invert sign so that higher values are more stabilizing
 
 if options.threshold_stab is not None:
-    if options.threshold_stab >= 0:
+    if options.threshold_stab > 0:
         log.error("the DDG threshold provided in option -T must be <= 0. Exiting...")
         exit(1)
 
@@ -270,7 +270,7 @@ if options.threshold_stab is not None:
     data = (data) * (-1)
 
 elif options.threshold_destab is not None:
-   if options.threshold_destab <= 0:
+   if options.threshold_destab < 0:
        log.error("the DDG threshold provided in option -t must be >= 0. Exiting...")
        exit(1)
    data[ data <= options.threshold_destab ] = 0
