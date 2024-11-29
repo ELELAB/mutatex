@@ -37,7 +37,7 @@ setup(
 
     install_requires=[ 'biopython',
                        'matplotlib',
-		               'numpy',
+                       'numpy',
                        'pandas',
                        'logomaker',
                        'scipy',
