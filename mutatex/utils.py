@@ -178,8 +178,8 @@ def parse_poslist_file(fname, unique_residues):
     ----------
     fname : str
         name of the file to be read
-    unique_residues : list collecting the 
-        unique residues contained in the input 
+    unique_residues : list collecting the
+        unique residues contained in the input
         pdb file
     Returns
     -------
@@ -410,11 +410,11 @@ def get_foldx_sequence(pdb, multimers=True):
     #     restypes : list of str
     #         list of single-letter residue types
     #     """
-    
+
     parser = PDB.PDBParser(QUIET=True)
-    
+
     try:
-        structure = parser.get_structure("structure", pdb) 
+        structure = parser.get_structure("structure", pdb)
     except:
         log.error("Couldn't read or parse your PDB file.")
         raise IOError
@@ -466,7 +466,7 @@ def get_foldx_sequence(pdb, multimers=True):
                         group_residues.append(f"{res_code}{chain}{resid}")
                     group_residues = tuple(sorted(group_residues))
                     residue_list.append(group_residues)
-            else:  #For 
+            else:  #For
                 chain_name = chain_group[0]
                 for res_code, resid, chain in chain_residues[chain_name]:
                     residue_list.append(tuple([f"{res_code}{chain}{resid}"]))
