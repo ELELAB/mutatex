@@ -178,8 +178,8 @@ def parse_poslist_file(fname, unique_residues):
     ----------
     fname : str
         name of the file to be read
-    unique_residues : list collecting the 
-        unique residues contained in the input 
+    unique_residues : list collecting the
+        unique residues contained in the input
         pdb file
     Returns
     -------
@@ -415,9 +415,9 @@ def get_foldx_sequence(pdb, multimers=True):
     parser = PDB.PDBParser(QUIET=True)
     
     try:
-        structure = parser.get_structure("structure", pdb) 
+        structure = parser.get_structure("structure", pdb)
     except:
-        log.error("Couldn't read or parse your PDB file.")
+        log.error("couldn't read or parse your PDB file")
         raise IOError
 
     #identify the models and any inconsistencies
