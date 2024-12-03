@@ -397,20 +397,21 @@ def get_residue_list(infile, multimers=True, get_structure=False):
 
 def get_foldx_sequence(pdb, multimers=True):
     """
-    #     Reads a PDB file and returns a list of residus (number, type and chain)
-    #     according to the MutateX naming convention
-    #     Parameters
-    #     ----------
-    #     fname : str
-    #         name of the file to be read
-    #     multimers : bool
-    #         whether to use the multimers mode or not
-    #     Returns
-    #     -------
-    #     restypes : list of str
-    #         list of single-letter residue types
-    #     """
+    Reads a PDB file and returns a list of residus (number, type and chain)
+    according to the MutateX naming convention
+    Parameters
+    ----------
+    fname : str
+        name of the file to be read
+    multimers : bool
+        whether to use the multimers mode or not
+    Returns
+    -------
+    restypes : list of str
+        list of single-letter residue types
+    """
     
+    #get the structure 
     parser = PDB.PDBParser(QUIET=True)
     
     try:
@@ -419,6 +420,7 @@ def get_foldx_sequence(pdb, multimers=True):
         log.error("Couldn't read or parse your PDB file.")
         raise IOError
 
+    #identify the models and any inconsistencies
     models = list(structure.get_models())
     if len(models) > 1:
         log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
@@ -426,10 +428,14 @@ def get_foldx_sequence(pdb, multimers=True):
         log.error("The input PDB file does not contain any model. Exiting ...")
         raise IOError
 
+    #define the model from models, as len(models) should be == 1.
     model = models[0]
 
+    #define empty list for residues (used for multimers) 
     residue_list = []
+    #define empty dictionary for sequences (the amino acid sequence)
     sequences = defaultdict(str)
+    #define empty dictionary for amino acid, position number, chain letter
     chain_residues = defaultdict(list)
 
     # Extract residues and sequences from chains
@@ -442,37 +448,39 @@ def get_foldx_sequence(pdb, multimers=True):
                 log.warning("Residue %s couldn't be recognized; it will be skipped" % residue)
                 continue
 
-            resid = residue.get_id()[1]
-            sequences[chain_name] += res_code
-            chain_residues[chain_name].append((res_code, resid, chain_name))
+            resid = residue.get_id()[1] #the position number
+            sequences[chain_name] += res_code #the one letter amino acid
+            chain_residues[chain_name].append((res_code, resid, chain_name)) #one letter amino acid, position number, chain letter
 
     if multimers:
-        # Find unique sequences and group chains with identical sequences
+        #combine sequences and residue positions
         chain_names = list(sequences.keys())
-        chain_seqs = list(sequences.values())
-        unique_seqs, unique_idxs = np.unique(chain_seqs, return_inverse=True)
+    
+        #combined identifier: sequence + residue numbering
+        #use string to overcome np.array challenges with length when the numbers mismatch.
+        chain_residue_patterns = [
+            str(tuple((res_code, resid) for res_code, resid, chain in chain_residues[chain_name]))
+            for chain_name in chain_names
+        ]
+ 
+        #identify unique patterns and group chains
+        unique_patterns, unique_idxs = np.unique(chain_residue_patterns, return_inverse=True)
 
         grouped_chains = defaultdict(list)
         for idx, chain_name in zip(unique_idxs, chain_names):
             grouped_chains[idx].append(chain_name)
-
-        # Process each chain group
+        
+        #process multimer chains
         for group_idx, chain_group in grouped_chains.items():
-            if len(chain_group) > 1:  # For Multimer
-                for resid_idx in range(len(chain_residues[chain_group[0]])):
-                    group_residues = []
-                    for chain_name in chain_group:
-                        res_code, resid, chain = chain_residues[chain_name][resid_idx]
-                        group_residues.append(f"{res_code}{chain}{resid}")
-                    group_residues = tuple(sorted(group_residues))
-                    residue_list.append(group_residues)
-            else:  #For 
-                chain_name = chain_group[0]
-                for res_code, resid, chain in chain_residues[chain_name]:
-                    residue_list.append(tuple([f"{res_code}{chain}{resid}"]))
-
+            for resid_idx in range(len(chain_residues[chain_group[0]])):
+                group_residues = []
+                for chain_name in chain_group:
+                    res_code, resid, chain = chain_residues[chain_name][resid_idx]
+                    group_residues.append(f"{res_code}{chain}{resid}")
+                group_residues = tuple(sorted(group_residues))
+                residue_list.append(group_residues)
     else:
-        # Process residues independently
+        #process residues independently
         for chain_name, residues in chain_residues.items():
             for res_code, resid, chain in residues:
                 residue_list.append(tuple([f"{res_code}{chain}{resid}"]))
