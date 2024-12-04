@@ -5,8 +5,7 @@
 #                        Thilde Bagger Terkelsen <ThildeBT@gmail.com>
 #    Copyright (C) 2022, Matteo Tiberti, Thilde Bagger Therkelsen,
 #                        Matteo Arnaudi - Danish Cancer Society
-#    Copyright (C) 2024, Matteo Tiberti, Thilde Bagger Therkelsen,
-#                        Kristine Degn - Danish Cancer Society
+#    Copyright (C) 2024, Matteo Tiberti, Kristine Degn - Danish Cancer Society
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -457,12 +456,10 @@ def get_foldx_sequence(pdb, multimers=True):
         chain_names = list(sequences.keys())
     
         #combined identifier: sequence + residue numbering
-        #use string to overcome np.array challenges with length when the numbers mismatch.
-        chain_residue_patterns = [
-            str(tuple((res_code, resid) for res_code, resid, chain in chain_residues[chain_name]))
-            for chain_name in chain_names
-        ]
- 
+        chain_residue_patterns = [ 
+            "_".join(f"{resid}_{res_code}" for res_code, resid, chain in chain_residues[chain_name]) 
+            for chain_name in chain_names ]
+        
         #identify unique patterns and group chains
         unique_patterns, unique_idxs = np.unique(chain_residue_patterns, return_inverse=True)
 
