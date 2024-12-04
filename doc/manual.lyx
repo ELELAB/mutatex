@@ -1419,8 +1419,8 @@ status open
 
 \begin_layout Standard
 By default, if more than one protein chain is present, MutateX automatically
- identifies if two protein chains have the same sequence and in that case
- they are considered multimers.
+ identifies if two protein chains have the same amino acid sequence and position
+ numbers. In that case they are considered multimers.
  This means that all the chains with the same sequence will be mutated at
  the same time, in order to simulate a multimer of mutants.
  By using this option, multimers won't be considered and all chains will
