@@ -143,6 +143,14 @@ six
 openpyxl
 \end_layout
 
+\begin_layout Itemize
+pandas
+\end_layout
+
+\begin_layout Itemize
+logomaker
+\end_layout
+
 \begin_layout Standard
 All the mentioned packages are available for free for Linux and macOS.
  Once these requirements have been satisfied, MutateX needs to be installed
