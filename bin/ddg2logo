@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 #    ddg2logo: plot MutateX DDGs as logo plots
-#    Copyright (C) 2019, Matteo Tiberti <matteo.tiberti@gmail.com>
+#    Copyright (C) 2024, Matteo Tiberti <matteo.tiberti@gmail.com>
+#                        Μattia Utichi <biomatt90@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -17,25 +18,19 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import argparse
-import base64
-from io import BytesIO
-from six import iteritems
-import csv
 import matplotlib
 matplotlib.use('Agg')
 matplotlib.rcParams['savefig.format'] = 'pdf'
 matplotlib.rcParams['hatch.linewidth'] = 0.5
-from matplotlib.image import imread
 from matplotlib import pyplot as plt
 from Bio import PDB
-from six import iteritems
 from mutatex.utils import *
-from mutatex.letters import letters
 import numpy as np
+import pandas as pd
 import logging as log
-import os
 import yaml
 from yaml.loader import SafeLoader
+import logomaker
 
 description = 'ddg2logo: make logo plots for MutateX DDG values'
 epilog = """ddg2logo generates pseudo-logo plots from DDG values.  While actual logo
@@ -49,7 +44,7 @@ accepted (or not accepted) mutations, the respective column can be replaced by a
 controlled by the -x option. Before plotting the following transformations are
 carried out on the data:
 
-STABILIZING MUTATIONS    
+STABILIZING MUTATIONS
 * the DDG values >= than the stabilizing threshold (option -T) are set equal to 0 
 * the sign of all the DDGs is changed - so that it becomes more positive if
   it's stabilizing
@@ -60,169 +55,53 @@ DESTABILIZING MUTATIONS
 This allows to obtain a 0-based positive-only plot in which the ratio between
 the energy values is the same as the original data."""
 
-def parse_letters_png(pngfile, letters="ACDEFGHIKLMNPQRSTVWXYypshzkmloef"):
-    if type(pngfile) is tuple:
-        pngfile = BytesIO(base64.b64decode("".join(pngfile)))
+def plot_logo(array,reslist,xlabels,splice,color_scheme,font,degeneracy):
 
-    png = imread(pngfile)
-    side_length = png.shape[0]
-    if png.shape[1] % png.shape[0] != 0:
-        log.error("Input PNG file doesn't have the right shape (horizontal size is expected to be a multplie of vertical size)")
-        raise TypeError
+    # Extract the array and labels
+    array_data = array     # 2D array
+    labels = xlabels       # List of labels
 
-    if png.shape[1] // png.shape[0] != len(letters):
-        log.error("Input PNG file does not contain the right number of letters")
-        raise TypeError
+    # Convert to DataFrame and assign labels as columns
+    df = pd.DataFrame(array_data, columns=reslist)
 
-    out = {}
-    for i,l in enumerate(letters):
-        out[l] = png[:,i*side_length:(i+1)*side_length,:]
+    # Add a column for the X letter for the degeneracy option
+    df['X'] = 0.00000
 
-    return out
+    # Calculate the sum of positive values in each row
+    df['X'] = df.drop(columns='X', errors='ignore').apply(lambda row: row[row > 0].sum(), axis=1)
 
-# function to change the color of a specific residue
-def color_letter(letter, color): 
-    new_array = np.copy(letter)
-    
-    new_array[:,:,0][np.where(new_array[:,:,0] != 1.0)] = color[0]
-    new_array[:,:,1][np.where(new_array[:,:,1] != 1.0)] = color[1]
-    new_array[:,:,2][np.where(new_array[:,:,2] != 1.0)] = color[2]
+    # Identify rows where the number of positive values is below the threshold
+    mask_below_threshold = df.drop(columns='X').gt(0).sum(axis=1) <= degeneracy
 
-    return new_array
+    # Reset 'X' to zero for rows below the threshold
+    df.loc[mask_below_threshold, 'X'] = 0
 
-def plot_matrix(mat, reslist, letters, xlabels, max_range, title=None, fontsize=8, config=None, hgap=0.5):
+    # Identify rows where the number of positive values exceeds the threshold
+    mask_above_threshold = ~mask_below_threshold
 
-	# initialize values
-    width = 1.0
-    offset = width/2.0
-    vgap = max_range/100.0
-    max_y = max_range + vgap*(mat.shape[1]+3)
-    xticks = np.arange(hgap, mat.shape[0]*width + mat.shape[0]*hgap, width+hgap) + offset
+    # Set all other values to zero for rows exceeding the threshold
+    df.loc[mask_above_threshold, df.columns != 'X'] = 0
+    # create Logo object
+    fig = logomaker.Logo(df,
+                        figsize=(0.5*splice,5),
+                        stack_order='small_on_top',
+                        color_scheme=color_scheme,
+                        font_name = font if font is not None else 'Arial')
 
-    # create plot
-    fig, ax = plt.subplots()
+    # style using Logo methods
+    fig.style_spines(visible=False)
+    fig.style_spines(spines=['left', 'bottom'], visible=True)
+    fig.style_xticks(rotation=90, fmt='%d', anchor=0)
 
-    # set title
-    if title is None:
-        title = ""
-    ax.set(title=title)
+    # Set custom x-axis labels
+    fig.ax.set_xticklabels(labels)
 
-    # for every position
-    for x,c in enumerate(mat):
+    # Set tick positions explicitly
+    tick_positions = range(len(labels))
+    fig.ax.set_xticks(tick_positions)
 
-        # filter out values of destabilizing mutations
-        pos_idx = np.where(c > 0.0)
-
-        # sort them by energy in inverse order
-        local_pos_idx = np.argsort(c[pos_idx])[::-1]
-
-        # AA mutations sorted by energy
-        s_pos_idx = pos_idx[0][local_pos_idx]
-
-        
-
-        #if the config file is provided, load the config 
-        if config is not None:
-        
-            #initialize dictionary with residues indeces from mutlist as 
-            #keys and color as values
-            pos_dic={}
-
-            #initialize list with residues indeces cluster by color from
-            #config
-            color_list=[]
-
-            #build the pos_dic with residues indeces from mutlist as 
-            #keys and color as values
-            for key in config:
-                for aa in reslist:
-                    if aa in config[key]['residues']:
-                        pos_dic[reslist.index(aa)]=config[key]['color']
-
-            #build the color_list with residues indeces cluster by 
-            #color from config
-            for key in config:
-                tmp=[]
-                for position in pos_dic:
-                    if pos_dic[position]==config[key]['color']:
-                        tmp.append(position)
-                color_list.append(tmp)
-            
-            #initialize list sorted by color and list with residues 
-            #not in the config
-            sorted_list=[]
-            no_config_res=[]
-
-            #color_list flattend 
-            flat_list=[item for sublist in color_list for item in sublist]
-
-            #parse the s_pos_idx and append entries if found in the 
-            #color_list
-            for lista in color_list:
-                tmp=[]
-
-                #check if residues are not in the config and add them to
-                #list of residues not in the config only once
-                for i in s_pos_idx:
-                    if i in lista:
-                        tmp.append(i)
-                    else:
-                        if i not in flat_list:
-                            no_config_res.append(i)
-                #if the list is not empty, add it to the sorted list
-                if tmp:
-                    sorted_list.append(tmp)
-
-            #append list of unique residues not in the config 
-            sorted_list.append(list(set(no_config_res)))
-
-            #remove empty lists
-            for lista in sorted_list:
-                if not lista:
-                    sorted_list.remove(lista)
-
-            #create numpy array from the sorted list 
-            if sorted_list:
-                s_pos_idx = np.hstack(sorted_list)
-
-        # if too many of them are allowed, use X and continue
-        if len(s_pos_idx) >= options.degeneracy:
-            ax.imshow(letters['X'],
-                      extent=(hgap + x*width + x*hgap, hgap + (x+1)*width + x*hgap, 0.0, max_y/4.0),
-                      aspect='auto')
-
-            continue
-
-        # initialize y value accumulator
-        accumulator = 0
-
-        # for every DDG value
-        for idx, i in enumerate(s_pos_idx):
-
-            # add vertical gap (unless it's the first letter)
-            if idx == 0:
-                low_y = accumulator
-            else:
-                low_y = accumulator + vgap
-
-            # add DDG
-            accumulator += c[i]
-
-            # plot
-            ax.imshow(  letters[reslist[i]],
-                        extent=(hgap + x*width + x*hgap, hgap + (x+1)*width + x*hgap, low_y, accumulator),
-                        aspect='auto' )
-
-    ax.set_ylabel(r'modified FoldX $\Delta\Delta{}$G (kcal/mol)')
-
-    ax.set_xlim((0, mat.shape[0]*width +hgap*mat.shape[0] + hgap))
-    ax.set_ylim((0, max_y))
-
-    ax.set_xticks(xticks)
-    ax.set_xticklabels(xlabels)
-
-    plt.setp(ax.get_xticklabels(), size=fontsize, rotation=90)
-    plt.tight_layout()
+    # style using Axes methods
+    fig.ax.set_ylabel("modified FoldX $\Delta \Delta G$ (kcal/mol)", labelpad=-1)
 
     return fig
 
@@ -243,7 +122,7 @@ def splice_data(data, labels, sv):
         out.append([
                 data[i*sv:(i+1)*sv,:],
                 labels[i*sv:(i+1)*sv]
-            ])
+                   ])
 
     return out
 
@@ -258,22 +137,20 @@ parser = argparse.ArgumentParser(
 description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
 optional = parser._action_groups.pop()
 required = parser.add_argument_group('required arguments')
-thresholds = parser.add_mutually_exclusive_group(required=True)
+thresholds = required.add_mutually_exclusive_group(required=True)
+colors = optional.add_mutually_exclusive_group(required=False)
 
 required = init_arguments(['pdb', 'data', 'mutation_list'], required)
 optional = init_arguments(['multimers', 'position_list'], optional)
 
-optional.add_argument("-L","--png-letter-map",dest='pngfile',action='store', default=letters, help="png file to be used for letters")
-
-thresholds.add_argument("-T","--stab-threshold", dest="threshold_stab", action='store', type=float, help="DDG threshold values for stabilizing mutations - mutations with DDG higher than this are not considered.")
-thresholds.add_argument("-t","--destab-threshold", dest="threshold_destab", action='store', type=float, help="DDG threshold values for destabilizing mutations - mutations with DDG lower than this are not considered.")
+thresholds.add_argument("-T","--stab-threshold", dest="threshold_stab", action='store', type=float, help="DDG threshold values for stabilizing mutations - mutations with DDG higher than this are not considered. This option is mutually exclusive to option '-t'. ")
+thresholds.add_argument("-t","--destab-threshold", dest="threshold_destab", action='store', type=float, help="DDG threshold values for destabilizing mutations - mutations with DDG lower than this are not considered. This option is mutually exclusive to option '-T'.")
 optional.add_argument("-x","--maximum-degeneracy", dest="degeneracy", action='store', type=int, default=20, help="when the number of stabilizing/destabilizing mutations is higher than this threshold an X will be plotted instead")
-optional.add_argument("-c","--config", dest="config_file", action='store', default=None, help="configuration file with which the user can set the colour of subsets of residues")
 optional = init_arguments(['labels', 'fonts', 'fontsize', 'title', 'splice'], optional)
 optional.add_argument("-D","--dpi", dest="dpi", type=float, action='store', default=150, help="number of DPI for the output image. Saving the images at higher DPI (as 300) uses a lot of memory, therefore use with caution" )
-
 optional.add_argument("-o","--output", dest="outfile", action='store', default='logo.pdf', help="logo plot file names")
-
+colors.add_argument("-c","--config", dest="config_file", action='store', default=None, help="configuration file with which the user can set the colour of subsets of residues")
+colors.add_argument("-cs","--color_scheme", dest="color_scheme", choices=['NajafabadiEtAl20217','charge','chemistry','dmslogo_charge','dmslogo_funcgroup','hydrophobicity','skylign_protein','weblogo_protein'], help="Provide a color scheme for residues. Options: 'NajafabadiEtAl20217','charge','chemistry','dmslogo_charge','dmslogo_funcgroup','hydrophobicity','skylign_protein','weblogo_protein'")
 optional = init_arguments(['verbose'], optional)
 
 parser._action_groups.append(optional)
@@ -291,12 +168,6 @@ if options.verbose:
     log.basicConfig(level=log.INFO,    format=LOGFMT)
 else:
     log.basicConfig(level=log.WARNING, format=LOGFMT)
-
-try:
-    letters = parse_letters_png(options.pngfile)
-except:
-    log.error("Couldn't parse PNG file containing the letters; exiting...")
-    exit(1)
 
 # check positive value for DPI
 if options.dpi <= 0:
@@ -359,22 +230,20 @@ else:
 if options.config_file:
     try:
         with open(options.config_file) as f:
-            config = yaml.load(f, Loader=SafeLoader)
+            colors = yaml.load(f, Loader=SafeLoader)
     except:
         log.error("Couldn't open or parse config file. Exiting...")
         exit(1)
+elif options.color_scheme:
+    colors = options.color_scheme
 else:
-    # if config file doesn't exist, let's use a mock configuration
-    config = {'all' : {'residues' : ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
-                                     'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S',
-                                     'T', 'V', 'W', 'Y'],
-                       'color': [0., 0., 0.]}}
-
-new_letters = letters.copy()
-for key in config:
-    for aa in config[key]['residues']:
-        new_letters[aa] = color_letter(new_letters[aa], config[key]['color'])
-letters = new_letters
+    # if config file doesn't exist and a color scheme is not selected,
+    # let's use a mock configuration
+    colors = {'A':'black','C':'black','D':'black','E':'black','F':'black', 
+              'G':'black','H':'black','I':'black','K':'black','L':'black',
+              'M':'black','N':'black','P':'black','Q':'black','R':'black',
+              'S':'black','T':'black','V':'black','W':'black','Y':'black',
+              'X':'black'}
 
 # parse DDG files
 data = []
@@ -393,7 +262,7 @@ data = np.vstack(tuple(data))
 # In the case of stabilizing mutations, invert sign so that higher values are more stabilizing
 
 if options.threshold_stab is not None:
-    if options.threshold_stab >= 0:
+    if options.threshold_stab > 0:
         log.error("the DDG threshold provided in option -T must be <= 0. Exiting...")
         exit(1)
 
@@ -401,28 +270,25 @@ if options.threshold_stab is not None:
     data = (data) * (-1)
 
 elif options.threshold_destab is not None:
-   if options.threshold_destab <= 0:
+   if options.threshold_destab < 0:
        log.error("the DDG threshold provided in option -t must be >= 0. Exiting...")
        exit(1)
    data[ data <= options.threshold_destab ] = 0
 
-# get the number of values that would be plotted for each line, and check against
-# degeneracy value. Set the max_range according to these values only
-num_positives = np.sum(data > 0.0, axis=1) < options.degeneracy
-data_nondeg = data[num_positives,:]
-max_range = np.max(np.sum(data_nondeg, axis=1))
-
 #splice & plot
 spliced_data = splice_data(data, labels, options.sv)
-for i in range(len(spliced_data)):
-    fig = plot_matrix(  spliced_data[i][0],
-                        res_order,
-                        letters,
-                        spliced_data[i][1],
-                        max_range,
-                        title=options.title,
-                        fontsize=options.fontsize,
-                        config=config
-                    )
-    fig.savefig("%d_%s" %(i, options.outfile), dpi=options.dpi)
 
+for i in range(len(spliced_data)):
+    fig = plot_logo(spliced_data[i][0],
+                    res_order,
+                    spliced_data[i][1],
+                    options.sv,
+                    colors,
+                    options.font,
+                    options.degeneracy)
+
+    # Save the logo as a PDF
+    plt.savefig("%d_%s" %(i, options.outfile),
+                format='pdf',
+                bbox_inches='tight',
+                dpi=options.dpi)

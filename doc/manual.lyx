@@ -3476,7 +3476,7 @@ status open
 
 \begin_layout Plain Layout
 
-ddg2logo -p 1D5R_clean_model0_checked.pdb 
+ddg2logo -p 1ju5_model0_checked.pdb 
 \end_layout
 
 \begin_layout Plain Layout
@@ -3491,12 +3491,12 @@ ddg2logo -p 1D5R_clean_model0_checked.pdb
 
 \begin_layout Plain Layout
 
--s 25 -D 300   
+-s 20 -D 300   
 \end_layout
 
 \begin_layout Plain Layout
 
--t 1.2
+-t 1.2 -cs charge
 \end_layout
 
 \end_inset
@@ -3561,7 +3561,7 @@ status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
-	filename 1_logo.png
+	filename 2_logo.pdf
 	lyxscale 55
 	scale 50
 
@@ -3599,13 +3599,11 @@ Logo plot obtained using ddg2logo.
 \end_layout
 
 \begin_layout Standard
-The user can also customize the logo plotting providing a configuration file in the yaml format with the -c option.
- The configiguration file contains the information about custom classes of residues (class,
- residues,
- color).
- The color info needs to be provided for each channel (RGB) with a number between 0 and 1.
- If a configuration file is provided,
- the residues are then plotted by class and in order of ∆∆G value.
+The user can also customize the logo plotting providing a configuration
+ file in the yaml format with the -c option, which is mutually exclusive
+ with the -cs option to select a color scheme.
+ The configuration file contains the information about the colors to be
+ used for the different residues.
  
 \end_layout
 
@@ -3621,181 +3619,102 @@ status open
 
 \begin_layout Plain Layout
 
-aromatic:
-     
+W: 'green' 
 \end_layout
 
 \begin_layout Plain Layout
 
-    residues:
-         
+F: 'green' 
 \end_layout
 
 \begin_layout Plain Layout
 
-        - W         
+Y: 'green' 
 \end_layout
 
 \begin_layout Plain Layout
 
-        - F         
+E: 'blue' 
 \end_layout
 
 \begin_layout Plain Layout
 
-        - Y     
+D: 'blue' 
 \end_layout
 
 \begin_layout Plain Layout
 
-    color:
- [0.7,
- 0.2,
- 0.7] 
+R: 'red'  
 \end_layout
 
 \begin_layout Plain Layout
 
-negatively_charged:
-     
+H: 'red' 
 \end_layout
 
 \begin_layout Plain Layout
 
-    residues:
-         
+K: 'red' 
 \end_layout
 
 \begin_layout Plain Layout
 
-        - E         
+I: 'black' 
 \end_layout
 
 \begin_layout Plain Layout
 
-        - D     
+V: 'black' 
 \end_layout
 
 \begin_layout Plain Layout
 
-    color:
- [0.0,
- 0.0,
- 1.0] 
+G: 'black' 
 \end_layout
 
 \begin_layout Plain Layout
 
-positively_charged:
-     
+A: 'black' 
 \end_layout
 
 \begin_layout Plain Layout
 
-    residues:
-         
+P: 'black' 
 \end_layout
 
 \begin_layout Plain Layout
 
-        - R         
+M: 'black'  
 \end_layout
 
 \begin_layout Plain Layout
 
-        - H         
+L: 'black' 
 \end_layout
 
 \begin_layout Plain Layout
 
-        - K     
+C: 'black' 
 \end_layout
 
 \begin_layout Plain Layout
 
-    color:
- [1.0,
- 0.0,
- 0.0]  
+N: 'black' 
 \end_layout
 
 \begin_layout Plain Layout
 
-others:
+Q: 'black' 
 \end_layout
 
 \begin_layout Plain Layout
 
-   residues:
-         
+S: 'black' 
 \end_layout
 
 \begin_layout Plain Layout
 
-        - I         
-\end_layout
-
-\begin_layout Plain Layout
-
-        - V         
-\end_layout
-
-\begin_layout Plain Layout
-
-        - G     
-\end_layout
-
-\begin_layout Plain Layout
-
-        - A         
-\end_layout
-
-\begin_layout Plain Layout
-
-        - P         
-\end_layout
-
-\begin_layout Plain Layout
-
-        - M 
-\end_layout
-
-\begin_layout Plain Layout
-
-        - L         
-\end_layout
-
-\begin_layout Plain Layout
-
-        - C         
-\end_layout
-
-\begin_layout Plain Layout
-
-        - N
-\end_layout
-
-\begin_layout Plain Layout
-
-        - Q         
-\end_layout
-
-\begin_layout Plain Layout
-
-        - S         
-\end_layout
-
-\begin_layout Plain Layout
-
-        - T 
-\end_layout
-
-\begin_layout Plain Layout
-
-    color:
- [0.0,
- 1.0,
- 1.0] 
+T: 'black'
 \end_layout
 
 \end_inset
@@ -3860,7 +3779,7 @@ status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
-	filename 2_logo.png
+	filename config_logo.pdf
 	lyxscale 55
 	scale 50
 
