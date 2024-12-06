@@ -5,7 +5,7 @@
 #                        Thilde Bagger Terkelsen <ThildeBT@gmail.com>
 #    Copyright (C) 2022, Matteo Tiberti, Thilde Bagger Therkelsen,
 #                        Matteo Arnaudi - Danish Cancer Society
-#
+#    Copyright (C) 2024, Matteo Tiberti, Kristine Degn - Danish Cancer Society
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -30,14 +30,13 @@ import os
 import signal
 import argparse
 import multiprocessing as mp
-import logging as log
 import shutil
 import re
-import numpy as np
 import tarfile as tar
 import platform
 import textwrap
 import csv
+from collections import defaultdict
 
 def init_arguments(arguments, parser):
     """
@@ -178,8 +177,8 @@ def parse_poslist_file(fname, unique_residues):
     ----------
     fname : str
         name of the file to be read
-    unique_residues : list collecting the 
-        unique residues contained in the input 
+    unique_residues : list collecting the
+        unique residues contained in the input
         pdb file
     Returns
     -------
@@ -410,65 +409,78 @@ def get_foldx_sequence(pdb, multimers=True):
     restypes : list of str
         list of single-letter residue types
     """
-
-    parser = PDB.PDBParser()
-
+    
+    #get the structure 
+    parser = PDB.PDBParser(QUIET=True)
+    
     try:
         structure = parser.get_structure("structure", pdb)
     except:
         log.error("couldn't read or parse your PDB file")
         raise IOError
 
-    residue_list = []
-    sequences = {}
-    positions = {}
+    #identify the models and any inconsistencies
+    models = list(structure.get_models())
+    if len(models) > 1:
+        log.warning("%d models are present in the input PDB file; only the first will be used." % len(models))
+    if len(models) < 1:
+        log.error("The input PDB file does not contain any model. Exiting ...")
+        raise IOError
 
-    for model in structure:
-        for chain in model:
-            chain_name = chain.get_id()
-            sequences[chain_name] = ''
-            positions[chain_name] = ''
-            for residue in chain:
-                try:
-                    res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
-                except:
-                    log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
-                    continue
-                if not multimers:
-                    residue_list.append(tuple(["%s%s%d" % (res_code, chain.get_id(), residue.get_id()[1])]))
-                else:
-                    sequences[chain_name] += res_code
-                    positions[chain_name] += f"{residue.get_id()[1]},"
+    #define the model from models, as len(models) should be == 1.
+    model = models[0]
+
+    #define empty list for residues (used for multimers) 
+    residue_list = []
+    #define empty dictionary for sequences (the amino acid sequence)
+    sequences = defaultdict(str)
+    #define empty dictionary for amino acid, position number, chain letter
+    chain_residues = defaultdict(list)
+
+    # Extract residues and sequences from chains
+    for chain in model:
+        chain_name = chain.get_id()
+        for residue in chain:
+            try:
+                res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+            except KeyError:
+                log.warning("Residue %s couldn't be recognized; it will be skipped" % residue)
+                continue
+
+            resid = residue.get_id()[1] #the position number
+            sequences[chain_name] += res_code #the one letter amino acid
+            chain_residues[chain_name].append((res_code, resid, chain_name)) #one letter amino acid, position number, chain letter
 
     if multimers:
-        collated_chains = []
-        seq_ids, seqs = list(zip(*list(iteritems(sequences))))
-        pos_ids, pos = list(zip(*list(iteritems(positions))))
-        seq_ids = np.array(seq_ids)
-        pos_ids = np.array(pos_ids)
+        #combine sequences and residue positions
+        chain_names = list(sequences.keys())
+    
+        #combined identifier: sequence + residue numbering
+        chain_residue_patterns = [ 
+            "_".join(f"{resid}_{res_code}" for res_code, resid, chain in chain_residues[chain_name]) 
+            for chain_name in chain_names ]
         
-        unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
-        unique_pos, unique_idxp = np.unique(pos, return_inverse=True)
+        #identify unique patterns and group chains
+        unique_patterns, unique_idxs = np.unique(chain_residue_patterns, return_inverse=True)
+
+        grouped_chains = defaultdict(list)
+        for idx, chain_name in zip(unique_idxs, chain_names):
+            grouped_chains[idx].append(chain_name)
         
-        if not (unique_idxs == unique_idxp).all():
-            log.warning("Input amino acid sequence and input position sequence is not identical in multimer.")
-            raise ValueError("The supplied PDB files must have identical positions of sequences")
-
-        for i in np.unique(unique_idxs):
-            collated_chains.append(seq_ids[unique_idxs == i])
-
-        for cg in collated_chains:
-            for model in structure:
-                for residue in model[cg[0]]:
-                    resid = residue.get_id()[1]
-                    try:
-                        res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
-                    except:
-                        log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
-                        continue
-
-                    this_res = tuple(sorted([ "%s%s%d" % (res_code, c, resid) for c in cg ], key=lambda x: x[1]))
-                    residue_list.append(this_res)
+        #process multimer chains
+        for group_idx, chain_group in grouped_chains.items():
+            for resid_idx in range(len(chain_residues[chain_group[0]])):
+                group_residues = []
+                for chain_name in chain_group:
+                    res_code, resid, chain = chain_residues[chain_name][resid_idx]
+                    group_residues.append(f"{res_code}{chain}{resid}")
+                group_residues = tuple(sorted(group_residues))
+                residue_list.append(group_residues)
+    else:
+        #process residues independently
+        for chain_name, residues in chain_residues.items():
+            for res_code, resid, chain in residues:
+                residue_list.append(tuple([f"{res_code}{chain}{resid}"]))
 
     return tuple(residue_list)
 
@@ -855,4 +867,3 @@ def termination_handler(signalnum, handler):
     log.info("Received termination signal - mutatex will be stopped")
     log.shutdown()
     sys.exit(-1)
-
