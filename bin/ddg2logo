@@ -101,7 +101,7 @@ def plot_logo(array,reslist,xlabels,splice,color_scheme,font,degeneracy):
     fig.ax.set_xticks(tick_positions)
 
     # style using Axes methods
-    fig.ax.set_ylabel("modified FoldX $\Delta \Delta G$ (kcal/mol)", labelpad=-1)
+    fig.ax.set_ylabel(r"modified FoldX $\Delta \Delta G$ (kcal/mol)", labelpad=-1)
 
     return fig
 
