@@ -99,7 +99,7 @@ def get_font_list(return_as_string=True):
             names.append(name)
         except:
             pass
-    if type(names) is not str:
+    if not return_as_string:
         return names
     return textwrap.fill(", ".join(sorted(list(set(names)))), width=69)
 
