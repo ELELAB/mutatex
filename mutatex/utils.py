@@ -23,6 +23,7 @@ import numpy as np
 import logging as log
 from six import iteritems
 from Bio import PDB
+from Bio.Data.PDBData import protein_letters_3to1, protein_letters_1to3
 from multiprocessing.pool import ThreadPool
 import matplotlib
 import sys
@@ -86,21 +87,31 @@ def init_arguments(arguments, parser):
 
     return parser
 
-def get_font_list(str=True):
-
-    flist = matplotlib.font_manager.get_fontconfig_fonts()
-    names = [ matplotlib.font_manager.FontProperties(fname=fname).get_name() for fname in flist ]
-    if not str:
+def get_font_list(return_as_string=True):
+    try:
+        flist = matplotlib.font_manager.findSystemFonts()
+    except AttributeError:
+        flist = matplotlib.font_manager._get_fontconfig_fonts()
+    names = []
+    for fname in flist:
+        try:
+            name = matplotlib.font_manager.FontProperties(fname=fname).get_name()
+            names.append(name)
+        except:
+            pass
+    if not return_as_string:
         return names
     return textwrap.fill(", ".join(sorted(list(set(names)))), width=69)
+
 
 def set_default_font(font):
     available_fonts = get_font_list()
     if font not in available_fonts:
-        raise NameError
+        raise NameError(f"Font '{font}' is not available. Available fonts: {', '.join(available_fonts)}")
 
     matplotlib.rcParams['font.family'] = 'sans-serif'
-    matplotlib.rcParams['font.sans-serif'] = [ font ]
+    matplotlib.rcParams['font.sans-serif'] = [font]
+    log.info(f"Default font set to {font}.")
 
 def parse_label_file(csv_fname, fnames, default_labels):
     if sys.version_info[0] <= 2:
@@ -356,7 +367,7 @@ def get_residue_list(infile, multimers=True, get_structure=False):
         sequences[chain_name] = ''
         for residue in chain:
             try:
-                res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                res_code = protein_letters_3to1[residue.get_resname()]
             except:
                 log.warning("Residue %s couldn't be recognized; it will be skipped" % residue )
                 continue
@@ -378,7 +389,7 @@ def get_residue_list(infile, multimers=True, get_structure=False):
             for residue in model[cg[0]]:
                 resid = residue.get_id()[1]
                 try:
-                    res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                    res_code = protein_letters_3to1[residue.get_resname()]
                 except:
                     log.warning("Residue %s couldn't be recognized; it will be skipped" % residue)
                     continue
@@ -442,7 +453,7 @@ def get_foldx_sequence(pdb, multimers=True):
         chain_name = chain.get_id()
         for residue in chain:
             try:
-                res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                res_code = protein_letters_3to1[residue.get_resname()]
             except KeyError:
                 log.warning("Residue %s couldn't be recognized; it will be skipped" % residue)
                 continue
