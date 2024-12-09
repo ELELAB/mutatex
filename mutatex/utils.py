@@ -367,7 +367,6 @@ def get_residue_list(infile, multimers=True, get_structure=False):
         sequences[chain_name] = ''
         for residue in chain:
             try:
-                #res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
                 res_code = protein_letters_3to1[residue.get_resname()]
             except:
                 log.warning("Residue %s couldn't be recognized; it will be skipped" % residue )
@@ -390,7 +389,6 @@ def get_residue_list(infile, multimers=True, get_structure=False):
             for residue in model[cg[0]]:
                 resid = residue.get_id()[1]
                 try:
-                    #res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
                     res_code = protein_letters_3to1[residue.get_resname()]
                 except:
                     log.warning("Residue %s couldn't be recognized; it will be skipped" % residue)
@@ -455,7 +453,6 @@ def get_foldx_sequence(pdb, multimers=True):
         chain_name = chain.get_id()
         for residue in chain:
             try:
-                #res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
                 res_code = protein_letters_3to1[residue.get_resname()]
             except KeyError:
                 log.warning("Residue %s couldn't be recognized; it will be skipped" % residue)
