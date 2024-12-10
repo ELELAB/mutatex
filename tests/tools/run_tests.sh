@@ -12,17 +12,18 @@ if [[ ! -d $BASEDIR/results ]]; then
 	exit
 fi
 
-export tools=(ddg2density ddg2dg ddg2distribution ddg2histo pdb2labels ddg2logo ddg2heatmap ddg2pdb ddg2summary ddg2excel)
+export tools=(ddg2density ddg2dg ddg2distribution ddg2histo pdb2labels ddg2logo ddg2heatmap ddg2pdb ddg2summary ddg2excel ddg2pca)
 export options=("-l $MUTLIST -d $RESULTS"
 "-d $RESULTS"
 "-l $MUTLIST -d $RESULTS -T box"
 "-l $MUTLIST -d $RESULTS -r QA11"
 ""
-"-l $MUTLIST -d $RESULTS"
+"-l $MUTLIST -d $RESULTS -t 1.0"
 "-l $MUTLIST -d $RESULTS"
 "-l $MUTLIST -d $RESULTS" 
 "-l $MUTLIST -d $RESULTS -L mutations.txt"
-"-l $MUTLIST -d $RESULTS")
+"-l $MUTLIST -d $RESULTS"
+"-l $MUTLIST -d $RESULTS" )
 
 for t in "${!tools[@]}"; do
 	echo -n "now running " ${tools[$t]} $BASEOPT ${options[$t]}

@@ -376,16 +376,15 @@ def get_residue_list(infile, multimers=True, get_structure=False):
             collated_chains.append(seq_ids[unique_idxs == i])
 
         for cg in collated_chains:
-            for model in structure:
-                for residue in model[cg[0]]:
-                    resid = residue.get_id()[1]
-                    try:
-                        res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
-                    except:
-                        log.warning("Residue %s couldn't be recognized; it will be skipped" % residue)
-                        continue
-                    this_res = tuple(sorted([ "%s%s%d" % (res_code, c, resid) for c in cg ], key=lambda x: x[1]))
-                    residue_list.append(this_res)
+            for residue in model[cg[0]]:
+                resid = residue.get_id()[1]
+                try:
+                    res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
+                except:
+                    log.warning("Residue %s couldn't be recognized; it will be skipped" % residue)
+                    continue
+                this_res = tuple(sorted([ "%s%s%d" % (res_code, c, resid) for c in cg ], key=lambda x: x[1]))
+                residue_list.append(this_res)
 
     if get_structure:
         return residue_list, structure
@@ -395,7 +394,6 @@ def get_residue_list(infile, multimers=True, get_structure=False):
 ########################################
 # Helper functions for the main script #
 ########################################
-
 
 def get_foldx_sequence(pdb, multimers=True):
     """
@@ -412,7 +410,9 @@ def get_foldx_sequence(pdb, multimers=True):
     restypes : list of str
         list of single-letter residue types
     """
+
     parser = PDB.PDBParser()
+
     try:
         structure = parser.get_structure("structure", pdb)
     except:
@@ -421,10 +421,13 @@ def get_foldx_sequence(pdb, multimers=True):
 
     residue_list = []
     sequences = {}
+    positions = {}
+
     for model in structure:
         for chain in model:
             chain_name = chain.get_id()
             sequences[chain_name] = ''
+            positions[chain_name] = ''
             for residue in chain:
                 try:
                     res_code = PDB.Polypeptide.three_to_one(residue.get_resname())
@@ -435,12 +438,21 @@ def get_foldx_sequence(pdb, multimers=True):
                     residue_list.append(tuple(["%s%s%d" % (res_code, chain.get_id(), residue.get_id()[1])]))
                 else:
                     sequences[chain_name] += res_code
+                    positions[chain_name] += f"{residue.get_id()[1]},"
 
     if multimers:
         collated_chains = []
         seq_ids, seqs = list(zip(*list(iteritems(sequences))))
+        pos_ids, pos = list(zip(*list(iteritems(positions))))
         seq_ids = np.array(seq_ids)
+        pos_ids = np.array(pos_ids)
+        
         unique_seqs, unique_idxs = np.unique(seqs, return_inverse=True)
+        unique_pos, unique_idxp = np.unique(pos, return_inverse=True)
+        
+        if not (unique_idxs == unique_idxp).all():
+            log.warning("Input amino acid sequence and input position sequence is not identical in multimer.")
+            raise ValueError("The supplied PDB files must have identical positions of sequences")
 
         for i in np.unique(unique_idxs):
             collated_chains.append(seq_ids[unique_idxs == i])
@@ -454,6 +466,7 @@ def get_foldx_sequence(pdb, multimers=True):
                     except:
                         log.warning("Residue %s in file %s couldn't be recognized; it will be skipped" %(residue, pdb))
                         continue
+
                     this_res = tuple(sorted([ "%s%s%d" % (res_code, c, resid) for c in cg ], key=lambda x: x[1]))
                     residue_list.append(this_res)
 
@@ -842,3 +855,4 @@ def termination_handler(signalnum, handler):
     log.info("Received termination signal - mutatex will be stopped")
     log.shutdown()
     sys.exit(-1)
+

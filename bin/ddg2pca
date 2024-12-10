@@ -1,0 +1,415 @@
+#! /usr/bin/env python
+#    ddg2pca: performs PCA on the DDG MutateX results and plots the first two principal components and the explained variance.
+#    Copyright (C) 2015, 2022, 2023 Matteo Tiberti <matteo.tiberti@gmail.com>, Álvaro Gutiérrez León <alvaroguleon@gmail.com>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import argparse
+from Bio import PDB
+from six import iteritems
+import numpy as np
+import logging as log
+import openpyxl as pyxl
+from mutatex.utils import *
+import yaml
+from yaml import SafeLoader
+import matplotlib
+matplotlib.use('Agg')
+matplotlib.rcParams['savefig.format'] = 'pdf'
+from matplotlib import pyplot as plt
+from adjustText import adjust_text
+import sys
+
+description = 'ddg2pca: performs a PCA of the the average values from a MutateX DDG scan and plots the first two principal components'
+epilog = """ddg2pca performs a PCA of the the average values from a MutateX DDG and plots the first two principal components.
+Optional Option -g, --group_selection chooses a subset of residues to plot based on residue class (hydrophobic, polar, basic, acidic or aromatic),
+by default all are shown. The grouping and color of the residues can be changed by means of a configuration file, -c --config.
+With option -y, --loadings, the user can also visualise as arrows the PCA loadings in the plot.
+
+By default, all residues as well as their labels are plotted, but option -z, --scater allows to obtain just the scatter plot.
+In addition, the user can specify the residues to be visualized with the option -q --position_list, and it is also possible to
+filter the labels that should be plotted with -t --text-list. Finally, the data is by default scaled prior to PCA,
+but this can be disabled using th option -u, --unscale.
+"""
+
+def filter_by_group(data, group_dict, desired_group):
+    """
+    Filters the data based on the desired group.
+
+    Parameters:
+    - data: The list to be filtered.
+    - group_dict: Dictionary mapping indices to groups.
+    - desired_group: The group(s) to filter by.
+
+    Returns:
+    - Filtered list.
+    """
+    # If the desired group is "all", return the original data.
+    if desired_group.lower() == "all":
+        return data
+
+    # If multiple groups are provided, split them.
+    desired_groups = [group.strip().capitalize() for group in desired_group.split(",")]
+
+    # Get the indices that belong to the desired group.
+    valid_indices = [index for index, group in group_dict.items() if any(desired in group for desired in desired_groups)]
+
+    # Filter the data based on the valid indices, but also ensure the index is within the bounds of the data list.
+    return [data[i] for i in valid_indices if i < len(data)]
+
+
+def perform_pca(data):
+    if options.unscale:
+        U, S, Vt = np.linalg.svd(data[:, 1:].astype(float), full_matrices=False)
+    else:
+        data_scaled = (data[:, 1:].astype(float) - np.mean(data[:, 1:].astype(float), axis=0)) / np.std(data[:, 1:].astype(float), axis=0)
+        U, S, Vt = np.linalg.svd(data_scaled, full_matrices=False)
+
+    pca_data = U * S
+    pca_df = pca_data
+
+    variance_ratio = S**2 / np.sum(S**2)
+
+    if options.loadings:
+        loadings = Vt
+    else:
+        loadings = None
+
+    return pca_df, variance_ratio, loadings
+
+def plot_biplot(pca_df, labels, residue_grouping, color_map, variance_ratio, text_list=None, loadings=None, title=None):
+    fig, ax = plt.subplots()
+
+    residue_texts = []  # list for texts related to residues
+    loading_texts = []  # list for texts related to loadings
+
+    if options.scatter:
+        for point, label, group in zip(pca_df, labels, residue_grouping):
+            ax.scatter(point[0], point[1], color=color_map[group], s=10)
+    else:
+        for point, label, group in zip(pca_df, labels, residue_grouping):
+            ax.scatter(point[0], point[1], color=color_map[group], s=10)
+
+            offset = 0.05
+
+            if text_list is not None:
+                # Only label points whose labels are in the text_list
+                if (label,) in text_list or label in text_list: # bugfix multimers: the double condition should account for textlists coming from single and multiple chains
+                    residue_texts.append(ax.text(point[0], point[1] - offset, label, color="white", va="top", ha="center", weight='bold',
+                                        bbox=dict(alpha=1, facecolor=color_map[group], edgecolor='black', boxstyle='round,pad=0.2')))
+            else:
+                ax.text(point[0], point[1] - offset, label, color=color_map[group], va="top", ha="center")
+
+    if loadings is not None:
+        pca_range = np.ptp(pca_df[:, :2], axis=0)
+        scale_factor = np.mean(pca_range) / 1.5
+        loadings_scaled = loadings * scale_factor
+        for i in range(loadings_scaled.shape[1]):
+            ax.arrow(0, 0, loadings_scaled[0, i], loadings_scaled[1, i], color='black', alpha=0.5, zorder=4, head_width=0.5, head_length=0.3)
+            loading_texts.append(ax.text(loadings_scaled[0, i], loadings_scaled[1, i], column_headers[i+1], size=10, alpha=1, color='blue', ha='center', va='center', zorder=5))
+
+    # Adjust positions of the labels
+    if residue_texts:
+        adjust_text(residue_texts, force_points=0.05, force_text=0.05, expand_points=(0.5,0.5), expand_text=(0.5,0.5), arrowprops=dict(arrowstyle="-", color='black', lw=0.5))
+    if loading_texts:
+        adjust_text(loading_texts, force_points=0.05, force_text=0.05, expand_points=(0.5,0.5), expand_text=(0.5,0.5), arrowprops=dict(arrowstyle="-", color='black', lw=0.5))
+
+    ax.axhline(0, color='grey', linestyle='dashed', alpha=0.5)
+    ax.axvline(0, color='grey', linestyle='dashed', alpha=0.5)
+
+    # Legend
+    legend_labels = {group: plt.Line2D([0], [0], color=color_map[group], marker='o', linestyle='', label=group) for group in set(residue_grouping)}
+    ax.legend(legend_labels.values(), legend_labels.keys(), title='Residue Type')
+
+    ax.set_xlabel(f'PC1 ({variance_ratio[0]*100:.2f}% variance explained)')
+    ax.set_ylabel(f'PC2 ({variance_ratio[1]*100:.2f}% variance explained)')
+    plt.title(title)
+    plt.tight_layout()
+
+def plot_scree(variance_ratio):
+    plt.figure(figsize=(8, 6))
+
+    # Calculate cumulative variance explained
+    cumulative_variance = np.cumsum(variance_ratio) * 100
+
+    plt.plot(range(1, min(11, len(variance_ratio) + 1)), cumulative_variance[:min(10, len(variance_ratio))], marker='o', color='red', label='Cumulative')
+
+    bars = plt.bar(range(1, min(11, len(variance_ratio) + 1)), (variance_ratio * 100)[:min(10, len(variance_ratio))], label='Individual PC')
+
+    plt.xlabel('Principal Component')
+    plt.ylabel('Variance Explained (%)')
+    plt.title('Variance Explained by Principal Components')
+    plt.xticks(range(1, min(11, len(variance_ratio) + 1)))  # Only display up to 10 PCs
+
+    # Add text labels on top of each bar
+    for bar, var_ratio in zip(bars, variance_ratio[:min(10, len(variance_ratio))]):
+        plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height(), f'{var_ratio*100:.2f}%', ha='center', va='bottom', fontsize=10)
+
+    plt.legend()
+    plt.tight_layout()
+
+
+LOGFMT = "%(levelname)s: %(message)s"
+
+parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
+optional = parser._action_groups.pop()
+required = parser.add_argument_group('required arguments')
+
+required = init_arguments(['pdb', 'data', 'mutation_list'], required)
+optional = init_arguments(['multimers', 'position_list', 'title'], optional)
+
+optional.add_argument("-o","--output", dest="name_outfile", action='store', default='pca', help="output file name (default: pca.pdf)")
+optional.add_argument("-g","--group", dest="group_selection", action='store', default='all', help="Residues of a specific group to be analysed with PCA (default: all)")
+optional.add_argument("-c","--config", dest="config_file", action='store', default=None, help="Configuration file with the custom grouping and color of residues")
+optional.add_argument("-t","--text-list", dest="text_list", action="store", default=None, help="List of residues to display as text")
+optional.add_argument("-y","--loadings", dest="loadings", action="store_true", help="Display the loadings in the plot")
+optional.add_argument("-z","--scatter", dest="scatter", action="store_true", help="Do not show any labels in the plot")
+optional.add_argument("-u","--unscaled", dest="unscale", action="store_true",help="Do not scale the data prior to PCA")
+optional.add_argument("-w","--warnings", dest="warnings", action="store_true", help="Suppress all warnings.")
+
+optional = init_arguments(['labels', 'verbose'], optional)
+
+parser._action_groups.append(optional)
+options = parser.parse_args()
+
+if options.verbose:
+    log.basicConfig(level=log.INFO,    format=LOGFMT)
+else:
+    log.basicConfig(level=log.WARNING, format=LOGFMT)
+
+if options.warnings:
+    import warnings
+    warnings.filterwarnings('ignore')
+    log.getLogger().setLevel(log.ERROR)  # Suppress all messages of lower severity than ERROR
+
+print("Processing the input data...")
+
+### Mutation list parsing
+try:
+    res_order = parse_mutlist_file(options.mutation_list)
+except (IOError, TypeError):
+    exit(1)
+
+log.info("Mutation list is:")
+for i,r in enumerate(res_order):
+    log.info("%d\t%s" % (i,r))
+
+### PDB parsing
+try:
+    res_ids_str = get_residue_list(options.in_pdb, multimers=options.multimers)
+
+except IOError:
+    exit(1)
+
+### Position list parsing
+if options.position_list is not None:
+    log.info("Positions will be read from file")
+    try:
+        poslist = parse_poslist_file(options.position_list, res_ids_str)
+
+    except (IOError, TypeError):
+        exit(1)
+
+    res_ids_str = filter_reslist(res_ids_str, poslist)
+
+### Textlist parsing - same mechanism as poslist
+if options.text_list:
+    log.info("Text list will be read from file")
+    try:
+        textlist = parse_poslist_file(options.text_list, res_ids_str)
+
+    except (IOError, TypeError):
+        exit(1)
+
+    textlist = filter_reslist(res_ids_str, textlist)
+
+    # Determine if textlist items are single strings or tuples
+    is_single_chain = len(textlist[0]) == 1 # textlist items are single strings or tuples
+
+else:
+    textlist = None
+
+### Label parsing
+fnames = ["_".join(r) for r in res_ids_str]
+res_id_labels = [" ".join(r) for r in res_ids_str]
+
+if options.labels:
+    try:
+        labels = parse_label_file(options.labels, fnames, res_id_labels)
+    except:
+        exit(1)
+else:
+    labels = res_id_labels
+
+# Updating the names in textlist based on the labels provided Bugfix multimers
+if textlist is not None:
+    # Create a mapping from res_id_labels to labels
+    if is_single_chain:
+        # Current mapping for single strings
+        label_mapping = dict(zip(res_id_labels, labels))
+
+        # Update the values in textlist using the mapping
+        textlist = [(label_mapping[residue[0]],) if residue[0] in label_mapping else residue for residue in textlist]
+    else:
+        # Adjust mapping for tuples
+        tuple_keys = [tuple(label.split()) for label in res_id_labels]
+        label_mapping = dict(zip(tuple_keys, labels))
+
+        # Adjust the updating for tuples
+        textlist = [label_mapping.get(residue, residue) for residue in textlist]
+
+### Processing the config file
+if options.config_file:
+    try:
+        with open(options.config_file) as f:
+            config = yaml.load(f, Loader=SafeLoader)
+    except:
+        log.error("Couldn't open or parse config file. Exiting...")
+        exit(1)
+
+else:
+    config = {'Aromatic': {'residues': ['F', 'W', 'Y'], 'color': (0.00, 0.45, 0.70)},
+              'Acidic': {'residues': ['D', 'E'], 'color': (0.00, 0.62, 0.45)},
+              'Basic': {'residues': ['K', 'R'], 'color': (0.94, 0.89, 0.26)},
+              'Polar': {'residues': ['C', 'N', 'Q', 'S', 'T', 'H'], 'color': (0.90, 0.62, 0.00)},
+              'Hydrophobic': {'residues': ['A', 'G', 'I', 'L', 'M', 'P', 'V'], 'color': (0.34, 0.71, 0.91)}}
+
+#initialize dictionary with residues indeces from mutlist as
+#keys and color as values
+pos_dic={}
+
+# Build the pos_dic with residues indices from mutlist as
+# keys and another dictionary (with group name from config as key and color as value) as values
+for group, details in config.items():
+    for aa in res_ids_str:
+        if aa in details['residues'] or aa[0] in details['residues'] or aa[0][0] in details['residues']: #bugfix for single residue labeling
+            index = res_ids_str.index(aa)
+            pos_dic[index] = {group: details['color']}
+
+# Get color and group for plotting purposes
+color_dict = {}
+for k, v in pos_dic.items():
+    for group, color in v.items():
+        color_dict[group] = color
+
+try:
+    # Extracting the group for each label and putting it in a list
+    residue_grouping = [list(pos_dic[i].keys())[0] for i in range(len(res_id_labels))]
+except Exception:
+    log.error("Parsing of configuration file failed. Please, check that all residues have been assigned to a group.")
+    exit(1)
+
+# Converting the list to a numpy array
+residue_grouping = np.array(residue_grouping)
+
+### Group processing
+options_group = options.group_selection #change name of residue nature
+
+# Filter res_ids_str and labels using indices.
+filtered_res_ids_str = filter_by_group(res_ids_str, pos_dic, options_group)
+
+if not filtered_res_ids_str:  # If the user prompts a group which does not exist, the list will be empty and an error returned
+    print("ERROR: The provided group filters did not return any residues. This can happen due to one of the following reasons:")
+    print("1. The provided groups are not correctly spelled or formatted.")
+    print("2. The groups do not exist in the configuration file you provided or in the default configuration.")
+    print("Please double-check the group names and the configuration file, and try again.")
+    sys.exit(1)
+
+filtered_labels = filter_by_group(labels, pos_dic, options_group)
+filtered_residue_grouping = filter_by_group(residue_grouping, pos_dic, options_group)
+
+# Determine which labels were removed.
+removed_labels = set(labels) - set(filtered_labels)
+
+if textlist is not None:
+    # Remove the same labels from textlist.
+    filtered_textlist = [label for label in textlist if label[0] not in removed_labels]
+else:
+    filtered_textlist = None
+
+print("Generating the ΔΔG data...")
+data = []
+log.info("The following files will be considered: %s" % ", ".join(fnames))
+for i,f in enumerate(fnames):
+    try:
+        # Convert the data to float as it's loaded
+        data.append(np.array(parse_ddg_file("%s%s" % (options.ddg_dir, f), reslist=res_order, )).astype(float))
+    except (IOError, TypeError, ValueError):
+        log.error("Failed to read input file %s%s" % (options.ddg_dir, f))
+        exit(1)
+
+
+csv_table = np.asarray(["WT residue type", "chain ID", "Residue #"])
+
+for i,r in enumerate(res_order):
+    csv_table = np.append(csv_table, r)
+
+
+for i, resset in enumerate(filtered_res_ids_str):
+    chain = ["".join([res[1] for res in resset])]
+
+    lines = np.append(resset[0][2:], data[i])
+    lines = np.append(chain, lines)
+    lines = np.append(resset[0][0], lines)
+    csv_table = np.vstack((csv_table, lines))
+
+
+column_headers = csv_table[0]
+column_headers = np.concatenate((np.array(["Residue_label"]), column_headers[3:]))
+data = csv_table[1:]
+
+
+# Combining the first three columns into one (ojo)
+combined_column = np.core.defchararray.add(np.core.defchararray.add(data[:,0], data[:,1]), data[:,2])
+combined_column = combined_column.reshape(-1, 1)  # reshape to 2D column vector
+
+# Now delete the first three columns
+data = np.delete(data, [0,1,2], axis=1)
+
+# Concatenate the combined_column with the modified array
+data = np.hstack((combined_column, data))
+
+# Replacing the res_str in the data by the corresponding labels
+for i, label in enumerate(filtered_labels):
+    data[i, 0] = label
+
+
+print("Performing Principal Component Analysis...")
+pca_df, variance_ratio, loadings = perform_pca(data)
+
+print("Plotting the first two principal components...")
+plot_biplot(pca_df,
+            filtered_labels,
+            filtered_residue_grouping,
+            color_dict,
+            variance_ratio,
+            filtered_textlist,
+            loadings,
+            options.title)
+
+if options.name_outfile == "pca":
+    plt.savefig(options.name_outfile)
+    plt.clf()
+else:
+    plt.savefig("%s_%s" %("pca", options.name_outfile))
+
+print("Plotting the scree plot...")
+plot_scree(variance_ratio=variance_ratio)
+plt.savefig("%s_%s" %("scree", options.name_outfile))
+plt.clf()
+
+print("Saving the PC coordinates and explained variance...")
+np.savetxt(f"PC_coordinates.csv", pca_df, delimiter=",", fmt='%s')
+np.savetxt(f"PC_explained_variance.csv", variance_ratio, delimiter=",", fmt='%s')
+print("Done!")

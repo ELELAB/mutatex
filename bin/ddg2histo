@@ -83,8 +83,9 @@ def parse_residues(residues, fnames, single_res_ids):
                 log.error("Selection: '%s' invalid residue format. Exiting..." %(residue))
                 exit(1)
 
-            match = [s for s in fnames if residue in s]
-            if(len(match) == 1):
+            match = [s for s in fnames if residue == s]
+            assert len(match) == 1 or len(match) == 0
+            if len(match) == 1:
                 selections += match
                 log.info("Pdb file matched single residue %s" % (residue))
             else:

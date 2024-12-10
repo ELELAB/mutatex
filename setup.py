@@ -36,9 +36,11 @@ setup(
               'bin/ddg2summary'],
 
     install_requires=[ 'biopython',
-                       'matplotlib>=3.4.3',
-		       'numpy>=1.21.0',
-                       'scipy>=1.6.3',
+                       'matplotlib',
+                       'numpy',
+                       'pandas',
+                       'logomaker',
+                       'scipy',
                        'six',
                        'openpyxl',
                        'pyyaml',
@@ -52,4 +54,3 @@ setup(
     keywords="foldx energy mutation",
     url="https://github.com/ELELAB/mutatex",
 )
-
