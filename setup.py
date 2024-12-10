@@ -54,3 +54,4 @@ setup(
     keywords="foldx energy mutation",
     url="https://github.com/ELELAB/mutatex",
 )
+
