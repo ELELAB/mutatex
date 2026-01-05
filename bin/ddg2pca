@@ -240,7 +240,7 @@ else:
 
 ### Label parsing
 fnames = ["_".join(r) for r in res_ids_str]
-res_id_labels = [", ".join(r) for r in res_ids_str]
+res_id_labels = [" ".join(r) for r in res_ids_str]
 
 if options.labels:
     try:
