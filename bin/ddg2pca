@@ -208,7 +208,6 @@ for i,r in enumerate(res_order):
 ### PDB parsing
 try:
     res_ids_str = get_residue_list(options.in_pdb, multimers=options.multimers)
-
 except IOError:
     exit(1)
 
@@ -217,7 +216,6 @@ if options.position_list is not None:
     log.info("Positions will be read from file")
     try:
         poslist = parse_poslist_file(options.position_list, res_ids_str)
-
     except (IOError, TypeError):
         exit(1)
 
@@ -242,7 +240,7 @@ else:
 
 ### Label parsing
 fnames = ["_".join(r) for r in res_ids_str]
-res_id_labels = [" ".join(r) for r in res_ids_str]
+res_id_labels = [", ".join(r) for r in res_ids_str]
 
 if options.labels:
     try:

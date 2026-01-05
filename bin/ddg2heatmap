@@ -173,13 +173,8 @@ if options.position_list is not None:
 
     res_ids_str = filter_reslist(res_ids_str, poslist)
 
-if options.multimers:
-    fnames = ["_".join(r) for r in res_ids_str]
-    res_id_labels = [", ".join(r) for r in res_ids_str]
-else:
-    fnames = res_ids_str
-    res_id_labels = res_ids_str
-
+fnames = ["_".join(r) for r in res_ids_str]
+res_id_labels = [", ".join(r) for r in res_ids_str]
 
 #Assign custom residue labels
 if options.labels:
