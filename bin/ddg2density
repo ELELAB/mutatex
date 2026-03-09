@@ -53,10 +53,7 @@ def get_ddg_data(residue_list, mutation_list, ddg_dir):
 
     data = []
 
-    if options.multimers:
-        res_ids_str = ["_".join(r) for r in residue_list]
-    else:
-        res_ids_str = residue_list
+    res_ids_str = ["_".join(r) for r in residue_list]
 
     res_restypes = [r[0][0] for r in residue_list]
 
