@@ -171,10 +171,7 @@ stds = []
 res_ids_str = get_residue_list(options.in_pdb, multimers=options.multimers)
 single_res_ids = get_residue_list(options.in_pdb, multimers=False)
 
-if options.multimers:
-    fnames = ["_".join(r) for r in res_ids_str]
-else:
-    fnames = res_ids_str
+fnames = ["_".join(r) for r in res_ids_str]
 
 #Parse residue selection
 try:
