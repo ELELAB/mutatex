@@ -24,12 +24,6 @@ from Bio import PDB
 from mutatex.utils import *
 import numpy as np
 
-def seq_to_res(seq):
-    if options.multimers:
-        return "_".join(seq)
-    else:
-        return seq
-
 LOGFMT = "%(levelname)s: %(message)s"
 
 cmaps_list = [m for m in cm.datad if not m.endswith("_r")]
@@ -105,7 +99,7 @@ else:
         exit(1)
 
 for res in foldx_sequence:
-    resname = seq_to_res(res)
+    resname = "_".join(res)
     out_fname = "%s/%s" % (options.outdir, resname)
 
     try:
